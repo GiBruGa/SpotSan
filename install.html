@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Installer PointSan Mobile</title>
+<style>
+  :root{
+    --bg:#0B1416; --panel:#142326; --panel2:#1C3236; --ink:#E8F1F2; --ink-dim:#9FB4B9;
+    --accent:#A5345D; --line:#2A4045; --brand-dark:#540E28;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:"Aptos","Aptos Display","Segoe UI",-apple-system,Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:420px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 28px) 20px 40px}
+  .logo{display:block;width:76px;height:76px;object-fit:contain;margin:0 auto 14px}
+  h1{font-size:18px;text-align:center;margin:0 0 4px}
+  .sub{font-size:12.5px;color:var(--ink-dim);text-align:center;margin:0 0 26px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px}
+  .card h2{font-size:13px;margin:0 0 12px;color:var(--ink)}
+  .card ol{margin:0;padding-left:20px;font-size:13.5px;line-height:1.7;color:var(--ink)}
+  .card ol li{margin-bottom:4px}
+  .note{font-size:11.5px;color:var(--ink-dim);margin-top:10px;line-height:1.5}
+  .btn{display:block;width:100%;text-align:center;padding:13px;border-radius:10px;border:none;font-size:14px;font-weight:bold;cursor:pointer;text-decoration:none;font-family:inherit}
+  .btn-primary{background:var(--brand-dark);color:#fff;margin-top:6px}
+  .btn-secondary{background:var(--panel2);color:var(--ink);border:1px solid var(--line);margin-top:12px}
+  .os-badge{display:inline-block;font-size:10.5px;padding:2px 9px;border-radius:20px;background:var(--panel2);color:var(--ink-dim);margin:0 auto 18px;text-align:center}
+  .os-badge-wrap{text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img class="logo" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4NCjwhLS0gR2VuZXJhdG9yOiBBZG9iZSBJbGx1c3RyYXRvciAxNS4xLjAsIFNWRyBFeHBvcnQgUGx1Zy1JbiAuIFNWRyBWZXJzaW9uOiA2LjAwIEJ1aWxkIDApICAtLT4NCjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+DQo8c3ZnIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiDQoJIHdpZHRoPSIzNzMuOTUzcHgiIGhlaWdodD0iMzgwLjYycHgiIHZpZXdCb3g9IjAgMCAzNzMuOTUzIDM4MC42MiIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgMzczLjk1MyAzODAuNjIiDQoJIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPGcgaWQ9IkxvZ28iPg0KPC9nPg0KPGcgaWQ9Ikljb25lIj4NCgk8cGF0aCBmaWxsPSIjRkZGRkZGIiBkPSJNMzYwLjM5LDEyOC4wNmM2LjA4LDEwLjUyLDYuMDgsMjMuNDksMCwzNC4wMUwyNDkuMjMsMzU0LjYxYy02LjA3LDEwLjUzLTE3LjMsMTcuMDEtMjkuNDYsMTcuMDFIMTExLjc2DQoJCWMtMTIuMTUsMC0yMy4zOC02LjQ3OS0yOS40Ni0xNy4wMWwtNjEuMzctMTA2LjNjLTQuNTYtNy44OS00LjU2LTE3LjYyLDAtMjUuNTFMMTMyLjA5LDMwLjI2YzQuNTYtNy44OSwxMi45OC0xMi43NSwyMi4wOS0xMi43NQ0KCQloMTIyLjc1YzEyLjE1LDAsMjMuMzgsNi40OCwyOS40NiwxN0wzNjAuMzksMTI4LjA2eiBNMjU3LjMzLDE1Ni4yOWM0LjctMzguODUtMjIuOTktNzQuMTYtNjEuODUtNzguODUNCgkJYy0zOC44NS00LjctNzQuMTYsMjIuOTktNzguODYsNjEuODVjLTAuNjgsNS42NC0wLjY4LDExLjM2LDAsMTdjNi4yOCw1MS45MSwyNi43OCwxMDEuMDYsNTkuMjUsMTQyLjAzDQoJCWM0Ljg2LDYuMTQxLDEzLjc4LDcuMTcsMTkuOTEsMi4zMTFjMC44Ni0wLjY4MSwxLjYzLTEuNDUsMi4zMS0yLjMxMUMyMzAuNTUsMjU3LjM1LDI1MS4wNiwyMDguMiwyNTcuMzMsMTU2LjI5eiIvPg0KCTxsaW5lYXJHcmFkaWVudCBpZD0iU1ZHSURfMV8iIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iMTc4LjA2NDUiIHkxPSIzNDEuMzQxMyIgeDI9IjE5Mi45NTY2IiB5Mj0iMjcxLjI3OTEiPg0KCQk8c3RvcCAgb2Zmc2V0PSIwIiBzdHlsZT0ic3RvcC1jb2xvcjojRDdFNkZEIi8+DQoJCTxzdG9wICBvZmZzZXQ9IjEiIHN0eWxlPSJzdG9wLWNvbG9yOiMzRjg4RjMiLz4NCgk8L2xpbmVhckdyYWRpZW50Pg0KCTxlbGxpcHNlIGZpbGw9InVybCgjU1ZHSURfMV8pIiBjeD0iMTg1LjUxIiBjeT0iMzA2LjMxIiByeD0iODcuNzUiIHJ5PSIzMS41Ii8+DQoJPHBhdGggZmlsbD0iI0ZGRkZGRiIgZD0iTTE5NS40OCw3Ny40NGMzOC44Niw0LjY5LDY2LjU1LDQwLDYxLjg1LDc4Ljg1Yy02LjI3LDUxLjkxLTI2Ljc4LDEwMS4wNi01OS4yNCwxNDIuMDMNCgkJYy0wLjY4LDAuODYtMS40NSwxLjYzLTIuMzEsMi4zMTFjLTYuMTMsNC44NTktMTUuMDUsMy44My0xOS45MS0yLjMxMWMtMzIuNDctNDAuOTctNTIuOTctOTAuMTItNTkuMjUtMTQyLjAzDQoJCWMtMC42OC01LjY0LTAuNjgtMTEuMzYsMC0xN0MxMjEuMzIsMTAwLjQzLDE1Ni42Myw3Mi43NCwxOTUuNDgsNzcuNDR6IE0yNDAuMTMsMTcxLjAzdi0yOC4wMWMwLTcuMDQtNS43MS0xMi43NS0xMi43Ni0xMi43NQ0KCQloLTE3LjAxYy03LjA0LDAtMTIuNzUsNS43MS0xMi43NSwxMi43NXYyOC4wMWMwLDIuMjUsMC44OSw0LjQyLDIuNDksNi4wMWw2LjAxLDYuMDF2MzQuMzhjMCwxLjE4LDAuOTUsMi4xMywyLjEzLDIuMTMNCgkJYzEuMTcsMCwyLjEyLTAuOTUsMi4xMi0yLjEzdi0zNC4zOGMwLTEuMTItMC40NC0yLjIxLTEuMjQtM2wtNi4wMS02LjAyYy0wLjgtMC43OS0xLjI1LTEuODctMS4yNS0zdi0yOC4wMQ0KCQljMC00LjY5LDMuODEtOC41LDguNS04LjVoMTcuMDFjNC43LDAsOC41MSwzLjgxLDguNTEsOC41djI4LjAxYzAsMS4xMy0wLjQ1LDIuMjEtMS4yNSwzbC02LjAxLDYuMDJjLTAuOCwwLjc5LTEuMjUsMS44OC0xLjI1LDMNCgkJdjM0LjM4YzAsMS4xOCwwLjk1LDIuMTMsMi4xMywyLjEzYzEuMTcsMCwyLjEyLTAuOTUsMi4xMi0yLjEzdi0zNC4zOGw2LjAyLTYuMDFDMjM5LjIzLDE3NS40NSwyNDAuMTMsMTczLjI4LDI0MC4xMywxNzEuMDN6DQoJCSBNMjMxLjYyLDExMy4yNmMwLTcuMDQtNS43MS0xMi43NS0xMi43NS0xMi43NWMtNy4wNSwwLTEyLjc2LDUuNzEtMTIuNzYsMTIuNzVjMCw3LjA1LDUuNzEsMTIuNzYsMTIuNzYsMTIuNzYNCgkJQzIyNS45MSwxMjYuMDIsMjMxLjYyLDEyMC4zMSwyMzEuNjIsMTEzLjI2eiBNMTc3LjY2LDE5OC4zbC05LjgyLTM2di0xOS4yOGMwLTcuMDQtNS43MS0xMi43NS0xMi43NS0xMi43NQ0KCQljLTcuMDUsMC0xMi43Niw1LjcxLTEyLjc2LDEyLjc1djE5LjI4bC05LjgyLDM2aDkuODJ2MTkuMTNjMCwxLjE4LDAuOTUsMi4xMywyLjEzLDIuMTNjMS4xNywwLDIuMTItMC45NSwyLjEyLTIuMTN2LTIzLjM4aC04LjUNCgkJbDguNS0zMS4xOHYtMTkuODVjMC00LjY5LDMuODEtOC41LDguNTEtOC41YzQuNywwLDguNSwzLjgxLDguNSw4LjV2MTkuODVsOC41MSwzMS4xOGgtOC41MXYyMy4zOGMwLDEuMTgsMC45NSwyLjEzLDIuMTMsMi4xMw0KCQljMS4xNywwLDIuMTItMC45NSwyLjEyLTIuMTNWMTk4LjNIMTc3LjY2eiBNMTY3Ljg0LDExMy4yNmMwLTcuMDQtNS43MS0xMi43NS0xMi43NS0xMi43NWMtNy4wNSwwLTEyLjc2LDUuNzEtMTIuNzYsMTIuNzUNCgkJYzAsNy4wNSw1LjcxLDEyLjc2LDEyLjc2LDEyLjc2QzE2Mi4xMywxMjYuMDIsMTY3Ljg0LDEyMC4zMSwxNjcuODQsMTEzLjI2eiIvPg0KCTxwYXRoIGZpbGw9IiM1NDBFMjgiIGQ9Ik0xNjcuODQsMTYyLjNsOS44MiwzNmgtOS44MnYxOS4xM2MwLDEuMTgtMC45NSwyLjEzLTIuMTIsMi4xM2MtMS4xOCwwLTIuMTMtMC45NS0yLjEzLTIuMTN2LTIzLjM4aDguNTENCgkJbC04LjUxLTMxLjE4di0xOS44NWMwLTQuNjktMy44LTguNS04LjUtOC41Yy00LjcsMC04LjUxLDMuODEtOC41MSw4LjV2MTkuODVsLTguNSwzMS4xOGg4LjV2MjMuMzhjMCwxLjE4LTAuOTUsMi4xMy0yLjEyLDIuMTMNCgkJYy0xLjE4LDAtMi4xMy0wLjk1LTIuMTMtMi4xM1YxOTguM2gtOS44Mmw5LjgyLTM2di0xOS4yOGMwLTcuMDQsNS43MS0xMi43NSwxMi43Ni0xMi43NWM3LjA0LDAsMTIuNzUsNS43MSwxMi43NSwxMi43NVYxNjIuM3oiLz4NCgk8cGF0aCBmaWxsPSIjNTQwRTI4IiBkPSJNMTU1LjA5LDEwMC41MWM3LjA0LDAsMTIuNzUsNS43MSwxMi43NSwxMi43NWMwLDcuMDUtNS43MSwxMi43Ni0xMi43NSwxMi43Ng0KCQljLTcuMDUsMC0xMi43Ni01LjcxLTEyLjc2LTEyLjc2QzE0Mi4zMywxMDYuMjIsMTQ4LjA0LDEwMC41MSwxNTUuMDksMTAwLjUxeiBNMTYzLjU5LDExMy4yNmMwLTQuNy0zLjgtOC41LTguNS04LjUNCgkJYy00LjcsMC04LjUxLDMuOC04LjUxLDguNWMwLDQuNywzLjgxLDguNTEsOC41MSw4LjUxQzE1OS43OSwxMjEuNzcsMTYzLjU5LDExNy45NiwxNjMuNTksMTEzLjI2eiIvPg0KCTxwYXRoIGZpbGw9IiM1NDBFMjgiIGQ9Ik0yNDAuMTMsMTQzLjAydjI4LjAxYzAsMi4yNS0wLjksNC40Mi0yLjQ5LDYuMDFsLTYuMDIsNi4wMXYzNC4zOGMwLDEuMTgtMC45NSwyLjEzLTIuMTIsMi4xMw0KCQljLTEuMTgsMC0yLjEzLTAuOTUtMi4xMy0yLjEzdi0zNC4zOGMwLTEuMTIsMC40NS0yLjIxLDEuMjUtM2w2LjAxLTYuMDJjMC44LTAuNzksMS4yNS0xLjg3LDEuMjUtM3YtMjguMDENCgkJYzAtNC42OS0zLjgxLTguNS04LjUxLTguNWgtMTcuMDFjLTQuNjksMC04LjUsMy44MS04LjUsOC41djI4LjAxYzAsMS4xMywwLjQ1LDIuMjEsMS4yNSwzbDYuMDEsNi4wMmMwLjgsMC43OSwxLjI0LDEuODgsMS4yNCwzDQoJCXYzNC4zOGMwLDEuMTgtMC45NSwyLjEzLTIuMTIsMi4xM2MtMS4xOCwwLTIuMTMtMC45NS0yLjEzLTIuMTN2LTM0LjM4bC02LjAxLTYuMDFjLTEuNi0xLjU5LTIuNDktMy43Ni0yLjQ5LTYuMDF2LTI4LjAxDQoJCWMwLTcuMDQsNS43MS0xMi43NSwxMi43NS0xMi43NWgxNy4wMUMyMzQuNDIsMTMwLjI3LDI0MC4xMywxMzUuOTgsMjQwLjEzLDE0My4wMnoiLz4NCgk8cGF0aCBmaWxsPSIjNTQwRTI4IiBkPSJNMjE4Ljg3LDEwMC41MWM3LjA0LDAsMTIuNzUsNS43MSwxMi43NSwxMi43NWMwLDcuMDUtNS43MSwxMi43Ni0xMi43NSwxMi43Ng0KCQljLTcuMDUsMC0xMi43Ni01LjcxLTEyLjc2LTEyLjc2QzIwNi4xMSwxMDYuMjIsMjExLjgyLDEwMC41MSwyMTguODcsMTAwLjUxeiBNMjI3LjM3LDExMy4yNmMwLTQuNy0zLjgxLTguNS04LjUtOC41DQoJCWMtNC43LDAtOC41MSwzLjgtOC41MSw4LjVjMCw0LjcsMy44MSw4LjUxLDguNTEsOC41MUMyMjMuNTYsMTIxLjc3LDIyNy4zNywxMTcuOTYsMjI3LjM3LDExMy4yNnoiLz4NCgk8bGluZWFyR3JhZGllbnQgaWQ9IlNWR0lEXzJfIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjEwNi43MzYzIiB5MT0iMTguMjI4IiB4Mj0iMjY3LjIyMTkiIHkyPSIzNjIuMzkwNCI+DQoJCTxzdG9wICBvZmZzZXQ9IjAiIHN0eWxlPSJzdG9wLWNvbG9yOiNBNTM0NUQiLz4NCgkJPHN0b3AgIG9mZnNldD0iMC45ODE4IiBzdHlsZT0ic3RvcC1jb2xvcjojNTQwRTI4Ii8+DQoJPC9saW5lYXJHcmFkaWVudD4NCgk8cGF0aCBmaWxsPSJ1cmwoI1NWR0lEXzJfKSIgc3Ryb2tlPSIjNTQwRTI4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIgZD0iDQoJCU0zNjcuNzYsMTIzLjgxYzcuNTksMTMuMTUsNy41OSwyOS4zNiwwLDQyLjUxTDI1Ni42LDM1OC44NmMtNy42LDEzLjE2LTIxLjY0LDIxLjI2LTM2LjgzLDIxLjI2SDEwMS45NA0KCQljLTE1LjE5LDAtMjkuMjMtOC4xLTM2LjgyLTIxLjI2TDYuMiwyNTYuODFjLTcuNi0xMy4xNS03LjYtMjkuMzYsMC00Mi41MUwxMTcuMzYsMjEuNzZDMTI0Ljk2LDguNiwxMzguOTksMC41LDE1NC4xOCwwLjVoMTE3Ljg0DQoJCWMxNS4xOSwwLDI5LjIzLDguMSwzNi44MiwyMS4yNkwzNjcuNzYsMTIzLjgxeiBNMzYwLjM5LDE2Mi4wN2M2LjA4LTEwLjUyLDYuMDgtMjMuNDksMC0zNC4wMWwtNTQtOTMuNTUNCgkJYy02LjA4LTEwLjUyLTE3LjMxLTE3LTI5LjQ2LTE3SDE1NC4xOGMtOS4xMSwwLTE3LjUzLDQuODYtMjIuMDksMTIuNzVMMjAuOTMsMjIyLjhjLTQuNTYsNy44OS00LjU2LDE3LjYyLDAsMjUuNTFsNjEuMzcsMTA2LjMNCgkJYzYuMDgsMTAuNTMsMTcuMzEsMTcuMDEsMjkuNDYsMTcuMDFoMTA4LjAxYzEyLjE2LDAsMjMuMzktNi40NzksMjkuNDYtMTcuMDFMMzYwLjM5LDE2Mi4wN3oiLz4NCgk8Zz4NCgkJPHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNTQwRTI4IiBzdHJva2Utd2lkdGg9IjciIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLW1pdGVybGltaXQ9IjEwIiBkPSINCgkJCU0xNzUuODcsMjk4LjMyYzQuODYsNi4xNDEsMTMuNzgsNy4xNywxOS45MSwyLjMxMWMwLjg2LTAuNjgxLDEuNjMtMS40NSwyLjMxLTIuMzExIi8+DQoJCTxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzU0MEUyOCIgc3Ryb2tlLXdpZHRoPSI3IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIgZD0iDQoJCQlNMjU3LjMzLDE1Ni4yOWM0LjctMzguODUtMjIuOTktNzQuMTYtNjEuODUtNzguODVjLTM4Ljg1LTQuNy03NC4xNiwyMi45OS03OC44Niw2MS44NWMtMC42OCw1LjY0LTAuNjgsMTEuMzYsMCwxNyIvPg0KCQk8cGF0aCBmaWxsPSJub25lIiBzdHJva2U9IiM1NDBFMjgiIHN0cm9rZS13aWR0aD0iNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbWl0ZXJsaW1pdD0iMTAiIGQ9Ig0KCQkJTTE5OC4wOSwyOTguMzJjMzIuNDYtNDAuOTcsNTIuOTctOTAuMTIsNTkuMjQtMTQyLjAzIi8+DQoJCTxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzU0MEUyOCIgc3Ryb2tlLXdpZHRoPSI3IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIgZD0iDQoJCQlNMTE2LjYyLDE1Ni4yOWM2LjI4LDUxLjkxLDI2Ljc4LDEwMS4wNiw1OS4yNSwxNDIuMDMiLz4NCgkJDQoJCQk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM1NDBFMjgiIHN0cm9rZS13aWR0aD0iNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbWl0ZXJsaW1pdD0iMTAiIHgxPSIxODYuOTgiIHkxPSIyMTkuNTYiIHgyPSIxODYuOTgiIHkyPSIxMDAuNTEiLz4NCgk8L2c+DQo8L2c+DQo8L3N2Zz4NCg==" alt="PointSan">
+  <h1>Installer PointSan Mobile</h1>
+  <p class="sub">Constat terrain · toilettes publiques</p>
+  <div class="os-badge-wrap"><span class="os-badge" id="os-detected">Detection en cours…</span></div>
+
+  <div class="card" id="card-ios" style="display:none">
+    <h2>Sur iPhone / iPad (Safari)</h2>
+    <ol>
+      <li>Ouvrez ce lien dans <b>Safari</b> (pas Chrome ni une autre appli)</li>
+      <li>Appuyez sur le bouton <b>Partager</b> (le carre avec une fleche vers le haut), en bas de l'ecran</li>
+      <li>Faites defiler et appuyez sur <b>"Sur l'ecran d'accueil"</b></li>
+      <li>Appuyez sur <b>"Ajouter"</b> en haut a droite</li>
+    </ol>
+    <p class="note">L'icone PointSan apparait alors sur votre ecran d'accueil et s'ouvre en plein ecran, comme une vraie application.</p>
+  </div>
+
+  <div class="card" id="card-android" style="display:none">
+    <h2>Sur Android</h2>
+    <ol>
+      <li>Ouvrez ce lien dans <b>Chrome</b></li>
+      <li>Appuyez sur le bouton ci-dessous, ou sur le menu ⋮ (en haut a droite) puis <b>"Installer l'application"</b></li>
+    </ol>
+    <button class="btn btn-primary" id="btn-install-android" style="display:none">Installer maintenant</button>
+    <p class="note" id="android-manual-note">Si le bouton n'apparait pas : menu ⋮ → "Installer l'application" (ou "Ajouter a l'ecran d'accueil").</p>
+  </div>
+
+  <div class="card" id="card-other" style="display:none">
+    <h2>Sur ordinateur</h2>
+    <p style="font-size:13.5px;line-height:1.6;margin:0">Ouvrez ce lien depuis le <b>telephone</b> que vous voulez equiper (par exemple en scannant a nouveau le QR code), pour installer l'application sur son ecran d'accueil.</p>
+  </div>
+
+  <a class="btn btn-secondary" href="index.html">Ouvrir l'application</a>
+</div>
+<script>
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/.test(ua);
+  var badge = document.getElementById('os-detected');
+  if (isIOS){
+    document.getElementById('card-ios').style.display = 'block';
+    badge.textContent = 'iPhone / iPad detecte';
+  } else if (isAndroid){
+    document.getElementById('card-android').style.display = 'block';
+    badge.textContent = 'Android detecte';
+  } else {
+    document.getElementById('card-other').style.display = 'block';
+    badge.textContent = 'Ordinateur detecte';
+  }
+  var deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferredPrompt = e;
+    var btn = document.getElementById('btn-install-android');
+    var note = document.getElementById('android-manual-note');
+    if (btn){
+      btn.style.display = 'block';
+      if (note) note.style.display = 'none';
+      btn.addEventListener('click', function(){
+        btn.disabled = true;
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.finally(function(){ deferredPrompt = null; });
+      });
+    }
+  });
+</script>
+</body>
+</html>
