@@ -1,4 +1,4 @@
-const CACHE_NAME = 'urbizia-plansan-mobile-v1';
+const CACHE_NAME = 'urbizia-plansan-mobile-v2';
 const APP_SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-512-maskable.png'];
 
 self.addEventListener('install', (e) => {
