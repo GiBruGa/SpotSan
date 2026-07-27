@@ -1,6 +1,6 @@
 {
-  "name": "UrBizia — PlanSan Mobile",
-  "short_name": "PlanSan",
+  "name": "UrBizia — PointSan Mobile",
+  "short_name": "PointSan",
   "description": "Constat terrain des toilettes publiques — UrBizia",
   "start_url": "./index.html",
   "id": "./index.html",
