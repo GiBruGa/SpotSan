@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-PointSan Mobile is a single-file Progressive Web App (PWA) for surveying public toilets in the field ("constat terrain des toilettes publiques"). It's the mobile companion to a desktop app called "PointSan" — mobile confirms/edits/reports toilets on a map; desktop is the authoritative source for the base dataset (name, address, official Gouv/OSM data). There is no build step, no package.json, and no test suite: the entire app is `index.html`, served as a static file.
+SpotSan (renamed from "PointSan Mobile" 2026-08, repo `GiBruGa/SpotSan` — was `PointSan-Mobile`; renamed to avoid the "oin" diphthong internationally) is a single-file Progressive Web App (PWA) for surveying public toilets in the field ("constat terrain des toilettes publiques"). It's the mobile companion to a desktop app called "StatSan" (itself renamed from "PointSan Desktop") — SpotSan confirms/edits/reports toilets on a map; StatSan is the authoritative source for the base dataset (name, address, official Gouv/OSM data). The rename was purely cosmetic (name + repo + directory only, no data/behavior change) — internal identifiers (Storage bucket names `PointSan-Photos`/`PointSan-Incidents`, etc.) deliberately kept their old value rather than triggering an infrastructure migration for a cosmetic change; only user-visible text changed. There is no build step, no package.json, and no test suite: the entire app is `index.html`, served as a static file.
 
 ## Files
 

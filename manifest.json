@@ -1,7 +1,7 @@
 {
-  "name": "UrBizia — PointSan Mobile",
-  "short_name": "PointSan",
-  "description": "Constat terrain des toilettes publiques — UrBizia",
+  "name": "SpotSan",
+  "short_name": "SpotSan",
+  "description": "Constat terrain des toilettes publiques — un service UrBizia",
   "start_url": "./index.html",
   "id": "./index.html",
   "scope": "./",
