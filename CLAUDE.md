@@ -8,12 +8,15 @@ SpotSan (renamed from "PointSan Mobile" 2026-08, repo `GiBruGa/SpotSan` — was 
 
 ## Files
 
-- `index.html` — the whole application: CSS, embedded seed data, and all JS in inline `<style>`/`<script>` tags. One line (~18MB) is `MAP_DATA_TOI`, a giant embedded JSON array of objects mirroring the `SanitaryBlocks_Inventory` table (used as an offline-first seed, replaced wholesale by `refreshBaseFromServer()` on load), and another (~35KB) is the base64-encoded logo embedded directly in the welcome-screen `<img>` tag. Don't try to eyeball those lines in an editor — use `grep`/`sed`/targeted `Read` offsets instead of opening the whole file.
-- `sw.js` — service worker: cache-first for same-origin app-shell files, network-first (with cache fallback) for everything else (map tiles, CDN assets).
+- `index.html` — page shell only: HTML markup, `<link>`/`<script src>` tags, and one small inline `<script>` that declares `const MAP_DATA_TOI = [];` (empty). The ~35KB base64-encoded logo is still embedded directly in the welcome-screen/topbar `<img>` tags (a fallback in case the dynamic `acronymes.icon_svg` fetch in `app.js` fails or the device is offline).
+- `style.css` — all CSS (theme variables, layout, components), extracted from the former inline `<style>` block.
+- `app.js` — all application JS (data model, map rendering, sheet/forms, sync), extracted from the former inline `<script>` block. Loaded via a plain `<script src="app.js">` (no `type="module"`), so it still shares one global scope with the `MAP_DATA_TOI` declaration in `index.html` — see the gotcha below, which still applies unchanged.
+- `data/toilets-seed.json` — the ~18MB seed dataset (was the `MAP_DATA_TOI` JS literal, now a static JSON file), fetched once at startup and pushed into `MAP_DATA_TOI` before the first `buildLayers()` call (see the end of `app.js`). Don't try to eyeball this file in an editor — use `grep`/`sed`/targeted `Read` offsets if you need to inspect it.
+- `sw.js` — service worker: cache-first for same-origin app-shell files (including `data/toilets-seed.json`, so a re-installed/offline PWA still has the seed data it used to get for free from the HTML), network-first (with cache fallback) for everything else (map tiles, CDN assets).
 - `manifest.json` — PWA manifest (name, icons, theme colors, `display: standalone`).
 - `icon-*.png` — app icons.
 
-**Gotcha for edits**: `MAP_DATA_TOI` is declared `const` in its own `<script>` tag (the data-seed block). Classic (non-module) `<script>` tags on the same page **share one global lexical scope for `let`/`const`** — redeclaring `MAP_DATA_TOI` (or any top-level `const`/`let`) in the main script tag throws a silent-to-the-user `SyntaxError` that aborts the *entire* script with no console output visible via casual testing. Always **mutate** the existing array in place (`MAP_DATA_TOI.length = 0; rows.forEach(r => MAP_DATA_TOI.push(r));`) rather than reassigning it.
+**Gotcha for edits**: `MAP_DATA_TOI` is declared `const` in its own `<script>` tag in `index.html` (the data-seed block, now just `const MAP_DATA_TOI = [];`). Classic (non-module) `<script>` tags — inline or external via `<script src>` — **share one global lexical scope for `let`/`const`** — redeclaring `MAP_DATA_TOI` (or any top-level `const`/`let`) in `app.js` throws a silent-to-the-user `SyntaxError` that aborts the *entire* script with no console output visible via casual testing. Always **mutate** the existing array in place (`MAP_DATA_TOI.length = 0; rows.forEach(r => MAP_DATA_TOI.push(r));`) rather than reassigning it. This applies both to the seed fetch (`app.js`, bottom) and to `refreshBaseFromServer()`.
 
 ## Running / testing locally
 
@@ -59,7 +62,7 @@ Everything lives in one global script scope in `index.html`. Key pieces, in the 
 
 **Local export**: no more JSON interchange format with Desktop (both apps read/write the same Supabase tables directly now, nothing to interchange). If a local backup/export feature is wanted again, scope it to *pending* (unsynced) changes only, not a full annotations dump — the tables that format used to import into (`toilette_annotations`, `new_points`) are archived (`archive` schema) and no longer exist in `public`.
 
-**Startup flow**: welcome overlay → `locateOnStartup()` requests geolocation and zooms to a 500m bbox around the user (falls back to the default France-wide view if denied/unavailable) → `buildLayers()` (on the embedded seed) → `refreshBaseFromServer()` → silent `syncNow(true)`.
+**Startup flow**: welcome overlay → `locateOnStartup()` requests geolocation and zooms to a 500m bbox around the user (falls back to the default France-wide view if denied/unavailable) → `fetch('data/toilets-seed.json')` populates `MAP_DATA_TOI` → `buildLayers()` (first render, on the seed data) → `refreshBaseFromServer()` → silent `syncNow(true)`.
 
 ## Conventions specific to this codebase
 
