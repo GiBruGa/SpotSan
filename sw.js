@@ -1,5 +1,5 @@
 const CACHE_NAME = 'urbizia-spotsan-v1';
-const APP_SHELL = ['./', './index.html', './install.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-512-maskable.png'];
+const APP_SHELL = ['./', './index.html', './install.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-512-maskable.png', './data/toilets-seed.json'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
