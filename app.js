@@ -435,9 +435,9 @@ function avgToIconIndex(avg){ // avg sur l'echelle -5..+5 (criteres Signaletique
 }
 function ratingStatLine(label, avg){
   const body = (avg === null || avg === undefined)
-    ? '<span style="color:var(--ink-dim);font-size:11px;">Pas encore noté</span>'
-    : '<span style="font-size:20px;">'+RATING_ICONS[avgToIconIndex(avg)]+'</span>';
-  return '<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;"><span style="font-size:11.5px;color:var(--ink-dim);">'+label+'</span>'+body+'</div>';
+    ? '<span style="color:var(--ink-dim);font-size:10px;">n/a</span>'
+    : '<span class="ic">'+RATING_ICONS[avgToIconIndex(avg)]+'</span>';
+  return '<div class="stat-chip"><span>'+label+'</span>'+body+'</div>';
 }
 async function loadRatingsOverview(t){
   const wrap = document.getElementById('ratings-overview-ph');
@@ -456,11 +456,13 @@ async function loadRatingsOverview(t){
     let html = '';
     if (list.length) html += starsHistogramHtml(list);
     if (sum){
-      html += '<div style="min-width:90px;margin-bottom:4px;"><div style="font-size:9px;color:var(--ink-dim);margin-bottom:2px;">Note globale</div>'+starsLine(sum.avg_overall, true)+'</div>'+
+      html += '<div style="min-width:90px;margin-bottom:6px;"><div style="font-size:9px;color:var(--ink-dim);margin-bottom:2px;">Note globale</div>'+starsLine(sum.avg_overall, true)+'</div>'+
+        '<div class="stat-grid">'+
         Object.keys(RATING_LABELS).map(k => {
           const avgKey = 'avg_' + k.replace('Rating_','').toLowerCase();
           return ratingStatLine(RATING_LABELS[k], sum[avgKey]);
         }).join('') +
+        '</div>'+
       '<div style="font-size:9.5px;color:var(--ink-dim);margin-top:6px;">'+sum.rating_count+' avis au total</div>';
     }
     box.innerHTML = html;
@@ -490,10 +492,10 @@ function smileyRowHtml(field, label){
 const EQUIP_ICONS = [ { val:0, icon:'🤢', title:'Sale / dégradé' }, { val:1, icon:'🙁', title:'Insuffisant' }, { val:2, icon:'😐', title:'Fonctionne, sans plus' }, { val:3, icon:'🙂', title:'Correct' }, { val:4, icon:'😄', title:'Bon état' } ];
 function equipStatLine(label, data){
   let body;
-  if (!data || !data.count){ body = '<span style="color:var(--ink-dim);font-size:11px;">Pas encore renseigné</span>'; }
-  else if (data.avg < 0){ body = '<span style="color:var(--err);font-size:11px;font-weight:600;">Majoritairement absent</span>'; }
-  else { body = '<span style="font-size:20px;">'+EQUIP_ICONS[Math.max(0,Math.min(4,Math.round(data.avg)))].icon+'</span>'; }
-  return '<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;"><span style="font-size:11.5px;color:var(--ink-dim);">'+label+'</span>'+body+'</div>';
+  if (!data || !data.count){ body = '<span style="color:var(--ink-dim);font-size:10px;">n/a</span>'; }
+  else if (data.avg < 0){ body = '<span style="color:var(--err);font-size:10px;font-weight:600;">Absent</span>'; }
+  else { body = '<span class="ic">'+EQUIP_ICONS[Math.max(0,Math.min(4,Math.round(data.avg)))].icon+'</span>'; }
+  return '<div class="stat-chip"><span>'+label+'</span>'+body+'</div>';
 }
 function equipStateRowHtml(key, label){
   return '<div class="form-row"><label>'+label+'</label>'+
@@ -537,7 +539,7 @@ function prestationsStatsHtml(t){
   if (t.Adapte_Enfant === true) rows.push(['Enfant', 'Siège surbaissé']);
   else if (t.Adapte_Enfant === false) rows.push(['Enfant', 'Pas de siège adapté']);
   if (!rows.length) return '<p style="font-size:11px;color:var(--ink-dim);margin:0;">Rien de confirmé pour l\'instant.</p>';
-  return rows.map(r => '<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;"><span style="font-size:11.5px;color:var(--ink-dim);">'+r[0]+'</span><span style="font-size:12.5px;font-weight:600;">'+r[1]+'</span></div>').join('');
+  return '<div class="stat-grid">'+rows.map(r => '<div class="stat-chip"><span>'+r[0]+'</span><span style="font-size:11px;font-weight:600;color:var(--ink);">'+r[1]+'</span></div>').join('')+'</div>';
 }
 function positionSectionHtml(){
   return '<div class="form-row" id="position-section"><label>📍 Position sur la carte</label>'+
@@ -954,7 +956,7 @@ function openSheet(ubId){
 
     '<details class="sheet-section"><summary>🧴 Équipements & prestations</summary><div class="sheet-section-body">'+
       '<div class="sheet-subheading" style="margin-top:0;">Ce que les autres ont dit</div>'+
-      Object.keys(EQUIP_LABELS).map(k => equipStatLine(EQUIP_LABELS[k], equipements[k])).join('')+
+      '<div class="stat-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStatLine(EQUIP_LABELS[k], equipements[k])).join('')+'</div>'+
       '<div style="border-top:1px solid var(--line);margin:10px 0;"></div>'+
       prestationsStatsHtml(t)+
       '<div class="sheet-subheading">Donnez votre avis…</div>'+
