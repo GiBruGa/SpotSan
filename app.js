@@ -534,8 +534,8 @@ function prestationsStatsHtml(t){
   COUNT_FIELDS.forEach(c => { if (t[c.field] > 0) rows.push([c.label, t[c.field]]); });
   if (t.Automatic === true) rows.push(['Type', 'Automatique']);
   else if (t.Automatic === false) rows.push(['Type', 'Classique']);
-  if (t.Mixte === true) rows.push(['Séparation', 'Mixte']);
-  else if (t.Mixte === false) rows.push(['Séparation', 'Séparés Femmes/Hommes']);
+  if (t.Mixte === true) rows.push(['Séparation Hommes / Femmes', 'Mixte']);
+  else if (t.Mixte === false) rows.push(['Séparation Hommes / Femmes', 'Séparés Femmes/Hommes']);
   if (t.Adapte_Enfant === true) rows.push(['Enfant', 'Siège surbaissé']);
   else if (t.Adapte_Enfant === false) rows.push(['Enfant', 'Pas de siège adapté']);
   if (!rows.length) return '<p style="font-size:11px;color:var(--ink-dim);margin:0;">Rien de confirmé pour l\'instant.</p>';
@@ -927,26 +927,26 @@ function openSheet(ubId){
     '<div class="link-row"><a href="https://www.google.com/maps/search/?api=1&query='+t.Latitude+','+t.Longitude+'" target="_blank">📍 Google Maps</a>'+
     '<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+t.Latitude+','+t.Longitude+'" target="_blank">👁 Street View</a></div>'+
 
-    // Rubriques repliables : seule celle-ci est ouverte par defaut -- le reste s'ouvre a la demande.
-    // Avis + prestations + equipements sont regroupes dans UNE seule rubrique (et non trois) pour
-    // que TOUT ce que les autres ont dit apparaisse d'abord, puis UNE SEULE fois "Donnez votre avis…"
-    // couvrant les trois a la suite -- avant cette fusion, chaque bloc repetait sa propre rupture
-    // lecture/saisie, ce qui donnait l'impression que du "deja constate" trainait au milieu des
-    // nouvelles saisies. Ordre (lecture puis saisie, chaque fois Avis -> Prestations -> Equipements) :
-    '<details class="sheet-section" open><summary>★ Avis, équipements & prestations</summary><div class="sheet-section-body">'+
+    // "Ce que les autres ont dit" (avis, prestations, equipements) est TOUJOURS visible, jamais
+    // derriere un clic -- seule la saisie neuve ("Donnez votre avis…") est une rubrique repliable,
+    // comme Localisation et Incivilites. Un seul "Donnez votre avis…", couvrant les trois a la suite
+    // (Avis -> Prestations -> Equipements, meme ordre que les stats juste au-dessus).
+    '<div style="margin-top:14px;">'+
+      '<div class="sheet-subheading" style="margin-top:0;">Ce que les autres ont dit</div>'+
       ratingsOverviewHtml()+
       '<div style="border-top:1px solid var(--line);margin:10px 0;"></div>'+
       prestationsStatsHtml(t)+
       '<div style="border-top:1px solid var(--line);margin:10px 0;"></div>'+
       '<div class="stat-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStatLine(EQUIP_LABELS[k], equipements[k])).join('')+'</div>'+
+    '</div>'+
 
-      '<div class="sheet-subheading-input">Donnez votre avis…</div>'+
+    '<details class="sheet-section" open><summary>✍️ Donnez votre avis…</summary><div class="sheet-section-body">'+
       starRowHtml()+
       '<div class="equip-grid">'+Object.keys(RATING_LABELS).map(k => smileyRowHtml(k, RATING_LABELS[k])).join('')+'</div>'+
       '<div class="equip-grid">'+
         COUNT_FIELDS.map(c => numPickRowHtml(c.field, c.label)).join('')+
         cycleFieldHtml('Automatique', 'Automatic', [{val:true,label:'Automatique'},{val:false,label:'Classique'}])+
-        cycleFieldHtml('Séparation', 'Mixte', [{val:true,label:'Mixte'},{val:false,label:'Séparés Femmes/Hommes'}])+
+        cycleFieldHtml('Séparation Hommes / Femmes', 'Mixte', [{val:true,label:'Mixte'},{val:false,label:'Séparés Femmes/Hommes'}])+
         cycleFieldHtml('Siège enfant', 'Adapte_Enfant', [{val:true,label:'Siège surbaissé'},{val:false,label:'Pas de siège adapté'}])+
       '</div>'+
       '<div class="equip-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStateRowHtml(k, EQUIP_LABELS[k])).join('')+'</div>'+
@@ -960,7 +960,7 @@ function openSheet(ubId){
       positionSectionHtml()+
     '</div></details>'+
 
-    '<details class="sheet-section"><summary>⚠ Incivilités & vandalisme</summary><div class="sheet-section-body">'+
+    '<details class="sheet-section"><summary>⚠ Incivilités & vandalismes</summary><div class="sheet-section-body">'+
       '<button class="big-btn btn-delete" id="sheet-btn-incident" style="width:100%;flex-direction:row;justify-content:center;background:var(--panel2);color:var(--err);border:1px solid var(--err) !important;"><span class="ic" style="font-size:15px;">⚠</span>&nbsp;Signaler une incivilité ou un vandalisme</button>'+
       '<div style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin-top:4px;">Chaque signalement aide à mieux protéger le réseau — merci de contribuer 🙏</div>'+
       myIncidentPhotosHtml(ubId)+
