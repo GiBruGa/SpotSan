@@ -126,12 +126,15 @@ const RATING_LABELS = { Rating_Signage:'Signalétique', Rating_Access:'Accès', 
 const RATING_LABELS_ALL = Object.assign({ Rating_Overall:'Note globale' }, RATING_LABELS);
 const EQUIP_LABELS = { laveMains:'Lave-mains', savon:'Savon', sechage:'Séchage', papier:'Papier toilette', essuieTout:'Essuie-tout', poubelle:'Poubelle' };
 // Echelle a 5 points (smileys) + un etat "absent" a part, utilisee pour les 4 criteres ci-dessus et pour les equipements.
-const SMILEY_STATES = [ { val:-5, icon:'🤢' }, { val:-2, icon:'🙁' }, { val:0, icon:'😐' }, { val:2, icon:'🙂' }, { val:5, icon:'😍' } ];
+// "5" reste le meilleur etat mais avec une expression plus sobre (pas de coeurs dans les yeux) : ce
+// meme jeu d'icones sert aussi bien aux criteres d'avis generaux (satisfaction) qu'aux equipements
+// (etat constate) -- voir equipStateRowHtml pour les info-bulles specifiques au contexte equipement.
+const SMILEY_STATES = [ { val:-5, icon:'🤢' }, { val:-2, icon:'🙁' }, { val:0, icon:'😐' }, { val:2, icon:'🙂' }, { val:5, icon:'😄' } ];
 const EQUIP_STATE_LABELS = { absent:'Absent' };
 const PHOTO_CATS = [
-  { field:'Photo_Environment', label:'Cadre à 20m', icon:'🖼' },
-  { field:'Photo_Access', label:'Accès', icon:'🚧' },
-  { field:'Photo_CloseUp', label:'Signalétique', icon:'🪧' },
+  { field:'Photo_Environment', label:'Environnement à 20m', icon:'🏡' },
+  { field:'Photo_Access', label:'Accès', icon:'🚪' },
+  { field:'Photo_CloseUp', label:'Signalétique', icon:'♿' },
   { field:'Photo_Interior', label:'Intérieur', icon:'🏠' },
   { field:'Photo_Seat', label:'Siège', icon:'🚽' },
   { field:'Photo_Sink', label:'Lave-mains', icon:'🚰' }
@@ -140,8 +143,9 @@ const COUNT_FIELDS = [
   { field:'MSB', label:'Nombre de cellules' },
   { field:'PMR', label:'dont PMR' },
   { field:'Urinals', label:'dont urinoirs hommes' },
-  { field:'Showers', label:'dont Douches' },
-  { field:'ChangingRooms', label:'dont Vestiaires' }
+  { field:'Urinals_Femme', label:'dont urinoirs femmes' },
+  { field:'Showers', label:'dont douches' },
+  { field:'ChangingRooms', label:'dont vestiaires' }
 ];
 
 // MAP_DATA_TOI est deja declare en const (tableau vide seed) dans le bloc de donnees plus haut dans le document ;
@@ -373,7 +377,7 @@ function ratingColor(v){
 }
 function ratingsOverviewHtml(){
   return '<div class="sheet-row" id="ratings-overview-ph" style="align-items:flex-start;flex-direction:column;gap:6px;display:none;">'+
-    '<span class="k" style="margin-bottom:2px;">Moyenne des avis</span>'+
+    '<span class="k" style="margin-bottom:2px;">Avis des autres visiteurs</span>'+
     '<div id="ratings-overview-body" style="width:100%;font-size:10.5px;color:var(--ink-dim);">Chargement…</div>'+
   '</div>';
 }
@@ -383,6 +387,26 @@ function starsLine(v){
   return '<span style="display:inline-block;width:70px;height:8px;border-radius:4px;background:var(--panel2);overflow:hidden;vertical-align:middle;margin-right:6px;">'+
     '<span style="display:block;height:100%;width:'+pct+'%;background:'+ratingColor(v)+';"></span></span>'+
     '<span style="color:'+ratingColor(v)+';font-weight:bold;">'+(v>0?'+':'')+v+'</span>';
+}
+// Repartition des notes globales (a la Google Maps : nombre d'avis par etoile). Calculee cote client
+// a partir des avis recents recuperes (jusqu'a 20) -- indicateur synthetique, pas un total exact au-dela.
+function starsHistogramHtml(list){
+  const buckets = [5,4,3,2,1];
+  const toStars = v => Math.max(1, Math.min(5, Math.round(((v + 5) / 10) * 5) || 1));
+  const counts = {1:0,2:0,3:0,4:0,5:0};
+  list.forEach(r => { if (r.Rating_Overall !== null && r.Rating_Overall !== undefined) counts[toStars(r.Rating_Overall)]++; });
+  const max = Math.max(1, ...Object.values(counts));
+  return '<div style="display:flex;flex-direction:column;gap:2px;margin-bottom:8px;">'+
+    buckets.map(n => {
+      const c = counts[n];
+      const pct = Math.round((c / max) * 100);
+      return '<div style="display:flex;align-items:center;gap:6px;">'+
+        '<span style="width:20px;font-size:10px;color:var(--ink-dim);">'+n+'★</span>'+
+        '<span style="flex:1;height:6px;border-radius:3px;background:var(--panel2);overflow:hidden;"><span style="display:block;height:100%;width:'+pct+'%;background:var(--wm-soft);"></span></span>'+
+        '<span style="width:16px;font-size:9.5px;color:var(--ink-dim);text-align:right;">'+c+'</span>'+
+      '</div>';
+    }).join('') +
+  '</div>';
 }
 async function loadRatingsOverview(t){
   const wrap = document.getElementById('ratings-overview-ph');
@@ -398,31 +422,29 @@ async function loadRatingsOverview(t){
     if (!sum && !list.length){ wrap.style.display = 'none'; return; }
     wrap.style.display = 'flex';
     let html = '';
+    if (list.length) html += starsHistogramHtml(list);
     if (sum){
-      html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;">'+
+      // Seule presentation gardee pour les moyennes (barre + valeur) : la liste avis-par-avis avec
+      // les memes chiffres en etiquettes faisait doublon sans rien apporter de plus.
+      html += '<div style="display:flex;flex-wrap:wrap;gap:10px;">'+
         Object.keys(RATING_LABELS_ALL).map(k => {
           const avgKey = 'avg_' + k.replace('Rating_','').toLowerCase();
           return '<div style="min-width:90px;"><div style="font-size:9px;color:var(--ink-dim);margin-bottom:2px;">'+RATING_LABELS_ALL[k]+'</div>'+starsLine(sum[avgKey])+'</div>';
         }).join('') +
-      '</div><div style="font-size:9.5px;color:var(--ink-dim);margin-bottom:8px;">'+sum.rating_count+' avis au total</div>';
-    }
-    if (list.length){
-      html += '<div style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;">' +
-        list.map(r => {
-          const date = r.submitted_at ? new Date(r.submitted_at).toLocaleDateString('fr-FR') : '';
-          return '<div style="border-top:1px solid var(--line);padding-top:6px;">'+
-            '<div style="font-size:9px;color:var(--ink-dim);margin-bottom:2px;">'+date+'</div>'+
-            '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:3px;">'+
-              Object.keys(RATING_LABELS_ALL).filter(k => r[k] !== null && r[k] !== undefined).map(k =>
-                '<span style="font-size:10px;color:'+ratingColor(r[k])+';border:1px solid var(--line);border-radius:8px;padding:1px 6px;">'+RATING_LABELS_ALL[k]+' '+(r[k]>0?'+':'')+r[k]+'</span>'
-              ).join('') +
-            '</div>' +
-            (r.Comment ? '<div style="font-size:11px;color:var(--ink);">'+r.Comment+'</div>' : '') +
-          '</div>';
-        }).join('') +
-      '</div>';
+      '</div><div style="font-size:9.5px;color:var(--ink-dim);margin-top:6px;">'+sum.rating_count+' avis au total</div>';
     }
     box.innerHTML = html;
+    window._ratingAverages = sum || null;
+    // Les libelles des criteres (Signaletique/Acces/...) ont deja ete rendus avant que cette requete
+    // ne reponde -- on y ajoute la moyenne "avis precedents" une fois disponible, sans tout re-rendre.
+    if (sum) Object.keys(RATING_LABELS).forEach(k => {
+      const btn = document.querySelector('.smiley-btn[data-field="'+k+'"]');
+      const label = btn && btn.closest('.form-row') && btn.closest('.form-row').querySelector('label');
+      const avg = sum['avg_' + k.replace('Rating_','').toLowerCase()];
+      if (label && avg !== null && avg !== undefined && !label.querySelector('span')){
+        label.insertAdjacentHTML('beforeend', ' <span style="font-weight:400;color:var(--ink-dim);">— avis précédents : '+(avg>0?'+':'')+avg+'</span>');
+      }
+    });
   }catch(e){ wrap.style.display = 'none'; }
 }
 
@@ -435,33 +457,46 @@ function starRowHtml(value){
     '</div></div>';
 }
 function smileyRowHtml(field, label, value){
-  return '<div class="form-row"><label>'+label+'</label>'+
+  const avg = window._ratingAverages ? window._ratingAverages['avg_' + field.replace('Rating_','').toLowerCase()] : null;
+  const avgHint = (avg !== null && avg !== undefined) ? ' <span style="font-weight:400;color:var(--ink-dim);">— avis précédents : '+(avg>0?'+':'')+avg+'</span>' : '';
+  return '<div class="form-row"><label>'+label+avgHint+'</label>'+
     '<div class="smiley-row" style="display:flex;gap:6px;">'+
       SMILEY_STATES.map(s => '<button type="button" class="smiley-btn" data-field="'+field+'" data-val="'+s.val+'" style="flex:1;padding:8px 0;font-size:19px;border-radius:8px;border:1px solid var(--line);background:'+(value===s.val?'var(--accent)':'var(--panel2)')+';opacity:'+(value===s.val?'1':'.55')+';">'+s.icon+'</button>').join('')+
     '</div></div>';
 }
+const EQUIP_STATE_TITLES = { '-5':'Sale / dégradé', '-2':'Insuffisant', '0':'Ne fonctionne pas / vide', '2':'Correct', '5':'Bon état' };
 function equipStateRowHtml(key, label, data){
   const etat = data && data.etat;
   return '<div class="form-row"><label>'+label+'</label>'+
     '<div class="equip-row" style="display:flex;gap:5px;flex-wrap:wrap;">'+
-      SMILEY_STATES.map(s => '<button type="button" class="equip-btn" data-eq="'+key+'" data-etat="'+s.val+'" style="flex:1;min-width:14%;padding:7px 0;font-size:16px;border-radius:7px;border:1px solid var(--line);background:'+(etat===String(s.val)?'var(--accent)':'var(--panel2)')+';opacity:'+(etat===String(s.val)?'1':'.55')+';">'+s.icon+'</button>').join('')+
-      '<button type="button" class="equip-btn" data-eq="'+key+'" data-etat="absent" style="flex:1;min-width:14%;padding:7px 0;font-size:14px;border-radius:7px;border:1px solid var(--line);background:'+(etat==='absent'?'var(--err)':'var(--panel2)')+';color:'+(etat==='absent'?'#2a0a08':'var(--ink-dim)')+';opacity:'+(etat==='absent'?'1':'.7')+';">✕</button>'+
+      SMILEY_STATES.map(s => '<button type="button" class="equip-btn" data-eq="'+key+'" data-etat="'+s.val+'" title="'+EQUIP_STATE_TITLES[String(s.val)]+'" style="flex:1;min-width:14%;padding:7px 0;font-size:16px;border-radius:7px;border:1px solid var(--line);background:'+(etat===String(s.val)?'var(--accent)':'var(--panel2)')+';opacity:'+(etat===String(s.val)?'1':'.55')+';">'+s.icon+'</button>').join('')+
+      '<button type="button" class="equip-btn" data-eq="'+key+'" data-etat="absent" title="Absent" style="flex:1;min-width:14%;padding:7px 0;font-size:10.5px;font-weight:700;border-radius:7px;border:1px solid var(--line);background:'+(etat==='absent'?'var(--err)':'var(--panel2)')+';color:'+(etat==='absent'?'#2a0a08':'var(--ink-dim)')+';opacity:'+(etat==='absent'?'1':'.7')+';">Abs</button>'+
     '</div></div>';
 }
-function toggle2RowHtml(label, field, value, trueLabel, falseLabel){
+// Bascule a 3 etats (true/false/non renseigne) : cliquer sur l'option deja active la desactive et
+// revient a "non renseigne" -- pas besoin d'un 3e bouton visible pour repasser a l'etat neutre.
+function toggle3RowHtml(label, field, value, trueLabel, falseLabel){
+  const unset = value===null||value===undefined;
+  return '<div class="form-row"><label>'+label+' <span class="unset-hint" style="font-weight:400;color:var(--ink-dim);display:'+(unset?'inline':'none')+';">— non renseigné</span></label>'+
+    '<div class="toggle3-row" data-field="'+field+'">'+
+      '<button type="button" class="toggle3-btn'+(value===true?' on a':'')+'" data-field="'+field+'" data-val="1">'+trueLabel+'</button>'+
+      '<button type="button" class="toggle3-btn'+(value===false?' on b':'')+'" data-field="'+field+'" data-val="0">'+falseLabel+'</button>'+
+    '</div></div>';
+}
+// Selecteur 1-4 + "plus de 4" pour les champs de comptage (cellules, PMR, urinoirs...) : plus rapide
+// et plus sur sur mobile qu'un clavier numerique (evite les frappes accidentelles).
+function numPickRowHtml(field, label, value){
+  const v = value || 0;
+  const choices = [0,1,2,3,4];
   return '<div class="form-row"><label>'+label+'</label>'+
-    '<div class="toggle2-row" style="display:flex;gap:8px;">'+
-      '<button type="button" class="toggle2-btn" data-field="'+field+'" data-val="1" style="flex:1;padding:9px;border-radius:7px;border:1px solid var(--line);background:'+(value===true?'var(--ok)':'var(--panel2)')+';color:'+(value===true?'#0B1416':'var(--ink)')+';">'+trueLabel+'</button>'+
-      '<button type="button" class="toggle2-btn" data-field="'+field+'" data-val="0" style="flex:1;padding:9px;border-radius:7px;border:1px solid var(--line);background:'+(value===false?'var(--accent)':'var(--panel2)')+';color:'+(value===false?'#fff':'var(--ink)')+';">'+falseLabel+'</button>'+
-    '</div>'+
-    (value===null||value===undefined ? '<p style="font-size:9.5px;color:var(--ink-dim);margin:4px 0 0;">Choisir…</p>' : '')+
-  '</div>';
+    '<div class="numpick-row" data-field="'+field+'">'+
+      choices.map(n => '<button type="button" class="numpick-btn'+(v===n?' on':'')+'" data-field="'+field+'" data-val="'+n+'">'+n+'</button>').join('')+
+      '<button type="button" class="numpick-btn'+(v>4?' on':'')+'" data-field="'+field+'" data-val="'+(v>4?v:5)+'" data-plus="1">'+(v>4?v:'+ de 4')+'</button>'+
+    '</div></div>';
 }
 function positionSectionHtml(){
   return '<div class="form-row" id="position-section"><label>📍 Position sur la carte</label>'+
-    '<p style="font-size:11px;color:var(--ink-dim);line-height:1.5;margin:0 0 8px;">Vous pouvez aider à redéfinir la position du sanitaire sur la carte en relevant votre position GPS.<br>'+
-    '<b>Condition :</b> vous devez être à moins de 20 m du sanitaire.<br>'+
-    '<b>Mode opératoire :</b> cliquez sur le bouton ci-dessous. Si 3 personnes signalent, comme vous, cette position plus juste du sanitaire à 20 m près, la carte évoluera.</p>'+
+    '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 8px;">Vous constatez un positionnement erroné ? À moins de 20 m du sanitaire :</p>'+
     '<button type="button" class="btn-gps" id="btn-vote-position" style="width:100%;">📍 Confirmer ma position GPS</button>'+
   '</div>';
 }
@@ -649,9 +684,9 @@ async function uploadIncidentPhoto(dataUri, ubId){
 
 const RPC_PARAM_MAP = {
   Exists:'p_exists', Latitude:'p_latitude', Longitude:'p_longitude', Automatic:'p_automatic',
-  MSB:'p_msb', PMR:'p_pmr', Urinals:'p_urinals', Showers:'p_showers', ChangingRooms:'p_changing_rooms',
+  MSB:'p_msb', PMR:'p_pmr', Urinals:'p_urinals', Urinals_Femme:'p_urinals_femme', Showers:'p_showers', ChangingRooms:'p_changing_rooms',
   Rating_Access:'p_rating_access', Rating_Cleanliness:'p_rating_cleanliness', Rating_Odors:'p_rating_odors', Rating_Overall:'p_rating_overall', Rating_Signage:'p_rating_signage',
-  Comment:'p_comment', Equipment:'p_equipment', Adapte_Enfant:'p_adapte_enfant',
+  Comment:'p_comment', Equipment:'p_equipment', Adapte_Enfant:'p_adapte_enfant', Mixte:'p_mixte',
   Photo_Environment:'p_photo_environment', Photo_CloseUp:'p_photo_closeup', Photo_Interior:'p_photo_interior', Photo_Seat:'p_photo_seat', Photo_Sink:'p_photo_sink', Photo_Access:'p_photo_access'
 };
 
@@ -762,7 +797,7 @@ function updateSyncStatus(){
 }
 
 /* ---------- Téléchargement de la base toilettes publiée par StatSan ---------- */
-const TOI_SELECT = 'UB_id,Sources,Name,Adresse,City,District,Region,Latitude,Longitude,Provider,Exists,MSB,Automatic,PMR,Urinals,Showers,ChangingRooms,Adapte_Enfant,Verified,Certified,Rating_Access,Rating_Cleanliness,Rating_Odors,Rating_Overall,Comment,Equipment,Photo_Environment,Photo_CloseUp,Photo_Interior,Photo_Seat,Photo_Sink';
+const TOI_SELECT = 'UB_id,Sources,Name,Adresse,City,District,Region,Latitude,Longitude,Provider,Exists,MSB,Automatic,PMR,Urinals,Urinals_Femme,Showers,ChangingRooms,Adapte_Enfant,Mixte,Verified,Certified,Rating_Access,Rating_Cleanliness,Rating_Odors,Rating_Overall,Comment,Equipment,Photo_Environment,Photo_CloseUp,Photo_Interior,Photo_Seat,Photo_Sink';
 
 async function refreshBaseFromServer(){
   const status = document.getElementById('sync-status');
@@ -826,54 +861,59 @@ function openSheet(ubId){
       '<span class="badge" style="background:'+V_COLORS[kind]+';">'+V_LABELS[kind]+'</span>'+
     '</div>'+
 
-    '<div class="big-actions">'+
-      '<button class="big-btn '+(deleted?'':'btn-confirm')+'" id="sheet-btn-confirm" '+(deleted?'style="background:var(--panel2);color:var(--ink-dim);"':'')+'><span class="ic">✓</span>'+(deleted?'Restaurer':'Confirmé')+'</button>'+
-      (deleted?'':'<button class="big-btn btn-delete" id="sheet-btn-delete"><span class="ic">✕</span>Disparu</button>')+
-      (deleted?'':'<button class="big-btn btn-edit" id="sheet-btn-reposition"><span class="ic">📍</span>À repositionner</button>')+
-    '</div>'+
+    // "Confirme" a disparu d'ici : valider la fiche (bouton Enregistrer, en bas) confirme deja
+    // implicitement le passage sur place. Ne restent que les 2 actions qui n'ont pas leur place
+    // dans le formulaire normal (disparition constatee / repositionnement) -- au format compact.
+    (deleted
+      ? '<div class="big-actions"><button class="big-btn small" id="sheet-btn-confirm" style="background:var(--ok);color:#0B1416;"><span class="ic">✓</span>Restaurer (existe de nouveau)</button></div>'
+      : '<div class="big-actions">'+
+          '<button class="big-btn small btn-delete" id="sheet-btn-delete"><span class="ic">✕</span>Disparu</button>'+
+          '<button class="big-btn small btn-edit" id="sheet-btn-reposition"><span class="ic">📍</span>À repositionner</button>'+
+        '</div>')+
     '<div class="link-row"><a href="https://www.google.com/maps/search/?api=1&query='+t.Latitude+','+t.Longitude+'" target="_blank">📍 Google Maps</a>'+
     '<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+t.Latitude+','+t.Longitude+'" target="_blank">👁 Street View</a></div>'+
 
-    '<div style="border-top:1px solid var(--line);margin:16px 0 12px;"></div>'+
-    '<div style="font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:8px;">★ Avis</div>'+
-    starRowHtml(t.Rating_Overall)+
-    Object.keys(RATING_LABELS).map(k => smileyRowHtml(k, RATING_LABELS[k], t[k])).join('')+
-    ratingsOverviewHtml()+
+    // Rubriques repliables : seul "Avis" est ouvert par defaut (les stats des avis precedents s'y
+    // affichent tout de suite) -- le reste s'ouvre a la demande pour ne pas donner l'impression qu'il
+    // faut tout remplir avant de pouvoir enregistrer (bouton colle en bas, voir fin de fonction).
+    '<details class="sheet-section" open><summary>★ Avis</summary><div class="sheet-section-body">'+
+      starRowHtml(t.Rating_Overall)+
+      ratingsOverviewHtml()+
+      Object.keys(RATING_LABELS).map(k => smileyRowHtml(k, RATING_LABELS[k], t[k])).join('')+
+    '</div></details>'+
 
-    '<div style="border-top:1px solid var(--line);margin:16px 0 12px;"></div>'+
-    '<div style="font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:8px;">🧴 Équipements</div>'+
-    Object.keys(EQUIP_LABELS).map(k => equipStateRowHtml(k, EQUIP_LABELS[k], equipements[k])).join('')+
+    '<details class="sheet-section"><summary>📍 Localisation & photos</summary><div class="sheet-section-body">'+
+      '<div class="form-row"><label>Photos</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px;">'+
+        PHOTO_CATS.map(c => '<button type="button" class="btn-gps photo-cap-btn" data-field="'+c.field+'" style="flex:1;min-width:30%;">'+c.icon+' '+c.label+'</button>').join('')+
+      '</div><p style="font-size:9.5px;color:var(--ink-dim);margin:0;">📷 Touchez une catégorie pour ajouter une photo.</p></div>'+
+      '<input type="file" id="sheet-photo-file" accept="image/*" capture="environment" style="display:none;">'+
+      photoGalleryHtml(t)+
+      positionSectionHtml()+
+    '</div></details>'+
 
-    '<div style="border-top:1px solid var(--line);margin:16px 0 12px;"></div>'+
-    '<div style="font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:8px;">ℹ️ Informations complémentaires</div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px;">'+
-      COUNT_FIELDS.map(c => '<div class="form-row"><label>'+c.label+'</label><input type="number" min="0" inputmode="numeric" class="count-input" data-field="'+c.field+'" value="'+(t[c.field]||0)+'"></div>').join('')+
-    '</div>'+
-    toggle2RowHtml('Automatique', 'Automatic', t.Automatic===true?true:(t.Automatic===false?false:null), 'Automatique', 'Classique')+
-    toggle2RowHtml('Convient à un enfant seul', 'Adapte_Enfant', t.Adapte_Enfant===true?true:(t.Adapte_Enfant===false?false:null), 'Oui', 'Non')+
+    '<details class="sheet-section"><summary>⚠ Incivilités & vandalisme</summary><div class="sheet-section-body">'+
+      '<button class="big-btn btn-delete" id="sheet-btn-incident" style="width:100%;flex-direction:row;justify-content:center;background:var(--panel2);color:var(--err);border:1px solid var(--err) !important;"><span class="ic" style="font-size:15px;">⚠</span>&nbsp;Signaler une incivilité ou un vandalisme</button>'+
+      '<div style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin-top:4px;">Chaque signalement aide à mieux protéger le réseau — merci de contribuer 🙏</div>'+
+      myIncidentPhotosHtml(ubId)+
+    '</div></details>'+
 
-    '<div style="border-top:1px solid var(--line);margin:16px 0 12px;"></div>'+
-    '<div style="font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:8px;">📷 Photos</div>'+
-    '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">'+
-      PHOTO_CATS.map(c => '<button type="button" class="btn-gps photo-cap-btn" data-field="'+c.field+'" style="flex:1;min-width:30%;">'+c.icon+' '+c.label+'</button>').join('')+
-    '</div>'+
-    '<input type="file" id="sheet-photo-file" accept="image/*" capture="environment" style="display:none;">'+
-    photoGalleryHtml(t)+
+    '<details class="sheet-section"><summary>🧴 Équipements & prestations</summary><div class="sheet-section-body">'+
+      '<div class="equip-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStateRowHtml(k, EQUIP_LABELS[k], equipements[k])).join('')+'</div>'+
+      COUNT_FIELDS.map(c => numPickRowHtml(c.field, c.label, t[c.field])).join('')+
+      toggle3RowHtml('Automatique', 'Automatic', t.Automatic===true?true:(t.Automatic===false?false:null), 'Automatique', 'Classique')+
+      toggle3RowHtml('Séparation', 'Mixte', t.Mixte===true?true:(t.Mixte===false?false:null), 'Mixte', 'Séparés Femmes/Hommes')+
+      toggle3RowHtml('Siège enfant', 'Adapte_Enfant', t.Adapte_Enfant===true?true:(t.Adapte_Enfant===false?false:null), 'Siège surbaissé enfant', 'Pas de siège adapté')+
+    '</div></details>'+
 
-    positionSectionHtml()+
+    '<div class="form-row" style="margin-top:14px;"><label>Zone d\'expression libre</label><textarea id="sheet-comment" placeholder="Un commentaire, une remarque…">'+(t.Comment||'')+'</textarea></div>'+
 
-    '<div style="border-top:1px solid var(--line);margin:16px 0 12px;"></div>'+
-    '<button class="big-btn btn-delete" id="sheet-btn-incident" style="width:100%;flex-direction:row;justify-content:center;background:var(--panel2);color:var(--err);border:1px solid var(--err) !important;"><span class="ic" style="font-size:15px;">⚠</span>&nbsp;Signaler une incivilité ou un vandalisme</button>'+
-    '<div style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin-top:4px;">Chaque signalement aide à mieux protéger le réseau — merci de contribuer 🙏</div>'+
-    myIncidentPhotosHtml(ubId)+
-
-    '<div style="border-top:1px solid var(--line);margin:16px 0 12px;"></div>'+
-    '<div class="form-row"><label>Zone d\'expression libre</label><textarea id="sheet-comment" placeholder="Un commentaire, une remarque…">'+(t.Comment||'')+'</textarea></div>';
+    '<div class="sheet-save-wrap"><button type="button" class="btn-save-sheet" id="btn-save-sheet"><span>✓</span> Enregistrer</button></div>';
 
   loadPhotoCarousel(t);
   loadRatingsOverview(t);
 
-  document.getElementById('sheet-btn-confirm').addEventListener('click', () => {
+  const confirmBtn = document.getElementById('sheet-btn-confirm');
+  if (confirmBtn) confirmBtn.addEventListener('click', () => {
     queueFeedback(ubId, { Exists:true });
     showToast('✓ Confirmée sur le terrain.');
     openSheet(ubId);
@@ -886,6 +926,7 @@ function openSheet(ubId){
   });
   const repoBtn = document.getElementById('sheet-btn-reposition');
   if (repoBtn) repoBtn.addEventListener('click', () => {
+    document.getElementById('position-section').closest('details').open = true;
     document.getElementById('position-section').scrollIntoView({ behavior:'smooth', block:'start' });
   });
 
@@ -925,20 +966,39 @@ function openSheet(ubId){
       });
     });
   });
-  document.querySelectorAll('.count-input').forEach(inp => {
-    inp.addEventListener('change', () => {
-      const v = parseInt(inp.value, 10) || 0;
-      inp.value = v;
-      t[inp.dataset.field] = v;
-      queueFeedback(ubId, { [inp.dataset.field]: v });
+  document.querySelectorAll('.numpick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const field = btn.dataset.field;
+      let v = parseInt(btn.dataset.val, 10);
+      if (btn.dataset.plus){
+        const asked = prompt('Combien (plus de 4) ?', String(Math.max(5, t[field]||5)));
+        if (asked === null) return;
+        v = Math.max(5, parseInt(asked, 10) || 5);
+      }
+      t[field] = v;
+      queueFeedback(ubId, { [field]: v });
+      const row = btn.closest('.numpick-row');
+      row.querySelectorAll('.numpick-btn').forEach(b => {
+        const isPlus = !!b.dataset.plus;
+        b.classList.toggle('on', isPlus ? v > 4 : parseInt(b.dataset.val,10) === v && v <= 4);
+        if (isPlus){ b.textContent = v > 4 ? v : '+ de 4'; b.dataset.val = v > 4 ? v : 5; }
+      });
     });
   });
-  document.querySelectorAll('.toggle2-btn').forEach(btn => {
+  document.querySelectorAll('.toggle3-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const field = btn.dataset.field, val = btn.dataset.val === '1';
-      t[field] = val;
-      queueFeedback(ubId, { [field]: val });
-      openSheet(ubId);
+      const field = btn.dataset.field;
+      const isTrueBtn = btn.dataset.val === '1';
+      const wasOn = btn.classList.contains('on');
+      const newVal = wasOn ? null : isTrueBtn; // recliquer sur l'actif -> repasse a "non renseigne"
+      t[field] = newVal;
+      queueFeedback(ubId, { [field]: newVal });
+      const row = btn.closest('.toggle3-row');
+      row.querySelectorAll('.toggle3-btn').forEach(b => b.classList.remove('on','a','b'));
+      if (newVal === true) row.querySelector('[data-val="1"]').classList.add('on','a');
+      else if (newVal === false) row.querySelector('[data-val="0"]').classList.add('on','b');
+      const hint = row.closest('.form-row').querySelector('.unset-hint');
+      if (hint) hint.style.display = (newVal===null) ? 'inline' : 'none';
     });
   });
   document.getElementById('sheet-comment').addEventListener('blur', () => {
@@ -983,6 +1043,25 @@ function openSheet(ubId){
 
   document.getElementById('sheet-btn-incident').addEventListener('click', () => openIncidentForm(ubId));
 
+  // Bouton "Enregistrer" : chaque champ est deja auto-sauvegarde localement des sa saisie
+  // (queueFeedback), donc ce bouton n'a rien de plus a "valider" -- son role est de rassurer
+  // l'utilisateur en tentant un envoi immediat et en confirmant clairement si ca a marche,
+  // plutot que de le laisser deviner si sa contribution est vraiment partie.
+  document.getElementById('btn-save-sheet').addEventListener('click', async () => {
+    const v = document.getElementById('sheet-comment').value.trim();
+    if (v !== (t.Comment||'')){ t.Comment = v; queueFeedback(ubId, { Comment: v }); }
+    if (!deleted) queueFeedback(ubId, { Exists:true });
+    const btn = document.getElementById('btn-save-sheet');
+    btn.disabled = true; btn.textContent = 'Envoi…';
+    try{ await pushDirty(); }catch(e){ /* pushDirty gere deja ses echecs par element */ }
+    updateSyncStatus();
+    const stillPending = dirtyFeedback.has(ubId);
+    btn.disabled = false; btn.innerHTML = '<span>✓</span> Enregistrer';
+    if (stillPending) showToast('✓ Enregistré sur votre appareil — sera envoyé automatiquement dès que possible (hors ligne ?).', 4000);
+    else showToast('✓ Bien reçu, merci pour votre contribution !', 4000);
+    closeSheet();
+  });
+
   document.getElementById('sheet-overlay').classList.add('show');
   document.getElementById('sheet').classList.add('show');
 }
@@ -993,16 +1072,36 @@ function closeSheet(){
 document.getElementById('sheet-overlay').addEventListener('click', closeSheet);
 
 /* ---------- Signalement d'incivilité / vandalisme ---------- */
+// Categories rapides pour un signalement I&V : evite d'obliger l'utilisateur lambda a taper une
+// description libre (trop long sur mobile) -- boutons a cocher, prepends au texte libre en envoi.
+const INCIDENT_CATEGORIES = {
+  'Incivilités': ['Papiers', 'Déchets', 'Salissures', 'Excréments', 'Fluides au sol / sur les murs'],
+  'Vandalisme': ['Tags', 'Éléments cassés / arrachés', 'Éléments tordus / coupés']
+};
 function openIncidentForm(ubId){
   const body = document.getElementById('sheet-body');
+  window._incidentCats = new Set();
   body.innerHTML =
     '<div id="sheet-title">⚠ Signaler une incivilité ou un vandalisme</div>'+
-    '<p style="font-size:11.5px;color:var(--ink-dim);margin:0 0 14px;">Photo obligatoire, description facultative. Consultable indépendamment du constat habituel.</p>'+
+    '<p style="font-size:11.5px;color:var(--ink-dim);margin:0 0 14px;">Photo obligatoire, le reste facultatif. Consultable indépendamment du constat habituel.</p>'+
+    Object.keys(INCIDENT_CATEGORIES).map(grp =>
+      '<div class="inc-cat-group"><div class="grp-label">'+grp+'</div><div class="inc-cat-row">'+
+        INCIDENT_CATEGORIES[grp].map(c => '<button type="button" class="inc-cat-btn" data-cat="'+c+'">'+c+'</button>').join('')+
+      '</div></div>'
+    ).join('')+
     '<div class="form-row"><label>Photo</label><div id="incident-photo-preview"></div>'+
       '<button type="button" class="btn-gps" id="incident-photo-btn" style="width:100%;">📷 Prendre une photo</button>'+
       '<input type="file" id="incident-photo-file" accept="image/*" capture="environment" style="display:none;"></div>'+
-    '<div class="form-row"><label>Description</label><textarea id="incident-desc"></textarea></div>'+
+    '<div class="form-row"><label>Description (facultatif)</label><textarea id="incident-desc"></textarea></div>'+
     '<div class="form-actions"><button id="btn-cancel-incident">Annuler</button><button id="btn-save-incident">✓ Envoyer</button></div>';
+
+  document.querySelectorAll('.inc-cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cat = btn.dataset.cat;
+      if (window._incidentCats.has(cat)){ window._incidentCats.delete(cat); btn.classList.remove('on'); }
+      else { window._incidentCats.add(cat); btn.classList.add('on'); }
+    });
+  });
 
   window._incidentPhoto = null;
   document.getElementById('incident-photo-btn').addEventListener('click', () => document.getElementById('incident-photo-file').click());
@@ -1020,7 +1119,9 @@ function openIncidentForm(ubId){
   document.getElementById('btn-cancel-incident').addEventListener('click', () => openSheet(ubId));
   document.getElementById('btn-save-incident').addEventListener('click', () => {
     if (!window._incidentPhoto){ showToast('Une photo est nécessaire.'); return; }
-    pendingIncidents.push({ UB_id: ubId, Photo: window._incidentPhoto, Description: document.getElementById('incident-desc').value.trim() });
+    const catPrefix = window._incidentCats.size ? '['+Array.from(window._incidentCats).join(', ')+'] ' : '';
+    const description = catPrefix + document.getElementById('incident-desc').value.trim();
+    pendingIncidents.push({ UB_id: ubId, Photo: window._incidentPhoto, Description: description.trim() });
     saveMyIncidentPhoto(ubId, window._incidentPhoto);
     savePendingQueue();
     updateSyncStatus();
@@ -1376,6 +1477,54 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => { /* hébergement sans HTTPS ou fichier ouvert en local : PWA non disponible, l'app reste utilisable normalement */ });
   });
 }
+
+/* ---------- Verification de version (ecran d'accueil) : compare l'APP_VERSION locale a celle du
+   app.js actuellement publie (fetch reseau, jamais depuis le cache) -- pas de mecanisme d'auto-mise-a-
+   jour silencieuse pour un PWA a ce jour, donc on l'affiche clairement et on propose un bouton plutot
+   que de laisser l'utilisateur deviner s'il a la derniere version. ---------- */
+async function checkForAppUpdate(){
+  const statusEl = document.getElementById('update-check-status');
+  const btn = document.getElementById('btn-update-app');
+  if (!statusEl) return;
+  try{
+    const resp = await fetch('app.js?cachebust=' + Date.now(), { cache:'no-store' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const text = await resp.text();
+    const m = text.match(/const APP_VERSION\s*=\s*'([^']+)'/);
+    const latest = m ? m[1] : null;
+    if (!latest){ statusEl.textContent = ''; return; }
+    if (latest === APP_VERSION){
+      statusEl.textContent = '✓ Vous avez la dernière version.';
+    } else {
+      statusEl.textContent = 'Nouvelle version disponible : ' + latest;
+      btn.style.display = 'inline-block';
+    }
+  }catch(e){
+    statusEl.textContent = 'Vérification impossible (hors ligne ?).';
+  }
+}
+document.getElementById('btn-update-app').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-update-app');
+  const progressWrap = document.getElementById('update-progress-wrap');
+  const progressBar = document.getElementById('update-progress-bar');
+  const statusEl = document.getElementById('update-check-status');
+  btn.disabled = true; btn.style.display = 'none';
+  progressWrap.style.display = 'block';
+  statusEl.textContent = 'Mise à jour en cours…';
+  let pct = 10; progressBar.style.width = pct + '%';
+  const tick = setInterval(() => { pct = Math.min(90, pct + 15); progressBar.style.width = pct + '%'; }, 250);
+  try{
+    if ('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if (window.caches) await caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
+  }catch(e){ /* au pire, le reload force ci-dessous recupere quand meme la derniere version */ }
+  clearInterval(tick); progressBar.style.width = '100%';
+  statusEl.textContent = '✓ Mise à jour installée, relancement…';
+  setTimeout(() => { location.href = location.pathname + '?v=' + Date.now(); }, 500);
+});
+checkForAppUpdate();
 
 /* ---------- Initialisation ---------- */
 document.title = 'SpotSan ' + APP_VERSION;
