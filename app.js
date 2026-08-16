@@ -133,7 +133,7 @@ const CHANGELOG = [
 ];
 
 const V_COLORS = { verified:'#3b82f6', gouv:'#f5a524', osm:'#2fb344', certified:'#FFC3D5' };
-const V_LABELS = { verified:'Vérifié (Officiel .gouv + Données publiques)', gouv:'Officiel .gouv uniquement', osm:'Données publiques uniquement', certified:'SpotSan (terrain)' };
+const V_LABELS = { verified:'Vérifié (Officiel .gouv + Données publiques)', gouv:'Officiel .gouv uniquement', osm:'Données publiques uniquement', certified:'SpotSan' };
 // Rating_Overall est note a part (5 etoiles) ; ces 4 criteres sont notes via une echelle de smileys.
 const RATING_LABELS = { Rating_Signage:'Signalétique', Rating_Access:'Accès', Rating_Cleanliness:'Propreté', Rating_Odors:'Odeurs' };
 const RATING_LABELS_ALL = Object.assign({ Rating_Overall:'Note globale' }, RATING_LABELS);
@@ -147,7 +147,7 @@ const PHOTO_CATS = [
   { field:'Photo_Environment', label:'Environnement à 20m', icon:'🏡' },
   { field:'Photo_Access', label:'Accès', icon:'🚪' },
   { field:'Photo_CloseUp', label:'Signalétique', icon:'♿' },
-  { field:'Photo_Interior', label:'Intérieur', icon:'🏠' },
+  { field:'Photo_Interior', label:'Intérieur', icon:'🚻' },
   { field:'Photo_Seat', label:'Siège', icon:'🚽' },
   { field:'Photo_Sink', label:'Lave-mains', icon:'🚰' }
 ];
@@ -475,15 +475,15 @@ async function loadRatingsOverview(t){
    avis et non qu'on modifie la moyenne affichee juste au-dessus (voir ratingStatLine/loadRatingsOverview).
    Couleur de selection : bleu (pas le rouge/rose UrBizia, qui laisserait croire a un avertissement). ---------- */
 function starRowHtml(){
-  return '<div class="form-row"><label>Note globale</label>'+
-    '<div id="star-row" style="display:flex;gap:6px;font-size:26px;">'+
+  return '<div class="form-row"><label style="font-size:14px;font-weight:700;color:var(--ink);">Note globale</label>'+
+    '<div id="star-row" style="display:flex;gap:8px;font-size:34px;">'+
       [1,2,3,4,5].map(n => '<span class="star-btn" data-star="'+n+'" style="cursor:pointer;opacity:.3;">★</span>').join('')+
     '</div></div>';
 }
 function smileyRowHtml(field, label){
   return '<div class="form-row"><label>'+label+'</label>'+
-    '<div class="smiley-row" style="display:flex;gap:6px;">'+
-      SMILEY_STATES.map(s => '<button type="button" class="smiley-btn" data-field="'+field+'" data-val="'+s.val+'" style="flex:1;padding:8px 0;font-size:19px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);opacity:.55;">'+s.icon+'</button>').join('')+
+    '<div class="smiley-row" style="display:flex;gap:4px;flex-wrap:wrap;">'+
+      SMILEY_STATES.map(s => '<button type="button" class="smiley-btn" data-field="'+field+'" data-val="'+s.val+'" style="flex:1;min-width:14%;padding:7px 0;font-size:16px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);opacity:.55;">'+s.icon+'</button>').join('')+
     '</div></div>';
 }
 // Equipements : echelle -1(absent)..4(tres bien) -- distincte de celle des avis (-5..+5) car construite
@@ -908,12 +908,17 @@ function openSheet(ubId){
       '<span class="badge" style="background:'+V_COLORS[kind]+';">'+V_LABELS[kind]+'</span>'+
     '</div>'+
 
-    // Bandeau photos duplique ici (en plus de la rubrique Localisation) : un nouveau venu doit
-    // pouvoir le trouver tout de suite sans deviner qu'il faut ouvrir une rubrique repliee pour ca.
+    // Bandeau photos duplique ici (en plus de la rubrique Localisation), mais UNIQUEMENT pour les
+    // categories deja photographiees -- un acces rapide a l'existant, pas une invitation a capturer
+    // une categorie vierge (ca, c'est le role de la rubrique Localisation, voir "Donnez votre avis").
     // Memes boutons (classe photo-cap-btn), un seul jeu d'ecouteurs plus bas suffit pour les deux.
-    '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;">'+
-      PHOTO_CATS.map(c => '<button type="button" class="btn-gps photo-cap-btn" data-field="'+c.field+'" style="flex:1;min-width:30%;">'+c.icon+' '+c.label+'</button>').join('')+
-    '</div>'+
+    (function(){
+      const withPhoto = PHOTO_CATS.filter(c => t[c.field]);
+      if (!withPhoto.length) return '';
+      return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;">'+
+        withPhoto.map(c => '<button type="button" class="btn-gps photo-cap-btn" data-field="'+c.field+'" style="flex:1;min-width:30%;">'+c.icon+' '+c.label+'</button>').join('')+
+      '</div>';
+    })()+
 
     // "Confirme" a disparu d'ici : valider la fiche (bouton Enregistrer, en bas) confirme deja
     // implicitement le passage sur place. Ne restent que les 2 actions qui n'ont pas leur place
@@ -934,9 +939,9 @@ function openSheet(ubId){
     // qu'on sache toujours si on lit ou si on est en train d'ajouter sa propre contribution.
     '<details class="sheet-section" open><summary>★ Avis</summary><div class="sheet-section-body">'+
       ratingsOverviewHtml()+
-      '<div class="sheet-subheading">Donnez votre avis…</div>'+
+      '<div class="sheet-subheading-input">Donnez votre avis…</div>'+
       starRowHtml()+
-      Object.keys(RATING_LABELS).map(k => smileyRowHtml(k, RATING_LABELS[k])).join('')+
+      '<div class="equip-grid">'+Object.keys(RATING_LABELS).map(k => smileyRowHtml(k, RATING_LABELS[k])).join('')+'</div>'+
     '</div></details>'+
 
     '<details class="sheet-section"><summary>📍 Localisation & photos</summary><div class="sheet-section-body">'+
@@ -959,7 +964,7 @@ function openSheet(ubId){
       '<div class="stat-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStatLine(EQUIP_LABELS[k], equipements[k])).join('')+'</div>'+
       '<div style="border-top:1px solid var(--line);margin:10px 0;"></div>'+
       prestationsStatsHtml(t)+
-      '<div class="sheet-subheading">Donnez votre avis…</div>'+
+      '<div class="sheet-subheading-input">Donnez votre avis…</div>'+
       '<div class="equip-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStateRowHtml(k, EQUIP_LABELS[k])).join('')+'</div>'+
       '<div class="equip-grid">'+
         COUNT_FIELDS.map(c => numPickRowHtml(c.field, c.label)).join('')+
