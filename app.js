@@ -133,7 +133,7 @@ const CHANGELOG = [
 ];
 
 const V_COLORS = { verified:'#3b82f6', gouv:'#f5a524', osm:'#2fb344', certified:'#FFC3D5' };
-const V_LABELS = { verified:'Vérifié (Officiel .gouv + Données publiques)', gouv:'Officiel .gouv uniquement', osm:'Données publiques uniquement', certified:'SpotSan (terrain)' };
+const V_LABELS = { verified:'Vérifié (Officiel .gouv + Données publiques)', gouv:'Officiel .gouv uniquement', osm:'Données publiques uniquement', certified:'SpotSan' };
 // Rating_Overall est note a part (5 etoiles) ; ces 4 criteres sont notes via une echelle de smileys.
 const RATING_LABELS = { Rating_Signage:'Signalétique', Rating_Access:'Accès', Rating_Cleanliness:'Propreté', Rating_Odors:'Odeurs' };
 const RATING_LABELS_ALL = Object.assign({ Rating_Overall:'Note globale' }, RATING_LABELS);
@@ -142,13 +142,12 @@ const EQUIP_LABELS = { laveMains:'Lave-mains', savon:'Savon', sechage:'Séchage'
 // "5" reste le meilleur etat mais avec une expression plus sobre (pas de coeurs dans les yeux) : ce
 // meme jeu d'icones sert aussi bien aux criteres d'avis generaux (satisfaction) qu'aux equipements
 // (etat constate) -- voir equipStateRowHtml pour les info-bulles specifiques au contexte equipement.
-const SMILEY_STATES = [ { val:-5, icon:'🤢' }, { val:-2, icon:'🙁' }, { val:0, icon:'😐' }, { val:2, icon:'🙂' }, { val:5, icon:'😄' } ];
-const EQUIP_STATE_LABELS = { absent:'Absent' };
+const SMILEY_STATES = [ { val:-5, icon:'👎' }, { val:-2, icon:'🙁' }, { val:0, icon:'😐' }, { val:2, icon:'🙂' }, { val:5, icon:'👍' } ];
 const PHOTO_CATS = [
   { field:'Photo_Environment', label:'Environnement à 20m', icon:'🏡' },
   { field:'Photo_Access', label:'Accès', icon:'🚪' },
   { field:'Photo_CloseUp', label:'Signalétique', icon:'♿' },
-  { field:'Photo_Interior', label:'Intérieur', icon:'🏠' },
+  { field:'Photo_Interior', label:'Intérieur', icon:'🚻' },
   { field:'Photo_Seat', label:'Siège', icon:'🚽' },
   { field:'Photo_Sink', label:'Lave-mains', icon:'🚰' }
 ];
@@ -389,9 +388,9 @@ function ratingColor(v){
   if (v > 0) return 'var(--ok)'; if (v < 0) return 'var(--err)'; return 'var(--ink-dim)';
 }
 function ratingsOverviewHtml(){
-  return '<div class="sheet-row" id="ratings-overview-ph" style="align-items:flex-start;flex-direction:column;gap:6px;display:none;">'+
-    '<span class="k" style="margin-bottom:2px;">Avis des autres visiteurs</span>'+
-    '<div id="ratings-overview-body" style="width:100%;font-size:10.5px;color:var(--ink-dim);">Chargement…</div>'+
+  return '<div id="ratings-overview-ph" style="display:none;">'+
+    '<div class="sheet-subheading" style="margin-top:0;">Avis global</div>'+
+    '<div id="ratings-overview-body" style="font-size:10.5px;color:var(--ink-dim);">Chargement…</div>'+
   '</div>';
 }
 // Rating_Overall (etoiles) est sur une echelle 1-5 (valeur envoyee telle quelle par le clic sur une
@@ -427,6 +426,19 @@ function starsHistogramHtml(list){
     }).join('') +
   '</div>';
 }
+// Une seule icone representant la moyenne d'un critere (au lieu d'une rangee de 5 boutons avec la
+// valeur courante en surbrillance) : evite la confusion entre "ce que les autres ont dit" (lecture
+// seule) et "donnez votre avis" (saisie neuve, toujours vierge -- voir sheetInputSectionHtml).
+const RATING_ICONS = ['👎','🙁','😐','🙂','👍'];
+function avgToIconIndex(avg){ // avg sur l'echelle -5..+5 (criteres Signaletique/Acces/Proprete/Odeurs)
+  return Math.max(0, Math.min(4, Math.round(((avg + 5) / 10) * 4)));
+}
+function ratingStatLine(label, avg){
+  const body = (avg === null || avg === undefined)
+    ? '<span style="color:var(--ink-dim);font-size:10px;">n/a</span>'
+    : '<span class="ic">'+RATING_ICONS[avgToIconIndex(avg)]+'</span>';
+  return '<div class="stat-chip"><span>'+label+'</span>'+body+'</div>';
+}
 async function loadRatingsOverview(t){
   const wrap = document.getElementById('ratings-overview-ph');
   const box = document.getElementById('ratings-overview-body');
@@ -438,80 +450,97 @@ async function loadRatingsOverview(t){
     ]);
     const sum = (await sumResp.json())[0];
     const list = await listResp.json();
+    window._ratingAverages = sum || null;
     if (!sum && !list.length){ wrap.style.display = 'none'; return; }
-    wrap.style.display = 'flex';
+    wrap.style.display = 'block';
     let html = '';
     if (list.length) html += starsHistogramHtml(list);
     if (sum){
-      // Seule presentation gardee pour les moyennes (barre + valeur) : la liste avis-par-avis avec
-      // les memes chiffres en etiquettes faisait doublon sans rien apporter de plus.
-      html += '<div style="display:flex;flex-wrap:wrap;gap:10px;">'+
-        Object.keys(RATING_LABELS_ALL).map(k => {
+      html += '<div style="min-width:90px;margin-bottom:6px;"><div style="font-size:9px;color:var(--ink-dim);margin-bottom:2px;">Note globale</div>'+starsLine(sum.avg_overall, true)+'</div>'+
+        '<div class="sheet-subheading">Notes moyennes</div>'+
+        '<div class="stat-grid">'+
+        Object.keys(RATING_LABELS).map(k => {
           const avgKey = 'avg_' + k.replace('Rating_','').toLowerCase();
-          return '<div style="min-width:90px;"><div style="font-size:9px;color:var(--ink-dim);margin-bottom:2px;">'+RATING_LABELS_ALL[k]+'</div>'+starsLine(sum[avgKey], k === 'Rating_Overall')+'</div>';
+          return ratingStatLine(RATING_LABELS[k], sum[avgKey]);
         }).join('') +
-      '</div><div style="font-size:9.5px;color:var(--ink-dim);margin-top:6px;">'+sum.rating_count+' avis au total</div>';
+        '</div>'+
+      '<div style="font-size:9.5px;color:var(--ink-dim);margin-top:6px;">'+sum.rating_count+' avis au total</div>';
     }
     box.innerHTML = html;
-    window._ratingAverages = sum || null;
-    // Les libelles des criteres (Signaletique/Acces/...) ont deja ete rendus avant que cette requete
-    // ne reponde -- on y ajoute la moyenne "avis precedents" une fois disponible, sans tout re-rendre.
-    if (sum) Object.keys(RATING_LABELS).forEach(k => {
-      const btn = document.querySelector('.smiley-btn[data-field="'+k+'"]');
-      const label = btn && btn.closest('.form-row') && btn.closest('.form-row').querySelector('label');
-      const avg = sum['avg_' + k.replace('Rating_','').toLowerCase()];
-      if (label && avg !== null && avg !== undefined && !label.querySelector('span')){
-        label.insertAdjacentHTML('beforeend', ' <span style="font-weight:400;color:var(--ink-dim);">— avis précédents : '+(avg>0?'+':'')+avg+'</span>');
-      }
-    });
   }catch(e){ wrap.style.display = 'none'; }
 }
 
-/* ---------- Note globale (5 etoiles) et criteres (5 smileys) ---------- */
-function starRowHtml(value){
-  const filled = (value === null || value === undefined) ? 0 : value;
-  return '<div class="form-row"><label>Note globale</label>'+
-    '<div id="star-row" style="display:flex;gap:6px;font-size:26px;">'+
-      [1,2,3,4,5].map(n => '<span class="star-btn" data-star="'+n+'" style="cursor:pointer;opacity:'+(n<=filled?'1':'.3')+';">★</span>').join('')+
+/* ---------- Note globale (5 etoiles) et criteres (5 smileys) : SAISIE NEUVE UNIQUEMENT.
+   Ces widgets ne prennent plus jamais de valeur courante en entree -- ils demarrent toujours vierges
+   (aucune etoile/smiley en surbrillance), pour qu'il soit visuellement evident qu'on donne un NOUVEL
+   avis et non qu'on modifie la moyenne affichee juste au-dessus (voir ratingStatLine/loadRatingsOverview).
+   Couleur de selection : bleu (pas le rouge/rose UrBizia, qui laisserait croire a un avertissement). ---------- */
+function starRowHtml(){
+  return '<div class="form-row"><label style="font-size:14px;font-weight:700;color:var(--ink);">Note globale</label>'+
+    '<div id="star-row" style="display:flex;gap:8px;font-size:34px;">'+
+      [1,2,3,4,5].map(n => '<span class="star-btn" data-star="'+n+'" style="cursor:pointer;opacity:.3;">★</span>').join('')+
     '</div></div>';
 }
-function smileyRowHtml(field, label, value){
-  const avg = window._ratingAverages ? window._ratingAverages['avg_' + field.replace('Rating_','').toLowerCase()] : null;
-  const avgHint = (avg !== null && avg !== undefined) ? ' <span style="font-weight:400;color:var(--ink-dim);">— avis précédents : '+(avg>0?'+':'')+avg+'</span>' : '';
-  return '<div class="form-row"><label>'+label+avgHint+'</label>'+
-    '<div class="smiley-row" style="display:flex;gap:6px;">'+
-      SMILEY_STATES.map(s => '<button type="button" class="smiley-btn" data-field="'+field+'" data-val="'+s.val+'" style="flex:1;padding:8px 0;font-size:19px;border-radius:8px;border:1px solid var(--line);background:'+(value===s.val?'var(--accent)':'var(--panel2)')+';opacity:'+(value===s.val?'1':'.55')+';">'+s.icon+'</button>').join('')+
+function smileyRowHtml(field, label){
+  return '<div class="form-row"><label>'+label+'</label>'+
+    '<div class="smiley-row" style="display:flex;gap:4px;flex-wrap:wrap;">'+
+      SMILEY_STATES.map(s => '<button type="button" class="smiley-btn" data-field="'+field+'" data-val="'+s.val+'" style="flex:1;min-width:14%;padding:7px 0;font-size:16px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);opacity:.55;">'+s.icon+'</button>').join('')+
     '</div></div>';
 }
-const EQUIP_STATE_TITLES = { '-5':'Sale / dégradé', '-2':'Insuffisant', '0':'Ne fonctionne pas / vide', '2':'Correct', '5':'Bon état' };
-function equipStateRowHtml(key, label, data){
-  const etat = data && data.etat;
+// Equipements : echelle -1(absent)..4(tres bien) -- distincte de celle des avis (-5..+5) car construite
+// pour ce module ce soir (voir Toilet_Equipment_Reports) : une moyenne negative ne peut arriver QUE si
+// une majorite de votes disent "absent", les 5 etats normaux etant tous >= 0.
+const EQUIP_ICONS = [ { val:0, icon:'👎', title:'Sale / dégradé' }, { val:1, icon:'🙁', title:'Insuffisant' }, { val:2, icon:'😐', title:'Fonctionne, sans plus' }, { val:3, icon:'🙂', title:'Correct' }, { val:4, icon:'👍', title:'Bon état' } ];
+function equipStatLine(label, data){
+  let body;
+  if (!data || !data.count){ body = '<span style="color:var(--ink-dim);font-size:10px;">n/a</span>'; }
+  else if (data.avg < 0){ body = '<span style="color:var(--err);font-size:10px;font-weight:600;">Absent</span>'; }
+  else { body = '<span class="ic">'+EQUIP_ICONS[Math.max(0,Math.min(4,Math.round(data.avg)))].icon+'</span>'; }
+  return '<div class="stat-chip"><span>'+label+'</span>'+body+'</div>';
+}
+function equipStateRowHtml(key, label){
   return '<div class="form-row"><label>'+label+'</label>'+
     '<div class="equip-row" style="display:flex;gap:5px;flex-wrap:wrap;">'+
-      SMILEY_STATES.map(s => '<button type="button" class="equip-btn" data-eq="'+key+'" data-etat="'+s.val+'" title="'+EQUIP_STATE_TITLES[String(s.val)]+'" style="flex:1;min-width:14%;padding:7px 0;font-size:16px;border-radius:7px;border:1px solid var(--line);background:'+(etat===String(s.val)?'var(--accent)':'var(--panel2)')+';opacity:'+(etat===String(s.val)?'1':'.55')+';">'+s.icon+'</button>').join('')+
-      '<button type="button" class="equip-btn" data-eq="'+key+'" data-etat="absent" title="Absent" style="flex:1;min-width:14%;padding:7px 0;font-size:10.5px;font-weight:700;border-radius:7px;border:1px solid var(--line);background:'+(etat==='absent'?'var(--err)':'var(--panel2)')+';color:'+(etat==='absent'?'#2a0a08':'var(--ink-dim)')+';opacity:'+(etat==='absent'?'1':'.7')+';">Abs</button>'+
+      EQUIP_ICONS.map(s => '<button type="button" class="equip-btn" data-eq="'+key+'" data-etat="'+s.val+'" title="'+s.title+'" style="flex:1;min-width:14%;padding:7px 0;font-size:16px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);opacity:.55;">'+s.icon+'</button>').join('')+
+      '<button type="button" class="equip-btn" data-eq="'+key+'" data-etat="-1" title="Absent" style="flex:1;min-width:14%;padding:7px 0;font-size:10.5px;font-weight:700;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--ink-dim);opacity:.7;">Abs</button>'+
     '</div></div>';
 }
-// Bascule a 3 etats (true/false/non renseigne) : cliquer sur l'option deja active la desactive et
-// revient a "non renseigne" -- pas besoin d'un 3e bouton visible pour repasser a l'etat neutre.
-function toggle3RowHtml(label, field, value, trueLabel, falseLabel){
-  const unset = value===null||value===undefined;
-  return '<div class="form-row"><label>'+label+' <span class="unset-hint" style="font-weight:400;color:var(--ink-dim);display:'+(unset?'inline':'none')+';">— non renseigné</span></label>'+
-    '<div class="toggle3-row" data-field="'+field+'">'+
-      '<button type="button" class="toggle3-btn'+(value===true?' on a':'')+'" data-field="'+field+'" data-val="1">'+trueLabel+'</button>'+
-      '<button type="button" class="toggle3-btn'+(value===false?' on b':'')+'" data-field="'+field+'" data-val="0">'+falseLabel+'</button>'+
-    '</div></div>';
+// Bouton cyclique (plus compact qu'une rangee de 2 boutons) : chaque appui avance d'un etat parmi
+// "non renseigne" -> states[0] -> states[1] -> "non renseigne" -> ... -- demarre toujours sur "non
+// renseigne", jamais pre-rempli avec la valeur courante (voir plus haut). `states` (2 options
+// {val, label}) est serialise dans data-states pour que le handler generique (voir openSheet) sache
+// quoi afficher/envoyer a chaque etape sans dupliquer cette logique par champ.
+function cycleFieldHtml(label, field, states){
+  return '<div class="form-row"><label>'+label+'</label>'+
+    '<button type="button" class="cycle-btn" data-field="'+field+'" data-idx="-1" data-states=\''+JSON.stringify(states)+'\'>Non renseigné</button>'+
+  '</div>';
 }
 // Selecteur 1-4 + "plus de 4" pour les champs de comptage (cellules, PMR, urinoirs...) : plus rapide
-// et plus sur sur mobile qu'un clavier numerique (evite les frappes accidentelles).
-function numPickRowHtml(field, label, value){
-  const v = value || 0;
+// et plus sur sur mobile qu'un clavier numerique (evite les frappes accidentelles). Saisie neuve :
+// demarre sans rien de coche (voir "Prestations confirmees" pour l'affichage en lecture seule).
+function numPickRowHtml(field, label){
   const choices = [0,1,2,3,4];
   return '<div class="form-row"><label>'+label+'</label>'+
     '<div class="numpick-row" data-field="'+field+'">'+
-      choices.map(n => '<button type="button" class="numpick-btn'+(v===n?' on':'')+'" data-field="'+field+'" data-val="'+n+'">'+n+'</button>').join('')+
-      '<button type="button" class="numpick-btn'+(v>4?' on':'')+'" data-field="'+field+'" data-val="'+(v>4?v:5)+'" data-plus="1">'+(v>4?v:'+ de 4')+'</button>'+
+      choices.map(n => '<button type="button" class="numpick-btn" data-field="'+field+'" data-val="'+n+'">'+n+'</button>').join('')+
+      '<button type="button" class="numpick-btn" data-field="'+field+'" data-val="5" data-plus="1">+ de 4</button>'+
     '</div></div>';
+}
+// Resume en lecture seule des prestations deja confirmees (valeur courante non nulle / > 0
+// uniquement) -- pas l'ensemble des possibilites (voir demande : "sans avoir l'ensemble des
+// possibilites representees"). La saisie neuve (numPickRowHtml / cycleFieldHtml) est separee,
+// toujours vierge, plus bas sous "Donnez votre avis".
+function prestationsStatsHtml(t){
+  const rows = [];
+  COUNT_FIELDS.forEach(c => { if (t[c.field] > 0) rows.push([c.label, t[c.field]]); });
+  if (t.Automatic === true) rows.push(['Type', 'Automatique']);
+  else if (t.Automatic === false) rows.push(['Type', 'Classique']);
+  if (t.Mixte === true) rows.push(['Séparation Hommes / Femmes', 'Mixte']);
+  else if (t.Mixte === false) rows.push(['Séparation Hommes / Femmes', 'Séparés Femmes/Hommes']);
+  if (t.Adapte_Enfant === true) rows.push(['Enfant', 'Siège surbaissé']);
+  else if (t.Adapte_Enfant === false) rows.push(['Enfant', 'Pas de siège adapté']);
+  if (!rows.length) return '<p style="font-size:11px;color:var(--ink-dim);margin:0;">Rien de confirmé pour l\'instant.</p>';
+  return '<div class="stat-grid">'+rows.map(r => '<div class="stat-chip"><span>'+r[0]+'</span><span style="font-size:11px;font-weight:600;color:var(--ink);">'+r[1]+'</span></div>').join('')+'</div>';
 }
 function positionSectionHtml(){
   return '<div class="form-row" id="position-section"><label>📍 Position sur la carte</label>'+
@@ -867,7 +896,7 @@ function openSheet(ubId){
   const deleted = t.Exists === false;
   const kind = classify(t);
   const equipements = t.Equipment || {};
-  const equipState = JSON.parse(JSON.stringify(equipements));
+  const newEquipmentVotes = {}; // votes NEUFS de cette visite uniquement (voir report_toilet_feedback) -- jamais pre-rempli avec l'existant
 
   body.innerHTML =
     '<div class="refid-tag">'+ubId+'</div>'+
@@ -880,48 +909,67 @@ function openSheet(ubId){
       '<span class="badge" style="background:'+V_COLORS[kind]+';">'+V_LABELS[kind]+'</span>'+
     '</div>'+
 
+    // Galerie photo remontee ici, tout de suite sous les badges : un nouveau venu doit voir l'existant
+    // (vraies vignettes, pas des boutons vides) sans deviner qu'il faut ouvrir une rubrique repliee.
+    // La capture d'une NOUVELLE photo par categorie reste dans Localisation (photo-cap-btn) : voir/
+    // ajouter sont deux gestes distincts, pas besoin des deux ici.
+    photoGalleryHtml(t)+
+
     // "Confirme" a disparu d'ici : valider la fiche (bouton Enregistrer, en bas) confirme deja
     // implicitement le passage sur place. Ne restent que les 2 actions qui n'ont pas leur place
-    // dans le formulaire normal (disparition constatee / repositionnement) -- au format compact.
+    // dans le formulaire normal (disparition constatee / repositionnement) -- au format compact,
+    // neutres par defaut comme leurs voisins (le rouge suggerait a tort un etat deja "disparu").
     (deleted
       ? '<div class="big-actions"><button class="big-btn small" id="sheet-btn-confirm" style="background:var(--ok);color:#0B1416;"><span class="ic">✓</span>Restaurer (existe de nouveau)</button></div>'
       : '<div class="big-actions">'+
-          '<button class="big-btn small btn-delete" id="sheet-btn-delete"><span class="ic">✕</span>Disparu</button>'+
+          '<button class="big-btn small btn-edit" id="sheet-btn-delete"><span class="ic">✕</span>Disparu</button>'+
           '<button class="big-btn small btn-edit" id="sheet-btn-reposition"><span class="ic">📍</span>À repositionner</button>'+
         '</div>')+
     '<div class="link-row"><a href="https://www.google.com/maps/search/?api=1&query='+t.Latitude+','+t.Longitude+'" target="_blank">📍 Google Maps</a>'+
     '<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+t.Latitude+','+t.Longitude+'" target="_blank">👁 Street View</a></div>'+
 
-    // Rubriques repliables : seul "Avis" est ouvert par defaut (les stats des avis precedents s'y
-    // affichent tout de suite) -- le reste s'ouvre a la demande pour ne pas donner l'impression qu'il
-    // faut tout remplir avant de pouvoir enregistrer (bouton colle en bas, voir fin de fonction).
-    '<details class="sheet-section" open><summary>★ Avis</summary><div class="sheet-section-body">'+
-      starRowHtml(t.Rating_Overall)+
+    // "Avis partages" (avis, prestations, equipements) est TOUJOURS visible, jamais derriere un clic.
+    // "Donnez votre avis" est la SEULE rubrique repliable de premier niveau ; Prestations & Equipements /
+    // Localisation & photos / Incivilites & vandalismes sont imbriquees DEDANS (rubriques repliables de
+    // second niveau), plutot que d'etre des rubriques independantes au meme niveau que "Donnez votre avis".
+    '<div style="margin-top:14px;">'+
+      '<div class="sheet-heading">💬 Avis partagés</div>'+
       ratingsOverviewHtml()+
-      Object.keys(RATING_LABELS).map(k => smileyRowHtml(k, RATING_LABELS[k], t[k])).join('')+
-    '</div></details>'+
+      '<div style="border-top:1px solid var(--line);margin:10px 0;"></div>'+
+      '<div class="sheet-subheading" style="margin-top:0;">Prestations</div>'+
+      prestationsStatsHtml(t)+
+      '<div style="border-top:1px solid var(--line);margin:10px 0;"></div>'+
+      '<div class="sheet-subheading" style="margin-top:0;">Équipements</div>'+
+      '<div class="stat-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStatLine(EQUIP_LABELS[k], equipements[k])).join('')+'</div>'+
+    '</div>'+
 
-    '<details class="sheet-section"><summary>📍 Localisation & photos</summary><div class="sheet-section-body">'+
-      '<div class="form-row"><label>Photos</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px;">'+
-        PHOTO_CATS.map(c => '<button type="button" class="btn-gps photo-cap-btn" data-field="'+c.field+'" style="flex:1;min-width:30%;">'+c.icon+' '+c.label+'</button>').join('')+
-      '</div><p style="font-size:9.5px;color:var(--ink-dim);margin:0;">📷 Touchez une catégorie pour ajouter une photo.</p></div>'+
-      '<input type="file" id="sheet-photo-file" accept="image/*" capture="environment" style="display:none;">'+
-      photoGalleryHtml(t)+
-      positionSectionHtml()+
-    '</div></details>'+
+    '<details class="sheet-section" open><summary>✍️ Donnez votre avis…</summary><div class="sheet-section-body">'+
+      starRowHtml()+
+      '<div class="equip-grid">'+Object.keys(RATING_LABELS).map(k => smileyRowHtml(k, RATING_LABELS[k])).join('')+'</div>'+
 
-    '<details class="sheet-section"><summary>⚠ Incivilités & vandalisme</summary><div class="sheet-section-body">'+
-      '<button class="big-btn btn-delete" id="sheet-btn-incident" style="width:100%;flex-direction:row;justify-content:center;background:var(--panel2);color:var(--err);border:1px solid var(--err) !important;"><span class="ic" style="font-size:15px;">⚠</span>&nbsp;Signaler une incivilité ou un vandalisme</button>'+
-      '<div style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin-top:4px;">Chaque signalement aide à mieux protéger le réseau — merci de contribuer 🙏</div>'+
-      myIncidentPhotosHtml(ubId)+
-    '</div></details>'+
+      '<details class="sheet-section"><summary>🧴 Prestations et Équipements</summary><div class="sheet-section-body">'+
+        '<div class="equip-grid">'+
+          COUNT_FIELDS.map(c => numPickRowHtml(c.field, c.label)).join('')+
+          cycleFieldHtml('Automatique', 'Automatic', [{val:true,label:'Automatique'},{val:false,label:'Classique'}])+
+          cycleFieldHtml('Séparation Hommes / Femmes', 'Mixte', [{val:true,label:'Mixte'},{val:false,label:'Séparés Femmes/Hommes'}])+
+          cycleFieldHtml('Siège enfant', 'Adapte_Enfant', [{val:true,label:'Siège surbaissé'},{val:false,label:'Pas de siège adapté'}])+
+        '</div>'+
+        '<div class="equip-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStateRowHtml(k, EQUIP_LABELS[k])).join('')+'</div>'+
+      '</div></details>'+
 
-    '<details class="sheet-section"><summary>🧴 Équipements & prestations</summary><div class="sheet-section-body">'+
-      '<div class="equip-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStateRowHtml(k, EQUIP_LABELS[k], equipements[k])).join('')+'</div>'+
-      COUNT_FIELDS.map(c => numPickRowHtml(c.field, c.label, t[c.field])).join('')+
-      toggle3RowHtml('Automatique', 'Automatic', t.Automatic===true?true:(t.Automatic===false?false:null), 'Automatique', 'Classique')+
-      toggle3RowHtml('Séparation', 'Mixte', t.Mixte===true?true:(t.Mixte===false?false:null), 'Mixte', 'Séparés Femmes/Hommes')+
-      toggle3RowHtml('Siège enfant', 'Adapte_Enfant', t.Adapte_Enfant===true?true:(t.Adapte_Enfant===false?false:null), 'Siège surbaissé enfant', 'Pas de siège adapté')+
+      '<details class="sheet-section"><summary>📍 Localisation et Photos</summary><div class="sheet-section-body">'+
+        '<div class="form-row"><label>Photos</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px;">'+
+          PHOTO_CATS.map(c => '<button type="button" class="btn-gps photo-cap-btn" data-field="'+c.field+'" style="flex:1;min-width:30%;">'+c.icon+' '+c.label+'</button>').join('')+
+        '</div><p style="font-size:9.5px;color:var(--ink-dim);margin:0;">📷 Touchez une catégorie pour ajouter une photo.</p></div>'+
+        '<input type="file" id="sheet-photo-file" accept="image/*" capture="environment" style="display:none;">'+
+        positionSectionHtml()+
+      '</div></details>'+
+
+      '<details class="sheet-section"><summary>⚠ Incivilités et Vandalismes</summary><div class="sheet-section-body">'+
+        '<button class="big-btn btn-delete" id="sheet-btn-incident" style="width:100%;flex-direction:row;justify-content:center;background:var(--panel2);color:var(--err);border:1px solid var(--err) !important;"><span class="ic" style="font-size:15px;">⚠</span>&nbsp;Signaler une incivilité ou un vandalisme</button>'+
+        '<div style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin-top:4px;">Chaque signalement aide à mieux protéger le réseau — merci de contribuer 🙏</div>'+
+        myIncidentPhotosHtml(ubId)+
+      '</div></details>'+
     '</div></details>'+
 
     '<div class="form-row" style="margin-top:14px;"><label>Zone d\'expression libre</label><textarea id="sheet-comment" placeholder="Un commentaire, une remarque…">'+(t.Comment||'')+'</textarea></div>'+
@@ -945,14 +993,17 @@ function openSheet(ubId){
   });
   const repoBtn = document.getElementById('sheet-btn-reposition');
   if (repoBtn) repoBtn.addEventListener('click', () => {
-    document.getElementById('position-section').closest('details').open = true;
+    // "Donnez votre avis" contient desormais des rubriques imbriquees (Localisation, etc.) : il faut
+    // ouvrir TOUS les <details> ancetres, pas seulement le plus proche, sinon la section peut rester
+    // masquee a l'interieur d'un parent encore replie.
+    let el = document.getElementById('position-section').closest('details');
+    while (el){ el.open = true; el = el.parentElement && el.parentElement.closest('details'); }
     document.getElementById('position-section').scrollIntoView({ behavior:'smooth', block:'start' });
   });
 
   document.getElementById('star-row').querySelectorAll('.star-btn').forEach(star => {
     star.addEventListener('click', () => {
       const n = parseInt(star.dataset.star, 10);
-      t.Rating_Overall = n;
       queueFeedback(ubId, { Rating_Overall: n });
       document.getElementById('star-row').querySelectorAll('.star-btn').forEach(s => {
         s.style.opacity = (parseInt(s.dataset.star,10) <= n) ? '1' : '.3';
@@ -963,25 +1014,24 @@ function openSheet(ubId){
   document.querySelectorAll('.smiley-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const field = btn.dataset.field, val = parseInt(btn.dataset.val, 10);
-      t[field] = val;
       queueFeedback(ubId, { [field]: val });
       document.querySelectorAll('.smiley-btn[data-field="'+field+'"]').forEach(b => {
         const active = parseInt(b.dataset.val,10) === val;
-        b.style.background = active ? 'var(--accent)' : 'var(--panel2)';
+        b.style.background = active ? 'var(--smiley-on)' : 'var(--panel2)';
         b.style.opacity = active ? '1' : '.55';
       });
     });
   });
   document.querySelectorAll('.equip-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const key = btn.dataset.eq, etat = btn.dataset.etat;
-      equipState[key] = { etat };
-      t.Equipment = equipState;
-      queueFeedback(ubId, { Equipment: equipState });
+      const key = btn.dataset.eq, etat = parseInt(btn.dataset.etat, 10);
+      newEquipmentVotes[key] = etat;
+      queueFeedback(ubId, { Equipment: newEquipmentVotes });
       document.querySelectorAll('.equip-btn[data-eq="'+key+'"]').forEach(b => {
-        const active = b.dataset.etat === etat;
-        b.style.background = active ? (etat==='absent'?'var(--err)':'var(--accent)') : 'var(--panel2)';
-        b.style.opacity = active ? '1' : (etat==='absent'?'.7':'.55');
+        const active = parseInt(b.dataset.etat,10) === etat;
+        b.style.background = active ? (etat===-1?'var(--err)':'var(--smiley-on)') : 'var(--panel2)';
+        b.style.color = active && etat===-1 ? '#2a0a08' : '';
+        b.style.opacity = active ? '1' : (etat===-1?'.7':'.55');
       });
     });
   });
@@ -990,34 +1040,29 @@ function openSheet(ubId){
       const field = btn.dataset.field;
       let v = parseInt(btn.dataset.val, 10);
       if (btn.dataset.plus){
-        const asked = prompt('Combien (plus de 4) ?', String(Math.max(5, t[field]||5)));
+        const asked = prompt('Combien (plus de 4) ?', '5');
         if (asked === null) return;
         v = Math.max(5, parseInt(asked, 10) || 5);
       }
-      t[field] = v;
       queueFeedback(ubId, { [field]: v });
       const row = btn.closest('.numpick-row');
       row.querySelectorAll('.numpick-btn').forEach(b => {
         const isPlus = !!b.dataset.plus;
         b.classList.toggle('on', isPlus ? v > 4 : parseInt(b.dataset.val,10) === v && v <= 4);
-        if (isPlus){ b.textContent = v > 4 ? v : '+ de 4'; b.dataset.val = v > 4 ? v : 5; }
+        if (isPlus) b.textContent = v > 4 ? v : '+ de 4';
       });
     });
   });
-  document.querySelectorAll('.toggle3-btn').forEach(btn => {
+  // Bouton cyclique : non renseigne (-1) -> states[0] -> states[1] -> non renseigne -> ...
+  document.querySelectorAll('.cycle-btn').forEach(btn => {
+    const states = JSON.parse(btn.dataset.states);
     btn.addEventListener('click', () => {
-      const field = btn.dataset.field;
-      const isTrueBtn = btn.dataset.val === '1';
-      const wasOn = btn.classList.contains('on');
-      const newVal = wasOn ? null : isTrueBtn; // recliquer sur l'actif -> repasse a "non renseigne"
-      t[field] = newVal;
-      queueFeedback(ubId, { [field]: newVal });
-      const row = btn.closest('.toggle3-row');
-      row.querySelectorAll('.toggle3-btn').forEach(b => b.classList.remove('on','a','b'));
-      if (newVal === true) row.querySelector('[data-val="1"]').classList.add('on','a');
-      else if (newVal === false) row.querySelector('[data-val="0"]').classList.add('on','b');
-      const hint = row.closest('.form-row').querySelector('.unset-hint');
-      if (hint) hint.style.display = (newVal===null) ? 'inline' : 'none';
+      const idx = (parseInt(btn.dataset.idx, 10) + 2) % 3 - 1; // -1,0,1 -> 0,1,-1 -> ...
+      btn.dataset.idx = idx;
+      const val = idx === -1 ? null : states[idx].val;
+      queueFeedback(ubId, { [btn.dataset.field]: val });
+      btn.textContent = idx === -1 ? 'Non renseigné' : states[idx].label;
+      btn.classList.toggle('set', idx !== -1);
     });
   });
   document.getElementById('sheet-comment').addEventListener('blur', () => {
