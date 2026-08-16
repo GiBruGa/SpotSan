@@ -169,7 +169,7 @@ let activeRefinements = { pmr:false, enfant:false, bienNotees:false };
 function passesRefinements(t){
   if (activeRefinements.pmr && !(t.PMR > 0)) return false;
   if (activeRefinements.enfant && t.Adapte_Enfant !== true) return false;
-  if (activeRefinements.bienNotees && !(t.Rating_Overall > 0)) return false;
+  if (activeRefinements.bienNotees && !(t.Rating_Overall >= 4)) return false;
   return true;
 }
 let userMarker = null;
@@ -394,18 +394,24 @@ function ratingsOverviewHtml(){
     '<div id="ratings-overview-body" style="width:100%;font-size:10.5px;color:var(--ink-dim);">Chargement…</div>'+
   '</div>';
 }
-function starsLine(v){
+// Rating_Overall (etoiles) est sur une echelle 1-5 (valeur envoyee telle quelle par le clic sur une
+// etoile, voir starRowHtml) ; les 4 autres criteres (Signaletique/Acces/Proprete/Odeurs) sont sur une
+// echelle -5..+5 (valeurs discretes des smileys, voir SMILEY_STATES) -- deux echelles differentes pour
+// la meme fonction d'affichage, donc le parametre isStars choisit la bonne formule/le bon libelle.
+function starsLine(v, isStars){
   if (v === null || v === undefined) return '<span style="color:var(--ink-dim);">Pas encore noté</span>';
-  const pct = Math.round(((v + 5) / 10) * 100);
+  const pct = isStars ? Math.round((v / 5) * 100) : Math.round(((v + 5) / 10) * 100);
+  const label = isStars ? (v + '/5') : ((v>0?'+':'')+v);
+  const color = isStars ? 'var(--wm-soft)' : ratingColor(v);
   return '<span style="display:inline-block;width:70px;height:8px;border-radius:4px;background:var(--panel2);overflow:hidden;vertical-align:middle;margin-right:6px;">'+
-    '<span style="display:block;height:100%;width:'+pct+'%;background:'+ratingColor(v)+';"></span></span>'+
-    '<span style="color:'+ratingColor(v)+';font-weight:bold;">'+(v>0?'+':'')+v+'</span>';
+    '<span style="display:block;height:100%;width:'+pct+'%;background:'+color+';"></span></span>'+
+    '<span style="color:'+color+';font-weight:bold;">'+label+'</span>';
 }
 // Repartition des notes globales (a la Google Maps : nombre d'avis par etoile). Calculee cote client
 // a partir des avis recents recuperes (jusqu'a 20) -- indicateur synthetique, pas un total exact au-dela.
 function starsHistogramHtml(list){
   const buckets = [5,4,3,2,1];
-  const toStars = v => Math.max(1, Math.min(5, Math.round(((v + 5) / 10) * 5) || 1));
+  const toStars = v => Math.max(1, Math.min(5, Math.round(v) || 1)); // Rating_Overall est deja 1-5, pas -5..+5
   const counts = {1:0,2:0,3:0,4:0,5:0};
   list.forEach(r => { if (r.Rating_Overall !== null && r.Rating_Overall !== undefined) counts[toStars(r.Rating_Overall)]++; });
   const max = Math.max(1, ...Object.values(counts));
@@ -442,7 +448,7 @@ async function loadRatingsOverview(t){
       html += '<div style="display:flex;flex-wrap:wrap;gap:10px;">'+
         Object.keys(RATING_LABELS_ALL).map(k => {
           const avgKey = 'avg_' + k.replace('Rating_','').toLowerCase();
-          return '<div style="min-width:90px;"><div style="font-size:9px;color:var(--ink-dim);margin-bottom:2px;">'+RATING_LABELS_ALL[k]+'</div>'+starsLine(sum[avgKey])+'</div>';
+          return '<div style="min-width:90px;"><div style="font-size:9px;color:var(--ink-dim);margin-bottom:2px;">'+RATING_LABELS_ALL[k]+'</div>'+starsLine(sum[avgKey], k === 'Rating_Overall')+'</div>';
         }).join('') +
       '</div><div style="font-size:9.5px;color:var(--ink-dim);margin-top:6px;">'+sum.rating_count+' avis au total</div>';
     }
