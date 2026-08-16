@@ -154,10 +154,10 @@ const PHOTO_CATS = [
 const COUNT_FIELDS = [
   { field:'MSB', label:'Nombre de cellules' },
   { field:'PMR', label:'dont PMR' },
-  { field:'Urinals', label:'dont urinoirs hommes' },
-  { field:'Urinals_Femme', label:'dont urinoirs femmes' },
   { field:'Showers', label:'dont douches' },
-  { field:'ChangingRooms', label:'dont vestiaires' }
+  { field:'ChangingRooms', label:'dont vestiaires' },
+  { field:'Urinals', label:'Nb urinoirs hommes' },
+  { field:'Urinals_Femme', label:'Nb urinoirs femmes' }
 ];
 
 // MAP_DATA_TOI est deja declare en const (tableau vide seed) dans le bloc de donnees plus haut dans le document ;
