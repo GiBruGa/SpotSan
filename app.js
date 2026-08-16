@@ -908,17 +908,11 @@ function openSheet(ubId){
       '<span class="badge" style="background:'+V_COLORS[kind]+';">'+V_LABELS[kind]+'</span>'+
     '</div>'+
 
-    // Bandeau photos duplique ici (en plus de la rubrique Localisation), mais UNIQUEMENT pour les
-    // categories deja photographiees -- un acces rapide a l'existant, pas une invitation a capturer
-    // une categorie vierge (ca, c'est le role de la rubrique Localisation, voir "Donnez votre avis").
-    // Memes boutons (classe photo-cap-btn), un seul jeu d'ecouteurs plus bas suffit pour les deux.
-    (function(){
-      const withPhoto = PHOTO_CATS.filter(c => t[c.field]);
-      if (!withPhoto.length) return '';
-      return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;">'+
-        withPhoto.map(c => '<button type="button" class="btn-gps photo-cap-btn" data-field="'+c.field+'" style="flex:1;min-width:30%;">'+c.icon+' '+c.label+'</button>').join('')+
-      '</div>';
-    })()+
+    // Galerie photo remontee ici, tout de suite sous les badges : un nouveau venu doit voir l'existant
+    // (vraies vignettes, pas des boutons vides) sans deviner qu'il faut ouvrir une rubrique repliee.
+    // La capture d'une NOUVELLE photo par categorie reste dans Localisation (photo-cap-btn) : voir/
+    // ajouter sont deux gestes distincts, pas besoin des deux ici.
+    photoGalleryHtml(t)+
 
     // "Confirme" a disparu d'ici : valider la fiche (bouton Enregistrer, en bas) confirme deja
     // implicitement le passage sur place. Ne restent que les 2 actions qui n'ont pas leur place
@@ -949,7 +943,6 @@ function openSheet(ubId){
         PHOTO_CATS.map(c => '<button type="button" class="btn-gps photo-cap-btn" data-field="'+c.field+'" style="flex:1;min-width:30%;">'+c.icon+' '+c.label+'</button>').join('')+
       '</div><p style="font-size:9.5px;color:var(--ink-dim);margin:0;">📷 Touchez une catégorie pour ajouter une photo.</p></div>'+
       '<input type="file" id="sheet-photo-file" accept="image/*" capture="environment" style="display:none;">'+
-      photoGalleryHtml(t)+
       positionSectionHtml()+
     '</div></details>'+
 
