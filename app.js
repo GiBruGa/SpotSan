@@ -142,7 +142,7 @@ const EQUIP_LABELS = { laveMains:'Lave-mains', savon:'Savon', sechage:'Séchage'
 // "5" reste le meilleur etat mais avec une expression plus sobre (pas de coeurs dans les yeux) : ce
 // meme jeu d'icones sert aussi bien aux criteres d'avis generaux (satisfaction) qu'aux equipements
 // (etat constate) -- voir equipStateRowHtml pour les info-bulles specifiques au contexte equipement.
-const SMILEY_STATES = [ { val:-5, icon:'🤢' }, { val:-2, icon:'🙁' }, { val:0, icon:'😐' }, { val:2, icon:'🙂' }, { val:5, icon:'😄' } ];
+const SMILEY_STATES = [ { val:-5, icon:'👎' }, { val:-2, icon:'🙁' }, { val:0, icon:'😐' }, { val:2, icon:'🙂' }, { val:5, icon:'👍' } ];
 const PHOTO_CATS = [
   { field:'Photo_Environment', label:'Environnement à 20m', icon:'🏡' },
   { field:'Photo_Access', label:'Accès', icon:'🚪' },
@@ -429,7 +429,7 @@ function starsHistogramHtml(list){
 // Une seule icone representant la moyenne d'un critere (au lieu d'une rangee de 5 boutons avec la
 // valeur courante en surbrillance) : evite la confusion entre "ce que les autres ont dit" (lecture
 // seule) et "donnez votre avis" (saisie neuve, toujours vierge -- voir sheetInputSectionHtml).
-const RATING_ICONS = ['🤢','🙁','😐','🙂','😄'];
+const RATING_ICONS = ['👎','🙁','😐','🙂','👍'];
 function avgToIconIndex(avg){ // avg sur l'echelle -5..+5 (criteres Signaletique/Acces/Proprete/Odeurs)
   return Math.max(0, Math.min(4, Math.round(((avg + 5) / 10) * 4)));
 }
@@ -490,7 +490,7 @@ function smileyRowHtml(field, label){
 // Equipements : echelle -1(absent)..4(tres bien) -- distincte de celle des avis (-5..+5) car construite
 // pour ce module ce soir (voir Toilet_Equipment_Reports) : une moyenne negative ne peut arriver QUE si
 // une majorite de votes disent "absent", les 5 etats normaux etant tous >= 0.
-const EQUIP_ICONS = [ { val:0, icon:'🤢', title:'Sale / dégradé' }, { val:1, icon:'🙁', title:'Insuffisant' }, { val:2, icon:'😐', title:'Fonctionne, sans plus' }, { val:3, icon:'🙂', title:'Correct' }, { val:4, icon:'😄', title:'Bon état' } ];
+const EQUIP_ICONS = [ { val:0, icon:'👎', title:'Sale / dégradé' }, { val:1, icon:'🙁', title:'Insuffisant' }, { val:2, icon:'😐', title:'Fonctionne, sans plus' }, { val:3, icon:'🙂', title:'Correct' }, { val:4, icon:'👍', title:'Bon état' } ];
 function equipStatLine(label, data){
   let body;
   if (!data || !data.count){ body = '<span style="color:var(--ink-dim);font-size:10px;">n/a</span>'; }
