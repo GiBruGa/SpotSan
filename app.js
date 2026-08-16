@@ -961,10 +961,12 @@ function openSheet(ubId){
       prestationsStatsHtml(t)+
       '<div class="sheet-subheading">Donnez votre avis…</div>'+
       '<div class="equip-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStateRowHtml(k, EQUIP_LABELS[k])).join('')+'</div>'+
-      COUNT_FIELDS.map(c => numPickRowHtml(c.field, c.label)).join('')+
-      cycleFieldHtml('Automatique', 'Automatic', [{val:true,label:'Automatique'},{val:false,label:'Classique'}])+
-      cycleFieldHtml('Séparation', 'Mixte', [{val:true,label:'Mixte'},{val:false,label:'Séparés Femmes/Hommes'}])+
-      cycleFieldHtml('Siège enfant', 'Adapte_Enfant', [{val:true,label:'Siège surbaissé'},{val:false,label:'Pas de siège adapté'}])+
+      '<div class="equip-grid">'+
+        COUNT_FIELDS.map(c => numPickRowHtml(c.field, c.label)).join('')+
+        cycleFieldHtml('Automatique', 'Automatic', [{val:true,label:'Automatique'},{val:false,label:'Classique'}])+
+        cycleFieldHtml('Séparation', 'Mixte', [{val:true,label:'Mixte'},{val:false,label:'Séparés Femmes/Hommes'}])+
+        cycleFieldHtml('Siège enfant', 'Adapte_Enfant', [{val:true,label:'Siège surbaissé'},{val:false,label:'Pas de siège adapté'}])+
+      '</div>'+
     '</div></details>'+
 
     '<div class="form-row" style="margin-top:14px;"><label>Zone d\'expression libre</label><textarea id="sheet-comment" placeholder="Un commentaire, une remarque…">'+(t.Comment||'')+'</textarea></div>'+
