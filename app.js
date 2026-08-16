@@ -388,9 +388,9 @@ function ratingColor(v){
   if (v > 0) return 'var(--ok)'; if (v < 0) return 'var(--err)'; return 'var(--ink-dim)';
 }
 function ratingsOverviewHtml(){
-  return '<div class="sheet-row" id="ratings-overview-ph" style="align-items:flex-start;flex-direction:column;gap:6px;display:none;">'+
-    '<span class="k" style="margin-bottom:2px;">Avis des autres visiteurs</span>'+
-    '<div id="ratings-overview-body" style="width:100%;font-size:10.5px;color:var(--ink-dim);">Chargement…</div>'+
+  return '<div id="ratings-overview-ph" style="display:none;">'+
+    '<div class="sheet-subheading" style="margin-top:0;">Avis global</div>'+
+    '<div id="ratings-overview-body" style="font-size:10.5px;color:var(--ink-dim);">Chargement…</div>'+
   '</div>';
 }
 // Rating_Overall (etoiles) est sur une echelle 1-5 (valeur envoyee telle quelle par le clic sur une
@@ -452,11 +452,12 @@ async function loadRatingsOverview(t){
     const list = await listResp.json();
     window._ratingAverages = sum || null;
     if (!sum && !list.length){ wrap.style.display = 'none'; return; }
-    wrap.style.display = 'flex';
+    wrap.style.display = 'block';
     let html = '';
     if (list.length) html += starsHistogramHtml(list);
     if (sum){
       html += '<div style="min-width:90px;margin-bottom:6px;"><div style="font-size:9px;color:var(--ink-dim);margin-bottom:2px;">Note globale</div>'+starsLine(sum.avg_overall, true)+'</div>'+
+        '<div class="sheet-subheading">Notes moyennes</div>'+
         '<div class="stat-grid">'+
         Object.keys(RATING_LABELS).map(k => {
           const avgKey = 'avg_' + k.replace('Rating_','').toLowerCase();
@@ -927,43 +928,48 @@ function openSheet(ubId){
     '<div class="link-row"><a href="https://www.google.com/maps/search/?api=1&query='+t.Latitude+','+t.Longitude+'" target="_blank">📍 Google Maps</a>'+
     '<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+t.Latitude+','+t.Longitude+'" target="_blank">👁 Street View</a></div>'+
 
-    // "Ce que les autres ont dit" (avis, prestations, equipements) est TOUJOURS visible, jamais
-    // derriere un clic -- seule la saisie neuve ("Donnez votre avis…") est une rubrique repliable,
-    // comme Localisation et Incivilites. Un seul "Donnez votre avis…", couvrant les trois a la suite
-    // (Avis -> Prestations -> Equipements, meme ordre que les stats juste au-dessus).
+    // "Avis partages" (avis, prestations, equipements) est TOUJOURS visible, jamais derriere un clic.
+    // "Donnez votre avis" est la SEULE rubrique repliable de premier niveau ; Prestations & Equipements /
+    // Localisation & photos / Incivilites & vandalismes sont imbriquees DEDANS (rubriques repliables de
+    // second niveau), plutot que d'etre des rubriques independantes au meme niveau que "Donnez votre avis".
     '<div style="margin-top:14px;">'+
-      '<div class="sheet-subheading" style="margin-top:0;">Ce que les autres ont dit</div>'+
+      '<div class="sheet-heading">💬 Avis partagés</div>'+
       ratingsOverviewHtml()+
       '<div style="border-top:1px solid var(--line);margin:10px 0;"></div>'+
+      '<div class="sheet-subheading" style="margin-top:0;">Prestations</div>'+
       prestationsStatsHtml(t)+
       '<div style="border-top:1px solid var(--line);margin:10px 0;"></div>'+
+      '<div class="sheet-subheading" style="margin-top:0;">Équipements</div>'+
       '<div class="stat-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStatLine(EQUIP_LABELS[k], equipements[k])).join('')+'</div>'+
     '</div>'+
 
     '<details class="sheet-section" open><summary>✍️ Donnez votre avis…</summary><div class="sheet-section-body">'+
       starRowHtml()+
       '<div class="equip-grid">'+Object.keys(RATING_LABELS).map(k => smileyRowHtml(k, RATING_LABELS[k])).join('')+'</div>'+
-      '<div class="equip-grid">'+
-        COUNT_FIELDS.map(c => numPickRowHtml(c.field, c.label)).join('')+
-        cycleFieldHtml('Automatique', 'Automatic', [{val:true,label:'Automatique'},{val:false,label:'Classique'}])+
-        cycleFieldHtml('Séparation Hommes / Femmes', 'Mixte', [{val:true,label:'Mixte'},{val:false,label:'Séparés Femmes/Hommes'}])+
-        cycleFieldHtml('Siège enfant', 'Adapte_Enfant', [{val:true,label:'Siège surbaissé'},{val:false,label:'Pas de siège adapté'}])+
-      '</div>'+
-      '<div class="equip-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStateRowHtml(k, EQUIP_LABELS[k])).join('')+'</div>'+
-    '</div></details>'+
 
-    '<details class="sheet-section"><summary>📍 Localisation & photos</summary><div class="sheet-section-body">'+
-      '<div class="form-row"><label>Photos</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px;">'+
-        PHOTO_CATS.map(c => '<button type="button" class="btn-gps photo-cap-btn" data-field="'+c.field+'" style="flex:1;min-width:30%;">'+c.icon+' '+c.label+'</button>').join('')+
-      '</div><p style="font-size:9.5px;color:var(--ink-dim);margin:0;">📷 Touchez une catégorie pour ajouter une photo.</p></div>'+
-      '<input type="file" id="sheet-photo-file" accept="image/*" capture="environment" style="display:none;">'+
-      positionSectionHtml()+
-    '</div></details>'+
+      '<details class="sheet-section"><summary>🧴 Prestations et Équipements</summary><div class="sheet-section-body">'+
+        '<div class="equip-grid">'+
+          COUNT_FIELDS.map(c => numPickRowHtml(c.field, c.label)).join('')+
+          cycleFieldHtml('Automatique', 'Automatic', [{val:true,label:'Automatique'},{val:false,label:'Classique'}])+
+          cycleFieldHtml('Séparation Hommes / Femmes', 'Mixte', [{val:true,label:'Mixte'},{val:false,label:'Séparés Femmes/Hommes'}])+
+          cycleFieldHtml('Siège enfant', 'Adapte_Enfant', [{val:true,label:'Siège surbaissé'},{val:false,label:'Pas de siège adapté'}])+
+        '</div>'+
+        '<div class="equip-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStateRowHtml(k, EQUIP_LABELS[k])).join('')+'</div>'+
+      '</div></details>'+
 
-    '<details class="sheet-section"><summary>⚠ Incivilités & vandalismes</summary><div class="sheet-section-body">'+
-      '<button class="big-btn btn-delete" id="sheet-btn-incident" style="width:100%;flex-direction:row;justify-content:center;background:var(--panel2);color:var(--err);border:1px solid var(--err) !important;"><span class="ic" style="font-size:15px;">⚠</span>&nbsp;Signaler une incivilité ou un vandalisme</button>'+
-      '<div style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin-top:4px;">Chaque signalement aide à mieux protéger le réseau — merci de contribuer 🙏</div>'+
-      myIncidentPhotosHtml(ubId)+
+      '<details class="sheet-section"><summary>📍 Localisation et Photos</summary><div class="sheet-section-body">'+
+        '<div class="form-row"><label>Photos</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px;">'+
+          PHOTO_CATS.map(c => '<button type="button" class="btn-gps photo-cap-btn" data-field="'+c.field+'" style="flex:1;min-width:30%;">'+c.icon+' '+c.label+'</button>').join('')+
+        '</div><p style="font-size:9.5px;color:var(--ink-dim);margin:0;">📷 Touchez une catégorie pour ajouter une photo.</p></div>'+
+        '<input type="file" id="sheet-photo-file" accept="image/*" capture="environment" style="display:none;">'+
+        positionSectionHtml()+
+      '</div></details>'+
+
+      '<details class="sheet-section"><summary>⚠ Incivilités et Vandalismes</summary><div class="sheet-section-body">'+
+        '<button class="big-btn btn-delete" id="sheet-btn-incident" style="width:100%;flex-direction:row;justify-content:center;background:var(--panel2);color:var(--err);border:1px solid var(--err) !important;"><span class="ic" style="font-size:15px;">⚠</span>&nbsp;Signaler une incivilité ou un vandalisme</button>'+
+        '<div style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin-top:4px;">Chaque signalement aide à mieux protéger le réseau — merci de contribuer 🙏</div>'+
+        myIncidentPhotosHtml(ubId)+
+      '</div></details>'+
     '</div></details>'+
 
     '<div class="form-row" style="margin-top:14px;"><label>Zone d\'expression libre</label><textarea id="sheet-comment" placeholder="Un commentaire, une remarque…">'+(t.Comment||'')+'</textarea></div>'+
@@ -987,7 +993,11 @@ function openSheet(ubId){
   });
   const repoBtn = document.getElementById('sheet-btn-reposition');
   if (repoBtn) repoBtn.addEventListener('click', () => {
-    document.getElementById('position-section').closest('details').open = true;
+    // "Donnez votre avis" contient desormais des rubriques imbriquees (Localisation, etc.) : il faut
+    // ouvrir TOUS les <details> ancetres, pas seulement le plus proche, sinon la section peut rester
+    // masquee a l'interieur d'un parent encore replie.
+    let el = document.getElementById('position-section').closest('details');
+    while (el){ el.open = true; el = el.parentElement && el.parentElement.closest('details'); }
     document.getElementById('position-section').scrollIntoView({ behavior:'smooth', block:'start' });
   });
 

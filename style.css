@@ -126,8 +126,12 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:"Aptos","Aptos Displa
 }
 .stat-chip .ic{font-size:17px; flex:none;}
 
-/* Separe visuellement "ce que les autres ont dit" (lecture seule, au-dessus) de "donnez votre avis"
-   (saisie neuve, toujours vierge, en-dessous) -- voir openSheet. */
+/* Titre "Avis partages" (statique, pas un <summary> -- ce bloc n'est jamais replie) : meme poids visuel
+   que les <summary> de rubriques repliables ci-dessous, pour lire comme leur pendant en lecture seule. */
+.sheet-heading{font-size:12.5px; font-weight:600; color:var(--ink); margin:14px 0 8px;}
+
+/* Separe visuellement des sous-blocs a l'interieur d'une meme rubrique (ex: Avis global / Notes
+   moyennes / Prestations / Equipements sous "Avis partages") -- voir openSheet. */
 .sheet-subheading{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--ink-dim); margin:14px 0 6px;}
 
 /* Bouton cyclique (Automatique/Classique, Mixite, siege enfant) : compact, 3 etats par appuis successifs */
