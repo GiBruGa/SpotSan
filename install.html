@@ -47,27 +47,18 @@
 
   <div class="card" id="card-android" style="display:none">
     <h2>Sur Android</h2>
-
-    <!-- Etape "pas encore dans Chrome" : seule etape affichee tant qu'on n'y est pas -- pas de liste
-         numeree en avance sur des etapes pas encore atteintes, pour eviter l'effet de repetition
-         quand cette meme page se recharge une fois dans Chrome (voir isAlreadyChrome plus bas). -->
-    <div id="android-step-chrome" style="display:none;">
-      <p style="font-size:13px;line-height:1.5;margin:0 0 12px;">Installez de preference avec <b>Google Chrome</b>. Appuyez ci-dessous pour y ouvrir cette page et terminer l'installation.</p>
-      <a class="btn btn-primary" id="btn-open-chrome" href="#" style="display:block;text-align:center;text-decoration:none;">Ouvrir avec Google Chrome</a>
-    </div>
-
-    <!-- Etape finale, affichee uniquement une fois dans Chrome (deja au depart, ou apres redirection
-         ci-dessus) : une seule instruction consolidee, pas de repetition de "ouvrez dans Chrome". -->
-    <div id="android-step-install" style="display:none;">
-      <ol>
-        <li>Appuyez sur <b>"Installer maintenant"</b> ci-dessous (ou menu ⋮ en haut a droite → <b>"Installer l'application"</b>)</li>
-        <li>Fermez cet onglet</li>
-        <li>Ouvrez <b>SpotSan</b> depuis l'icone ajoutee a votre ecran d'accueil</li>
-      </ol>
-      <button class="btn btn-primary" id="btn-install-android" style="display:none">Installer maintenant</button>
-      <p class="note" id="android-manual-note">Le bouton n'apparait que si Chrome propose l'installation a ce moment -- sinon, passez par le menu ⋮ → "Installer l'application" (ou "Ajouter a l'ecran d'accueil").</p>
-      <p class="note" id="android-installed-note" style="display:none;color:var(--ink);font-weight:600;">✓ Installee ! Fermez cet onglet et ouvrez SpotSan depuis l'icone ajoutee a votre ecran d'accueil.</p>
-    </div>
+    <!-- Une seule page, un seul texte, lu une seule fois -- quel que soit le navigateur d'arrivee.
+         Le bouton n'affiche plus une deuxieme page d'instructions (source de repetition/confusion
+         signalee par un utilisateur reel) : il ouvre directement l'application elle-meme sous Chrome,
+         puisque la marche a suivre a deja ete lue ci-dessous avant de cliquer. -->
+    <ol>
+      <li>Ouvrez préférablement l'application avec <b>Google Chrome</b> en utilisant le bouton ci-dessous.</li>
+      <li><b>SpotSan</b> va s'ouvrir sous Google Chrome.</li>
+      <li>Allez dans le menu de paramétrage du navigateur (⋮ en haut à droite).</li>
+      <li>Choisissez <b>"Installer l'application"</b> et suivez la procédure proposée.</li>
+      <li>Fermez votre navigateur et ouvrez SpotSan directement en cliquant l'icône de l'application.</li>
+    </ol>
+    <a class="btn btn-primary" id="btn-open-chrome" href="index.html" style="display:block;text-align:center;text-decoration:none;">Ouvrir avec Google Chrome</a>
   </div>
 
   <div class="card" id="card-other" style="display:none">
@@ -107,47 +98,19 @@
   } else if (isAndroid){
     document.getElementById('card-android').style.display = 'block';
     badge.textContent = 'Android detecte';
-    // Un seul chemin affiche a la fois : soit "passez par Chrome" (si on n'y est pas encore), soit
-    // l'etape finale d'installation (si on y est deja) -- jamais les deux, pour eviter de repeter
-    // "ouvrez dans Chrome" une fois qu'on y est arrive via le bouton ci-dessous.
+    // Le bouton pointe par defaut vers index.html (ouverture directe de l'appli, voir le href dans le
+    // HTML) -- ce qui convient deja si on est deja sous Chrome. Sinon, on force l'ouverture sous
+    // Chrome via un intent Android, mais toujours vers index.html directement : la marche a suivre a
+    // deja ete lue dans la liste ci-dessus, pas besoin d'une deuxieme page d'instructions.
     if (!isAlreadyChrome){
-      document.getElementById('android-step-chrome').style.display = 'block';
-      var target = location.href.replace(/^https?:\/\//, '');
-      var intentUrl = 'intent://' + target + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(location.href) + ';end';
+      var target = (location.origin + location.pathname.replace(/install\.html$/, 'index.html')).replace(/^https?:\/\//, '');
+      var intentUrl = 'intent://' + target + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(location.href.replace(/install\.html$/, 'index.html')) + ';end';
       document.getElementById('btn-open-chrome').setAttribute('href', intentUrl);
-    } else {
-      document.getElementById('android-step-install').style.display = 'block';
     }
   } else {
     document.getElementById('card-other').style.display = 'block';
     badge.textContent = 'Ordinateur detecte';
   }
-  var deferredPrompt = null;
-  window.addEventListener('beforeinstallprompt', function(e){
-    e.preventDefault();
-    deferredPrompt = e;
-    var btn = document.getElementById('btn-install-android');
-    var note = document.getElementById('android-manual-note');
-    if (btn){
-      btn.style.display = 'block';
-      if (note) note.style.display = 'none';
-      btn.addEventListener('click', function(){
-        btn.disabled = true;
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.finally(function(){ deferredPrompt = null; });
-      });
-    }
-  });
-  // Confirmation explicite une fois l'installation reellement terminee (au lieu de laisser la page
-  // d'instructions affichee telle quelle, ce qui donnait l'impression qu'il fallait recommencer).
-  window.addEventListener('appinstalled', function(){
-    var btn = document.getElementById('btn-install-android');
-    var manualNote = document.getElementById('android-manual-note');
-    var installedNote = document.getElementById('android-installed-note');
-    if (btn) btn.style.display = 'none';
-    if (manualNote) manualNote.style.display = 'none';
-    if (installedNote) installedNote.style.display = 'block';
-  });
 </script>
 </body>
 </html>
