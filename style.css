@@ -43,14 +43,12 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:"Aptos","Aptos Displa
 #topbar{
   position:fixed; top:0; left:0; right:0; z-index:900;
   padding:calc(env(safe-area-inset-top,0px) + 10px) 12px 8px;
-  background:linear-gradient(180deg, rgba(11,20,22,.92) 0%, rgba(11,20,22,0) 100%);
-  display:flex; flex-direction:column; gap:8px; pointer-events:none;
+  background:var(--bg); border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(0,0,0,.25);
+  display:flex; flex-direction:column; gap:8px;
 }
-#topbar > *{pointer-events:auto;}
 #topbar-row{display:flex; align-items:center; justify-content:space-between;}
 #brand{display:flex; align-items:center; gap:6px;}
 #brand .wm{font-size:19px;}
-#brand .wm-strong, #brand .wm-soft{text-shadow:var(--wm-title-shadow);}
 #brand .wm-suffix{font-size:15px;}
 #version-pill{font-size:9px; color:var(--ink-dim); border:1px solid var(--line); border-radius:8px; padding:1px 6px; background:rgba(20,35,38,.85);}
 #btn-menu{
@@ -106,10 +104,76 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:"Aptos","Aptos Displa
 .btn-confirm{background:var(--ok); color:#0B1416;}
 .btn-delete{background:var(--err); color:#2a0a08;}
 .btn-edit{background:var(--panel2); color:var(--ink); border:1px solid var(--line) !important;}
+/* Variante compacte (memes dimensions que .link-row a, ci-dessous) : utilisee pour Disparu /
+   A repositionner, moins prioritaires visuellement que le bouton Enregistrer en fin de fiche. */
+.big-btn.small{
+  flex-direction:row; justify-content:center; gap:6px; padding:9px 8px; font-size:12.5px; border-radius:8px;
+}
+.big-btn.small .ic{font-size:14px;}
 .link-row{display:flex; gap:8px; margin-top:12px;}
 .link-row a{
   flex:1; text-align:center; font-size:12.5px; color:var(--accent); text-decoration:none;
   background:var(--panel2); padding:9px 8px; border-radius:8px; border:1px solid var(--line);
+}
+
+/* Bouton de validation en fin de fiche (remplace l'ancien "Confirme" en entete) */
+.btn-save-sheet{
+  width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+  background:var(--ok); color:#0B1416; border:none; border-radius:10px; padding:14px;
+  font-size:14.5px; font-weight:700; cursor:pointer;
+}
+
+/* Bascule a 3 etats (Automatique/Classique, Mixite, siege enfant...) : etat non renseigne au milieu,
+   visuellement neutre (gris), pour ne jamais laisser croire qu'une valeur a ete choisie par defaut. */
+.toggle3-row{display:flex; gap:6px;}
+.toggle3-btn{
+  flex:1; padding:9px 4px; border-radius:7px; border:1px solid var(--line); background:var(--panel2);
+  color:var(--ink-dim); font-size:11.5px; cursor:pointer; opacity:.7;
+}
+.toggle3-btn.on{opacity:1; border-color:transparent; font-weight:600;}
+.toggle3-btn.on.a{background:var(--ok); color:#0B1416;}
+.toggle3-btn.on.b{background:var(--accent); color:#fff;}
+.toggle3-btn.unset-active{background:var(--panel); color:var(--ink); opacity:1; border-style:dashed;}
+
+/* Selecteur de nombre (1-4 + "plus de 4") pour les prestations : boutons plutot que clavier, plus
+   rapide sur mobile et evite les valeurs aberrantes tapees par erreur. */
+.numpick-row{display:flex; gap:4px; flex-wrap:wrap;}
+.numpick-btn{
+  min-width:30px; height:30px; padding:0 6px; border-radius:6px; border:1px solid var(--line);
+  background:var(--panel2); color:var(--ink-dim); font-size:12.5px; cursor:pointer;
+}
+.numpick-btn.on{background:var(--accent); color:#fff; border-color:transparent; font-weight:600;}
+
+/* Categories rapides pour un signalement I&V (voir openIncidentForm) */
+.inc-cat-group{margin-bottom:10px;}
+.inc-cat-group .grp-label{font-size:10.5px; color:var(--ink-dim); margin-bottom:5px; text-transform:uppercase; letter-spacing:.02em;}
+.inc-cat-row{display:flex; flex-wrap:wrap; gap:6px;}
+.inc-cat-btn{
+  background:var(--panel2); border:1px solid var(--line); color:var(--ink); border-radius:14px;
+  padding:6px 12px; font-size:12px; cursor:pointer;
+}
+.inc-cat-btn.on{background:var(--err); color:#2a0a08; border-color:transparent; font-weight:600;}
+
+/* Equipements sur 2 colonnes (plus compact que la liste verticale) */
+.equip-grid{display:grid; grid-template-columns:1fr 1fr; gap:4px 10px;}
+.equip-grid .form-row{margin-bottom:8px;}
+
+/* Rubriques repliables de la fiche (voir openSheet) : tout est replie sauf Avis, pour ne pas donner
+   l'impression qu'il faut tout remplir avant de pouvoir enregistrer -- chacune s'ouvre a la demande. */
+.sheet-section{border-top:1px solid var(--line); padding-top:10px; margin-top:12px;}
+.sheet-section summary{
+  font-size:12.5px; font-weight:600; color:var(--ink); cursor:pointer; list-style:none;
+  display:flex; align-items:center; justify-content:space-between; padding-bottom:2px;
+}
+.sheet-section summary::-webkit-details-marker{display:none;}
+.sheet-section summary::after{content:'▾'; color:var(--ink-dim); font-size:11px; transition:transform .15s;}
+.sheet-section[open] summary::after{transform:rotate(180deg);}
+.sheet-section .sheet-section-body{padding-top:10px;}
+
+/* Bouton Enregistrer colle en bas de la fiche (toujours visible sans avoir a scroller) */
+.sheet-save-wrap{
+  position:sticky; bottom:0; margin:16px -18px -18px; padding:10px 18px calc(env(safe-area-inset-bottom,0px) + 10px);
+  background:linear-gradient(180deg, transparent 0%, var(--panel) 22%);
 }
 
 /* Formulaires (openForm / openRatingForm / openIncidentForm), tous rendus dans #sheet-body */
