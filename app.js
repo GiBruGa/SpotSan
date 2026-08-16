@@ -635,9 +635,13 @@ async function uploadIncidentPhoto(dataUri, ubId){
   const blob = dataUriToBlob(dataUri);
   const ext = blob.type === 'image/png' ? 'png' : (blob.type === 'image/webp' ? 'webp' : 'jpg');
   const path = ubId + '/incident_' + Date.now() + '.' + ext;
+  // Pas de x-upsert ici (contrairement a uploadPhoto ci-dessus) : le nom de fichier est deja unique
+  // (timestamp), donc pas besoin d'ecraser un existant -- et upsert forcerait Storage a verifier
+  // d'abord si l'objet existe, ce qui retombe sur la policy de LECTURE du bucket (reservee aux
+  // comptes avec acces pointsan_mobile) et bloque tout upload anonyme avec une 403 RLS trompeuse.
   await sbFetch('/storage/v1/object/' + INCIDENTS_BUCKET + '/' + path, {
     method: 'POST',
-    headers: { 'Content-Type': blob.type, 'x-upsert': 'true' },
+    headers: { 'Content-Type': blob.type },
     body: blob
   });
   return path;
