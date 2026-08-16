@@ -5,9 +5,22 @@
    Grandes sections, dans l'ordre du fichier : CHANGELOG/version -> modele de donnees (MAP_DATA_TOI,
    findToiByUbId, classify) -> rendu carte (buildLayers) -> fiche toilette (openSheet/openForm/...) ->
    notes & equipements -> photos -> incidents -> synchronisation Supabase -> demarrage (bas du fichier). */
-const APP_VERSION = 'v5.0';
+const APP_VERSION = 'v6.0';
 const SYNCED_WITH = 'StatSan v5.8';
 const CHANGELOG = [
+  { v:'v6.0', date:'Août 2026', items:[
+    'Correction majeure : les signalements d\'incivilité/vandalisme n\'arrivaient jamais sur le serveur (upload photo bloqué par une vérification d\'accès mal déclenchée) — corrigé et vérifié.',
+    'Fiche sanitaire réorganisée en rubriques repliables (Avis / Localisation & photos / Incivilités & vandalisme / Équipements & prestations) — seul "Avis" reste ouvert par défaut. Bouton "Enregistrer" désormais collé en bas de fiche, toujours visible, et confirme clairement si l\'envoi a réussi.',
+    'Avis : histogramme des notes précédentes (comme sur Google Maps) affiché juste après votre note, moyennes par critère juste en dessous ; l\'ancien double affichage des mêmes chiffres est supprimé.',
+    'Prestations (cellules, PMR, urinoirs, douches, vestiaires) : sélecteurs 1-4 + "plus de 4" au lieu d\'un clavier numérique ; nouveau champ "urinoirs femmes" distinct des urinoirs hommes.',
+    'Automatique/Classique et siège enfant passent en bascule à 3 états (non renseigné visible, au lieu d\'un défaut ambigu) ; nouveau champ "Mixte / séparés Femmes-Hommes".',
+    'Signalement d\'incivilité/vandalisme : catégories rapides à cocher (Incivilités / Vandalisme), en plus du texte libre.',
+    'Bandeau supérieur, boutons et pictos (Environnement/Accès/Signalétique) clarifiés ; équipements sur 2 colonnes.',
+    'Écran d\'accueil : affiche la version installée, vérifie si une version plus récente est en ligne, et propose une mise à jour en un clic.',
+    'Service worker corrigé : les mises à jour de l\'application n\'atteignaient jamais un appareil déjà visité (mise en cache définitive au premier chargement, jamais revérifiée) — passage en réseau-d\'abord.',
+    'Page d\'installation Android simplifiée : une seule instruction affichée à la fois (au lieu de répéter "ouvrez dans Chrome" même une fois qu\'on y est déjà), confirmation explicite une fois l\'installation terminée.',
+    'Nouveau logo SpotSan (identité visuelle mise à jour).'
+  ]},
   { v:'v5.0', date:'Août 2026', items:[
     'Passage en v5 : écran d\'accueil simplifié (slogan resserré), notice légale UrBizia déplacée dans "À propos", historique des versions retiré du panneau (n\'était utile que pendant la conception).'
   ]},
