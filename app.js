@@ -927,15 +927,29 @@ function openSheet(ubId){
     '<div class="link-row"><a href="https://www.google.com/maps/search/?api=1&query='+t.Latitude+','+t.Longitude+'" target="_blank">📍 Google Maps</a>'+
     '<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+t.Latitude+','+t.Longitude+'" target="_blank">👁 Street View</a></div>'+
 
-    // Rubriques repliables : seul "Avis" est ouvert par defaut -- le reste s'ouvre a la demande.
-    // Dans chacune : d'abord ce que les AUTRES ont dit (lecture seule, moyennes/etat courant),
-    // puis "Donnez votre avis…" (saisie neuve, toujours vierge) -- jamais les deux melanges, pour
-    // qu'on sache toujours si on lit ou si on est en train d'ajouter sa propre contribution.
-    '<details class="sheet-section" open><summary>★ Avis</summary><div class="sheet-section-body">'+
+    // Rubriques repliables : seule celle-ci est ouverte par defaut -- le reste s'ouvre a la demande.
+    // Avis + prestations + equipements sont regroupes dans UNE seule rubrique (et non trois) pour
+    // que TOUT ce que les autres ont dit apparaisse d'abord, puis UNE SEULE fois "Donnez votre avis…"
+    // couvrant les trois a la suite -- avant cette fusion, chaque bloc repetait sa propre rupture
+    // lecture/saisie, ce qui donnait l'impression que du "deja constate" trainait au milieu des
+    // nouvelles saisies. Ordre (lecture puis saisie, chaque fois Avis -> Prestations -> Equipements) :
+    '<details class="sheet-section" open><summary>★ Avis, équipements & prestations</summary><div class="sheet-section-body">'+
       ratingsOverviewHtml()+
+      '<div style="border-top:1px solid var(--line);margin:10px 0;"></div>'+
+      prestationsStatsHtml(t)+
+      '<div style="border-top:1px solid var(--line);margin:10px 0;"></div>'+
+      '<div class="stat-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStatLine(EQUIP_LABELS[k], equipements[k])).join('')+'</div>'+
+
       '<div class="sheet-subheading-input">Donnez votre avis…</div>'+
       starRowHtml()+
       '<div class="equip-grid">'+Object.keys(RATING_LABELS).map(k => smileyRowHtml(k, RATING_LABELS[k])).join('')+'</div>'+
+      '<div class="equip-grid">'+
+        COUNT_FIELDS.map(c => numPickRowHtml(c.field, c.label)).join('')+
+        cycleFieldHtml('Automatique', 'Automatic', [{val:true,label:'Automatique'},{val:false,label:'Classique'}])+
+        cycleFieldHtml('Séparation', 'Mixte', [{val:true,label:'Mixte'},{val:false,label:'Séparés Femmes/Hommes'}])+
+        cycleFieldHtml('Siège enfant', 'Adapte_Enfant', [{val:true,label:'Siège surbaissé'},{val:false,label:'Pas de siège adapté'}])+
+      '</div>'+
+      '<div class="equip-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStateRowHtml(k, EQUIP_LABELS[k])).join('')+'</div>'+
     '</div></details>'+
 
     '<details class="sheet-section"><summary>📍 Localisation & photos</summary><div class="sheet-section-body">'+
@@ -950,21 +964,6 @@ function openSheet(ubId){
       '<button class="big-btn btn-delete" id="sheet-btn-incident" style="width:100%;flex-direction:row;justify-content:center;background:var(--panel2);color:var(--err);border:1px solid var(--err) !important;"><span class="ic" style="font-size:15px;">⚠</span>&nbsp;Signaler une incivilité ou un vandalisme</button>'+
       '<div style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin-top:4px;">Chaque signalement aide à mieux protéger le réseau — merci de contribuer 🙏</div>'+
       myIncidentPhotosHtml(ubId)+
-    '</div></details>'+
-
-    '<details class="sheet-section"><summary>🧴 Équipements & prestations</summary><div class="sheet-section-body">'+
-      '<div class="sheet-subheading" style="margin-top:0;">Ce que les autres ont dit</div>'+
-      '<div class="stat-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStatLine(EQUIP_LABELS[k], equipements[k])).join('')+'</div>'+
-      '<div style="border-top:1px solid var(--line);margin:10px 0;"></div>'+
-      prestationsStatsHtml(t)+
-      '<div class="sheet-subheading-input">Donnez votre avis…</div>'+
-      '<div class="equip-grid">'+Object.keys(EQUIP_LABELS).map(k => equipStateRowHtml(k, EQUIP_LABELS[k])).join('')+'</div>'+
-      '<div class="equip-grid">'+
-        COUNT_FIELDS.map(c => numPickRowHtml(c.field, c.label)).join('')+
-        cycleFieldHtml('Automatique', 'Automatic', [{val:true,label:'Automatique'},{val:false,label:'Classique'}])+
-        cycleFieldHtml('Séparation', 'Mixte', [{val:true,label:'Mixte'},{val:false,label:'Séparés Femmes/Hommes'}])+
-        cycleFieldHtml('Siège enfant', 'Adapte_Enfant', [{val:true,label:'Siège surbaissé'},{val:false,label:'Pas de siège adapté'}])+
-      '</div>'+
     '</div></details>'+
 
     '<div class="form-row" style="margin-top:14px;"><label>Zone d\'expression libre</label><textarea id="sheet-comment" placeholder="Un commentaire, une remarque…">'+(t.Comment||'')+'</textarea></div>'+
