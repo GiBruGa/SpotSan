@@ -12,12 +12,19 @@
   } = $props()
 
   const NIVEAUX = [
-    { v: 1, emoji: '👎', libelle: 'Pouce baissé' },
-    { v: 2, emoji: '🙁', libelle: 'Triste' },
-    { v: 3, emoji: '😐', libelle: 'Neutre' },
-    { v: 4, emoji: '🙂', libelle: 'Souriant' },
-    { v: 5, emoji: '👍', libelle: 'Pouce levé' },
+    { v: 1, emoji: '👎', libelle: 'Pouce baissé', polarite: 'negatif' },
+    { v: 2, emoji: '🙁', libelle: 'Triste', polarite: 'negatif' },
+    { v: 3, emoji: '😐', libelle: 'Neutre', polarite: 'neutre' },
+    { v: 4, emoji: '🙂', libelle: 'Souriant', polarite: 'positif' },
+    { v: 5, emoji: '👍', libelle: 'Pouce levé', polarite: 'positif' },
   ]
+
+  // "Abs" (absent/sans objet) est neutre -- les autres extensions (HS, Vide,
+  // Débordante...) signalent toutes un probleme, donc meme code couleur
+  // "negatif" que le bas de l'echelle.
+  function polariteExtension(ext) {
+    return ext === 'Abs' ? 'neutre' : 'negatif'
+  }
 </script>
 
 <div class="echelle-etat" role="group" aria-label={label || 'Échelle d’état'}>
@@ -26,7 +33,7 @@
     {#each NIVEAUX as n (n.v)}
       <button
         type="button"
-        class="echelle-etat__bouton"
+        class="echelle-etat__bouton {n.polarite}"
         class:selected={value === n.v}
         aria-pressed={value === n.v}
         aria-label={n.libelle}
@@ -39,7 +46,7 @@
       {#each extensions as ext (ext)}
         <button
           type="button"
-          class="echelle-etat__chip"
+          class="echelle-etat__chip {polariteExtension(ext)}"
           class:selected={value === ext}
           aria-pressed={value === ext}
           onclick={() => (value = ext)}
@@ -50,10 +57,15 @@
 </div>
 
 <style>
+  /* Boutons a fond volontairement clair/colore quel que soit le theme
+     (clair ou sombre) de l'appareil -- le texte doit donc rester fixe
+     lui aussi, jamais herite d'une couleur qui suivrait le theme, sinon
+     du texte clair sur fond clair devient illisible en mode sombre. */
   .echelle-etat {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
+    color: var(--echelle-texte-page, inherit);
   }
 
   .echelle-etat__label {
@@ -76,12 +88,27 @@
     border-radius: 999px;
     border: 1px solid var(--echelle-border, #ccc);
     background: var(--echelle-bg, #fff);
+    color: var(--echelle-texte, #1a1414);
     cursor: pointer;
   }
 
-  .echelle-etat__bouton.selected {
-    border-color: var(--echelle-accent, #540e28);
-    background: var(--echelle-accent-bg, #f6dde3);
+  /* Selection : fond colore selon la polarite du niveau (demande 2026-08-21). */
+  .echelle-etat__bouton.negatif.selected {
+    border-color: #c55a7a;
+    background: #c55a7a;
+    color: #fff;
+  }
+
+  .echelle-etat__bouton.neutre.selected {
+    border-color: #b9ad9c;
+    background: #ddd5cb;
+    color: #1a1414;
+  }
+
+  .echelle-etat__bouton.positif.selected {
+    border-color: #8fd99a;
+    background: #c9ffc3;
+    color: #1a1414;
   }
 
   .echelle-etat__chip {
@@ -90,13 +117,22 @@
     border-radius: 999px;
     border: 1px solid var(--echelle-border, #ccc);
     background: var(--echelle-bg, #fff);
+    color: var(--echelle-texte, #1a1414);
     font-size: 0.85rem;
     cursor: pointer;
   }
 
-  .echelle-etat__chip.selected {
-    border-color: var(--echelle-accent, #540e28);
-    background: var(--echelle-accent-bg, #f6dde3);
+  .echelle-etat__chip.neutre.selected {
+    border-color: #b9ad9c;
+    background: #ddd5cb;
+    color: #1a1414;
+    font-weight: 600;
+  }
+
+  .echelle-etat__chip.negatif.selected {
+    border-color: #c55a7a;
+    background: #c55a7a;
+    color: #fff;
     font-weight: 600;
   }
 </style>
