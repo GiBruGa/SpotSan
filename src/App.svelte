@@ -5,19 +5,19 @@
   import { viderQueue, nombreEnAttente } from './lib/queueAvis.js'
   import Inscription from './lib/components/Inscription.svelte'
   import BandeauEntete from './lib/components/BandeauEntete.svelte'
+  import Carte from './lib/components/Carte.svelte'
+  import FicheSanitaire from './lib/components/FicheSanitaire.svelte'
   import FormulaireAvis from './lib/components/FormulaireAvis.svelte'
 
   let chargement = $state(true)
   let erreurInit = $state('')
   let userId = $state(null)
   let profil = $state(null)
-
-  // Lot 2/3 (carte + fiche sanitaire) pas encore construits : selecteur
-  // provisoire pour pouvoir exercer le Lot 5 des maintenant. A retirer
-  // quand la carte permettra de choisir un vrai lieu.
-  let ubIdSaisi = $state('UB-012975')
-  let ubIdOuvert = $state(null)
   let enAttente = $state(0)
+
+  let ubIdFiche = $state(null)
+  let ubIdFormulaire = $state(null)
+  let versionFiche = $state(0)
 
   onMount(async () => {
     try {
@@ -53,8 +53,9 @@
     userId = session.user.id
   }
 
-  function fermerFormulaire() {
-    ubIdOuvert = null
+  function surFermetureFormulaire() {
+    ubIdFormulaire = null
+    versionFiche++ // force le rechargement de la fiche (avis a jour)
     enAttente = nombreEnAttente()
   }
 </script>
@@ -65,31 +66,24 @@
   <p class="etat erreur">{erreurInit}</p>
 {:else if !profil}
   <Inscription onValide={surInscriptionValidee} />
-{:else if ubIdOuvert}
-  <FormulaireAvis {userId} ubId={ubIdOuvert} onFerme={fermerFormulaire} />
+{:else if ubIdFormulaire}
+  <FormulaireAvis {userId} ubId={ubIdFormulaire} onFerme={surFermetureFormulaire} />
+{:else if ubIdFiche}
+  {#key versionFiche}
+    <FicheSanitaire
+      ubId={ubIdFiche}
+      onDonnerAvis={(id) => (ubIdFormulaire = id)}
+      onRetour={() => (ubIdFiche = null)}
+    />
+  {/key}
 {:else}
-  <BandeauEntete {profil} onSupprimer={surSuppression} />
-
-  <main>
-    <h1>SpotSan V2</h1>
-    <p class="sous-titre">Lot 5 (formulaire "Donner son avis") en cours.</p>
+  <div class="ecran-carte">
+    <BandeauEntete {profil} onSupprimer={surSuppression} />
     {#if enAttente > 0}
       <p class="badge-attente">{enAttente} avis en attente d'envoi (pas de réseau au moment de la sauvegarde).</p>
     {/if}
-
-    <section class="selecteur-provisoire">
-      <p class="note">
-        Sélecteur provisoire — la carte (Lot 2/3) permettra de choisir un vrai lieu plus tard.
-      </p>
-      <label class="champ">
-        <span>UB_id du sanitaire</span>
-        <input type="text" bind:value={ubIdSaisi} />
-      </label>
-      <button type="button" class="ouvrir" onclick={() => (ubIdOuvert = ubIdSaisi.trim())}>
-        Donner mon avis sur ce sanitaire
-      </button>
-    </section>
-  </main>
+    <Carte onChoixSanitaire={(id) => (ubIdFiche = id)} />
+  </div>
 {/if}
 
 <style>
@@ -103,68 +97,24 @@
     color: #c55a7a;
   }
 
-  main {
-    max-width: 480px;
-    margin: 0 auto;
-    padding: 1.5rem 1rem;
+  .ecran-carte {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
   }
 
-  .sous-titre {
-    color: #666;
+  .ecran-carte :global(.carte) {
+    position: relative;
+    flex: 1;
   }
 
   .badge-attente {
     background: #ddd5cb;
     color: #1a1414;
-    border-radius: 8px;
-    padding: 0.6rem 0.8rem;
-    font-size: 0.85rem;
-  }
-
-  .selecteur-provisoire {
-    margin-top: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.7rem;
-    padding: 1rem;
-    border: 1px dashed #ccc;
-    border-radius: 10px;
-  }
-
-  .note {
-    font-size: 0.78rem;
-    color: #888;
+    font-size: 0.8rem;
+    text-align: center;
+    padding: 0.4rem;
     margin: 0;
-  }
-
-  .champ {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-  }
-
-  .champ span {
-    font-weight: 600;
-    font-size: 0.85rem;
-  }
-
-  .champ input {
-    min-height: 44px;
-    padding: 0 0.7rem;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 1rem;
-    color: #1a1414;
-    background: #fff;
-  }
-
-  .ouvrir {
-    min-height: 48px;
-    border-radius: 999px;
-    border: none;
-    background: #540e28;
-    color: #fff;
-    font-weight: 600;
-    cursor: pointer;
   }
 </style>

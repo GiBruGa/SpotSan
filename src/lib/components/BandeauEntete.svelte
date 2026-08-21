@@ -2,6 +2,8 @@
   // Bandeau d'en-tete (plan V2-PLAN.md §5.1) : avatar + pseudo + menu
   // utilisateur (infos personnelles, suppression du compte).
 
+  import { APP_VERSION } from '../version.js'
+
   let { profil, onSupprimer } = $props()
 
   let menuOuvert = $state(false)
@@ -24,7 +26,7 @@
 </script>
 
 <header class="bandeau">
-  <span class="marque">SpotSan</span>
+  <span class="marque">SpotSan <span class="version">{APP_VERSION}</span></span>
 
   <button type="button" class="profil-bouton" onclick={toggleMenu} aria-expanded={menuOuvert}>
     <span class="avatar">{profil.avatar_url ?? '🙂'}</span>
@@ -74,6 +76,12 @@
   .marque {
     font-weight: 700;
     font-size: 1.1rem;
+  }
+
+  .version {
+    font-weight: 400;
+    font-size: 0.7rem;
+    opacity: 0.75;
   }
 
   .profil-bouton {

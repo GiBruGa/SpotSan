@@ -47,6 +47,7 @@ Décidé le 2026-08-21, complété le 2026-08-21 — **un seul composant d'éche
   - International : `+33 000 000 001` — indicatif pays puis 3 groupes de 3 chiffres.
   - Local (France) : `0 000 000 01` — `0` puis les mêmes 9 chiffres, groupés 3/3/2.
 - **"Incivilités et Vandalismes"** : toujours au pluriel, dans tous les libellés d'écran, boutons, textes d'aide. (Le nom de table existant `Incident_Reports` reste en anglais/singulier côté DB — cette règle concerne uniquement les textes visibles par l'utilisateur.)
+- **Numéro de version affiché**, décidé 2026-08-21 : `src/lib/version.js` exporte `APP_VERSION`, affiché dans le bandeau et le titre de l'onglet (même convention que v1, qui affiche `APP_VERSION` dans son panneau "À propos" — voir `SpotSan/app.js`). v1 est actuellement en `v6.0` ; **v2 redémarre à `v8.0`** (choix de Gilles, pas de v7). À incrémenter pour tout changement visible par l'utilisateur.
 
 ## 4. Décisions
 
@@ -272,12 +273,18 @@ Prochaine action concrète : créer le nouveau dépôt GitHub (Lot 0) — reste 
 - [x] **Self-service suppression** : deux niveaux — suppression du profil seul possible en client (policy RLS `sitinzen_users_delete_own`), et suppression complète du compte (profil **+** compte `auth.users` lui-même, qui nécessite les droits admin) via l'Edge Function `delete-own-account` (déployée avec `verify_jwt` plateforme actif — la vérification automatique ne bloque pas le pré-vol CORS, contrairement à une crainte initiale ; la fonction vérifie en plus elle-même l'identité de l'appelant dans son code, jamais depuis le corps de la requête). Testé de bout en bout dans le navigateur : compte créé, menu affiché, suppression confirmée, ligne `SitInZen_Users` et compte `auth.users` disparus en base.
 - [x] Bandeau d'en-tête (`src/lib/components/BandeauEntete.svelte`) : avatar + pseudo + menu (infos personnelles, suppression du compte avec confirmation).
 
-### Lot 2 — Carte
-- [ ] Point bleu utilisateur en pane dédié au-dessus des clusters, taille augmentée.
+### Lot 2 — Carte (fait et vérifié 2026-08-21)
+- [x] **Point bleu utilisateur en pane dédié au-dessus des clusters, taille augmentée** — pane Leaflet `position-utilisateur` créé avec un z-index supérieur au pane des marqueurs (650 vs 600), halo + point via `divIcon` (plus gros et plus visible qu'un marqueur standard). Corrige le tout premier problème signalé en début de projet.
+- [x] Carte Leaflet + `leaflet.markercluster` (npm, pas de CDN — cohérent avec le choix Vite), tuiles CARTO clair/sombre selon `prefers-color-scheme` (repris de v1).
+- [x] Chargement des sanitaires **par zone visible** (`chargerSanitairesDansZone`, filtre par bbox sur `Latitude`/`Longitude`, rafraîchi à chaque déplacement de la carte) plutôt qu'un fichier de seed de 18 Mo comme en v1 — plus adapté à une app qui parle directement à Supabase. Vérifié dans le navigateur : clusters visibles à l'échelle France, marqueurs individuels au zoom, clic → ouverture de la fiche.
+- **Non fait dans ce lot, à noter pour plus tard** : les chips de filtre par source (`verified`/`gouv`/`osm`/`certified`/`supprimées`) de v1 n'ont pas été reconstruits — un seul style de marqueur pour l'instant. Pas dans le périmètre explicite du Lot 2 (qui ne listait que le point bleu), mais à reprendre si Gilles veut la parité complète avec v1.
 
-### Lot 3 — Fiche sanitaire (lecture)
-- [ ] Réorganisation du bloc lecture (ordre §5.3), non cliquable pour édition.
-- [ ] Bouton "Donnez votre avis".
+### Lot 3 — Fiche sanitaire (lecture) (fait et vérifié 2026-08-21)
+- [x] Réorganisation du bloc lecture (ordre §5.3 : mention "prédécesseurs" → photos → avis/état → configuration → équipements), **non cliquable** (`pointer-events: none` sur le bloc entier, sauf le bouton "Donnez votre avis" qui est explicitement en dehors) — corrige la deuxième confusion signalée en début de projet (cliquer sur les données existantes en espérant les modifier).
+- [x] Bouton "Donnez votre avis" → ouvre le formulaire du Lot 5 pour le lieu affiché.
+- [x] **Repli intelligent sur les données héritées** : si `get_avis_summary` n'a pas assez d'avis V2 (`suffisant: false`), la fiche retombe sur les comptages v1 déjà fiables (`MSB`/`PMR`/`Urinals`/...) plutôt que d'afficher un vide. Avec 1 seul avis, affiche "à confirmer" + le contenu brut plutôt qu'un faux consensus (conforme à l'algorithme §6).
+- [x] Retour à la fiche après sauvegarde d'un avis **rechargé à chaud** (`{#key}`) pour montrer l'avis fraîchement donné, pas une version périmée.
+- Vérifié de bout en bout dans le navigateur : clic sur un marqueur → fiche affichée avec repli v1 correct → "Donnez votre avis" → sauvegarde → retour fiche à jour ("À confirmer — un seul avis...").
 
 ### Lot 4 — Modèle de données "avis" (fait et vérifié 2026-08-21)
 - [x] Table `Sanitary_Reviews` : clé primaire `(user_id, ub_id)` (un avis par utilisateur par lieu, amendable — pas de colonne id séparée, la contrainte fait le travail), `created_at`/`updated_at` (déclenchement automatique par trigger `_touch_updated_at` à chaque `update`). `user_id` référence `auth.users` directement (comme `Access_Grants`), pas `SitInZen_Users` — même valeur, cohérent avec la convention déjà en place dans le schéma.
@@ -331,6 +338,7 @@ Prochaine action concrète : créer le nouveau dépôt GitHub (Lot 0) — reste 
 
 _(À compléter au fil de l'eau : date, lot, décision ou avancement.)_
 
+- 2026-08-21 — **Lots 2 et 3 terminés et vérifiés** : carte Leaflet avec point utilisateur corrigé (pane dédié, halo, plus visible — le tout premier problème signalé), chargement des sanitaires par zone visible, fiche sanitaire en lecture non cliquable avec repli sur les données v1 quand pas encore assez d'avis V2. Parcours complet vérifié dans le navigateur : carte → clic marqueur → fiche → "Donnez votre avis" → sauvegarde → retour fiche à jour. Numéro de version affiché ajouté (`v8.0`, v1 étant en `v6.0`, pas de v7 — choix de Gilles). Chips de filtre par source de v1 non reconstruits, hors périmètre explicite du lot.
 - 2026-08-21 — **Lot 5 terminé et vérifié** : formulaire "Donner son avis" en 3 étapes, préremplissage/reprise de l'avis précédent, boutons flottants, upsert confirmé sans duplication. **Le moteur offline/sync (risque principal du projet) a été porté et testé en conditions de coupure réseau simulée** — sauvegarde mise en attente localement, badge visible, envoi automatique à la reconnexion, aucune perte ni doublon vérifié en base. Bug de binding Svelte rencontré et corrigé en route (a aussi comblé un oubli : les cellules doivent démarrer à "Abs"). Sélecteur de sanitaire provisoire en attendant le Lot 2/3.
 - 2026-08-21 — Champ **commentaire libre optionnel** ajouté à `Sanitary_Reviews` (point ouvert du Lot 4 tranché) : 4 commentaires v1 rétro-remplis dans les avis "Paul Hixe" déjà migrés, `get_avis_summary` mis à jour pour le renvoyer.
 - 2026-08-21 — **Lot 4 terminé et vérifié** : table `Sanitary_Reviews`, RLS, fonction d'agrégation `get_avis_summary` (testée), `Incident_Reports.user_id` ajoutée, 12 avis migrés vers "Paul Hixe" (approximatif, voir détail dans le Lot 4). **Découverte majeure en cours de route** : les tables `Toilet_Ratings`/`Toilet_Photos`/`Toilet_Equipment_Reports`, décrites à tort en §4.3 comme un schéma abandonné, sont en réalité activement écrites par `report_toilet_feedback` (le vrai chemin d'écriture de v1 en production) — corrigé dans le document. Elles prouvent noir sur blanc le problème de fond du projet : la moyenne v1 n'est pas dédupliquée par appareil, donc modifier son avis biaise la moyenne au lieu de la remplacer. Point ouvert repéré : absence de champ commentaire libre dans le formulaire V2 prévu — à trancher avant le Lot 5.
