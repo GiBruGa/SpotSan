@@ -29,7 +29,13 @@
   <span class="marque">SpotSan <span class="version">{APP_VERSION}</span></span>
 
   <button type="button" class="profil-bouton" onclick={toggleMenu} aria-expanded={menuOuvert}>
-    <span class="avatar">{profil.avatar_url ?? '🙂'}</span>
+    {#if profil.avatar_url?.startsWith('http')}
+      <img class="avatar-photo" src={profil.avatar_url} alt="" />
+    {:else}
+      <!-- Par defaut (aucune photo choisie) : logo SpotSan plutot qu'un
+           emoji generique -- demande du 2026-08-21. -->
+      <img class="avatar-photo" src="/icon-192.png" alt="" />
+    {/if}
     <span class="pseudo">{profil.pseudo}</span>
   </button>
 
@@ -97,8 +103,11 @@
     cursor: pointer;
   }
 
-  .avatar {
-    font-size: 1.3rem;
+  .avatar-photo {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
   }
 
   .pseudo {

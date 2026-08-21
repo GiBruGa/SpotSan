@@ -1,17 +1,18 @@
 <script>
   // Ecran de creation de compte (plan V2-PLAN.md §5.1).
-  // Telephone declaratif (pas d'OTP, voir §4.1), pseudo + avatar (liste
-  // fermee d'emoji pour l'instant, plus simple qu'un upload de photo),
-  // champs facultatifs, texte legal + rappel du droit a la suppression.
+  // Telephone declaratif (pas d'OTP, voir §4.1), pseudo + avatar (vraie
+  // photo prise ou choisie sur le telephone, cf. demande du 2026-08-21 --
+  // remplace l'ancienne liste fermee d'emoji), champs facultatifs, texte
+  // legal et rappel du droit a la suppression.
+
+  import BoutonPhoto from './BoutonPhoto.svelte'
 
   let { onValide } = $props()
-
-  const AVATARS = ['🙂', '🐦', '🦊', '🐢', '🌻', '⭐', '🍀', '🦉']
 
   let indicatif = $state('+33')
   let numeroLocal = $state('')
   let pseudo = $state('')
-  let avatar = $state(AVATARS[0])
+  let avatar = $state(null)
   let sexe = $state(null) // 'Homme' | 'Femme' | null (= non precise)
   let anneeNaissance = $state('')
   let handicaps = $state([])
@@ -19,7 +20,8 @@
   let erreur = $state('')
   let enCours = $state(false)
 
-  const HANDICAPS_POSSIBLES = ['Visuel', 'Surdité', 'Moteur']
+  // "Surdité" retire de la liste le 2026-08-21 (demande explicite).
+  const HANDICAPS_POSSIBLES = ['Visuel', 'Moteur']
 
   function toggleHandicap(h) {
     handicaps = handicaps.includes(h) ? handicaps.filter((x) => x !== h) : [...handicaps, h]
@@ -86,18 +88,9 @@
   </label>
 
   <div class="champ">
-    <span>Avatar</span>
-    <div class="avatars">
-      {#each AVATARS as a (a)}
-        <button
-          type="button"
-          class="avatar-choix"
-          class:selected={avatar === a}
-          aria-pressed={avatar === a}
-          onclick={() => (avatar = a)}
-        >{a}</button>
-      {/each}
-    </div>
+    <span>Avatar (facultatif)</span>
+    <BoutonPhoto capture={null} bind:valeur={avatar} />
+    <small>Prends une photo ou choisis-en une dans tes photos.</small>
   </div>
 
   <div class="champ">
@@ -198,26 +191,10 @@
     font-size: 0.78rem;
   }
 
-  .avatars,
   .chips {
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
-  }
-
-  .avatar-choix {
-    min-width: 44px;
-    min-height: 44px;
-    font-size: 1.4rem;
-    border-radius: 999px;
-    border: 1px solid #ccc;
-    background: #fff;
-    cursor: pointer;
-  }
-
-  .avatar-choix.selected {
-    border-color: #540e28;
-    background: #f6dde3;
   }
 
   .chips button {
@@ -230,9 +207,12 @@
     cursor: pointer;
   }
 
+  /* Fond plein + texte blanc plutot qu'une teinte pale peu visible
+     (retour du 2026-08-21 : contraste insuffisant a la selection). */
   .chips button.selected {
     border-color: #540e28;
-    background: #f6dde3;
+    background: #540e28;
+    color: #fff;
     font-weight: 600;
   }
 

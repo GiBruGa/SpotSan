@@ -6,7 +6,11 @@
 
   import { televerserPhoto } from '../photos.js'
 
-  let { consigne = '', bucket = 'PointSan-Photos', dossier = '', valeur = $bindable(null), onTermine } = $props()
+  // capture='environment' (par defaut) : biaise vers l'appareil photo
+  // arriere, adapte aux photos de terrain. capture=null : laisse le
+  // choix natif complet (appareil photo OU galerie) -- utilise pour
+  // l'avatar, ou choisir une photo existante a du sens.
+  let { consigne = '', bucket = 'PointSan-Photos', dossier = '', capture = 'environment', valeur = $bindable(null), onTermine } = $props()
 
   let input
   let enCours = $state(false)
@@ -55,7 +59,7 @@
     bind:this={input}
     type="file"
     accept="image/*"
-    capture="environment"
+    {capture}
     class="entree-cachee"
     onchange={surChangement}
   />
