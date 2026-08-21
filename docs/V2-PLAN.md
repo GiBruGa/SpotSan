@@ -148,6 +148,7 @@ Puis bouton **"Donnez votre avis"** → bascule vers le formulaire.
 ### 5.5 Formulaire "Donner son avis" — structure
 **Étape 1 — Avis général**
 - Avis général : échelle standard 5 niveaux (§3.1) — plus de composant étoiles séparé.
+- **Commentaire libre, optionnel** — décidé 2026-08-21, en réponse à un usage réel constaté en v1 (ex. "Nettoyage par arrosage au sol..."). Colonne `commentaire` sur `Sanitary_Reviews`, déjà ajoutée au Lot 4.
 
 **Étape 2 — Configuration (prestations)**, en grille compacte multi-colonnes :
 
@@ -289,13 +290,13 @@ Prochaine action concrète : créer le nouveau dépôt GitHub (Lot 0) — reste 
   - `configuration` migrée est **grossière** : v1 n'a que des comptages globaux (MSB/PMR/Urinals/Showers/ChangingRooms), pas de détail accessibilité/type par cellule, et pas de répartition PMR/standard pour douches et vestiaires — seule la présence (compte > 0) a pu être déduite, `accessibilite` déduite de `Mixte`, `type` déduit de `Automatic` (toilettes uniquement).
   - Les commentaires libres v1 (`Comment`) ne sont **pas repris** : `Sanitary_Reviews` n'a pas de colonne commentaire (le formulaire V2 tel que conçu au §5.5 n'en prévoit pas — à confirmer si c'est voulu, voir remarque plus bas). Les textes restent consultables sur `SanitaryBlocks_Inventory.Comment`, colonne non supprimée.
   - **Découverte en cours de route, corrigée dans le document** (§4.3) : les tables `Toilet_Ratings`/`Toilet_Photos`/`Toilet_Equipment_Reports` ne sont pas mortes — elles sont la vraie source d'écriture de v1 en production (historique par soumission + moyenne glissante recalculée à chaque avis). La migration s'appuie sur cette moyenne déjà calculée (`SanitaryBlocks_Inventory`), qui est la valeur la plus représentative disponible — les lignes d'historique individuelles (par `device_id`, non attribuables à un utilisateur réel) ne sont pas reprises une par une.
-- [ ] **Point ouvert repéré en cours de route, pas dans le plan initial** : le formulaire "Donner son avis" (§5.5) n'a pas de champ de commentaire libre, alors que v1 en a un et que des utilisateurs s'en servent (ex. "Nettoyage par arrosage au sol..."). À trancher avant le Lot 5 : on ajoute un champ commentaire optionnel à `Sanitary_Reviews`, ou c'est un abandon volontaire au profit du système de tags (§5.6) ?
+- [x] **Commentaire libre optionnel** — décidé et ajouté 2026-08-21 : colonne `commentaire text` sur `Sanitary_Reviews`. Les 4 commentaires v1 déjà présents sur les toilettes migrées ont été rétro-remplis dans les avis de "Paul Hixe". `get_avis_summary` renvoie désormais aussi le commentaire dans `dernier_avis`.
 
 ### Lot 5 — Formulaire "Donner son avis"
 - [ ] Préremplissage depuis le dernier avis de l'utilisateur (si existant) + affichage de la date.
 - [ ] Boutons flottants Sauvegarder / Sortir sans sauvegarder.
 - [ ] Sauvegarder = `upsert` sur `(user_id, ub_id)`.
-- [ ] Étape 1 avis général : échelle standard 5 niveaux (§3.1).
+- [ ] Étape 1 avis général : échelle standard 5 niveaux (§3.1) + commentaire libre optionnel (colonne déjà prête, Lot 4).
 - [ ] Étape 2 configuration en grille compacte, échelle standard (§5.5, §3.1).
 - [ ] Étape 3 équipements + photo par équipement, échelle standard (§5.5, §3.1).
 
@@ -325,6 +326,7 @@ Prochaine action concrète : créer le nouveau dépôt GitHub (Lot 0) — reste 
 
 _(À compléter au fil de l'eau : date, lot, décision ou avancement.)_
 
+- 2026-08-21 — Champ **commentaire libre optionnel** ajouté à `Sanitary_Reviews` (point ouvert du Lot 4 tranché) : 4 commentaires v1 rétro-remplis dans les avis "Paul Hixe" déjà migrés, `get_avis_summary` mis à jour pour le renvoyer.
 - 2026-08-21 — **Lot 4 terminé et vérifié** : table `Sanitary_Reviews`, RLS, fonction d'agrégation `get_avis_summary` (testée), `Incident_Reports.user_id` ajoutée, 12 avis migrés vers "Paul Hixe" (approximatif, voir détail dans le Lot 4). **Découverte majeure en cours de route** : les tables `Toilet_Ratings`/`Toilet_Photos`/`Toilet_Equipment_Reports`, décrites à tort en §4.3 comme un schéma abandonné, sont en réalité activement écrites par `report_toilet_feedback` (le vrai chemin d'écriture de v1 en production) — corrigé dans le document. Elles prouvent noir sur blanc le problème de fond du projet : la moyenne v1 n'est pas dédupliquée par appareil, donc modifier son avis biaise la moyenne au lieu de la remplacer. Point ouvert repéré : absence de champ commentaire libre dans le formulaire V2 prévu — à trancher avant le Lot 5.
 
 - 2026-08-21 — **Lot 1 terminé et vérifié de bout en bout** dans le navigateur : schéma `SitInZen_Users` étendu, connexion anonyme Supabase Auth (provider activé par Gilles), Paul Hixe créé, écran d'inscription, bandeau + menu, suppression de compte complète (profil + `auth.users`) via Edge Function `delete-own-account`. Un bug de CORS sur l'Edge Function a été rencontré et corrigé en route (voir §4.1) — pas un problème de fond, juste une étape de mise au point.
