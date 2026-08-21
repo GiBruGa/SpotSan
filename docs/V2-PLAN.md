@@ -261,7 +261,7 @@ Prochaine action concrète : créer le nouveau dépôt GitHub (Lot 0) — reste 
 ### Lot 0bis — Socle technique Vite + Svelte
 - [x] **Scaffolding Vite + Svelte** — fait 2026-08-21 : Node.js LTS installé sur la machine, projet créé (Svelte 5, JS, pas TypeScript), arborescence `src/lib/components/`. Composant réutilisable `EchelleEtat.svelte` créé pour l'échelle standard §3.1 (5 niveaux + `extensions` en props pour Abs/HS/Débordante...) — vérifié fonctionnel en dev (binding réactif testé au clic dans le navigateur).
 - [x] **Workflow GitHub Actions** — fait 2026-08-21 : `.github/workflows/deploy.yml` (build + `actions/deploy-pages`), Pages configurée en source "GitHub Actions" côté GitHub. Se déclenche au prochain push sur `main`.
-- [ ] **Portage soigné du moteur offline/sync** — **volontairement pas fait à ce stade.** Il n'y a encore aucune donnée/RPC à synchroniser dans l'app Svelte (ça viendra avec le Lot 4/5) ; porter le moteur maintenant reviendrait à le construire dans le vide. À traiter quand le Lot 5 (formulaire) sera assez avancé pour avoir de vraies écritures à mettre en queue — reste le risque principal du projet (§4.7), ne pas l'oublier en route.
+- [x] **Portage soigné du moteur offline/sync** — fait au Lot 5 comme prévu (voir détail là-bas), une fois qu'il y a eu de vraies écritures à mettre en queue. Testé réseau coupé dans le navigateur, comportement conforme.
 - [x] **Service worker / PWA** — fait 2026-08-21, via `vite-plugin-pwa` (génère un service worker de précache app-shell + `runtimeCaching` réseau-d'abord pour les ressources externes, plutôt qu'un fichier écrit à la main — les noms de fichiers Vite changent à chaque build). `public/manifest.json` réutilise les icônes v1, nommé "SpotSan V2 (beta)" pour rester visuellement distinct de v1 si les deux PWA sont installées côte à côte pendant les tests.
 
 ### Lot 1 — Comptes utilisateurs (fait et vérifié 2026-08-21)
@@ -293,12 +293,17 @@ Prochaine action concrète : créer le nouveau dépôt GitHub (Lot 0) — reste 
 - [x] **Commentaire libre optionnel** — décidé et ajouté 2026-08-21 : colonne `commentaire text` sur `Sanitary_Reviews`. Les 4 commentaires v1 déjà présents sur les toilettes migrées ont été rétro-remplis dans les avis de "Paul Hixe". `get_avis_summary` renvoie désormais aussi le commentaire dans `dernier_avis`.
 
 ### Lot 5 — Formulaire "Donner son avis"
-- [ ] Préremplissage depuis le dernier avis de l'utilisateur (si existant) + affichage de la date.
-- [ ] Boutons flottants Sauvegarder / Sortir sans sauvegarder.
-- [ ] Sauvegarder = `upsert` sur `(user_id, ub_id)`.
-- [ ] Étape 1 avis général : échelle standard 5 niveaux (§3.1) + commentaire libre optionnel (colonne déjà prête, Lot 4).
-- [ ] Étape 2 configuration en grille compacte, échelle standard (§5.5, §3.1).
-- [ ] Étape 3 équipements + photo par équipement, échelle standard (§5.5, §3.1).
+- [x] Préremplissage depuis le dernier avis de l'utilisateur (si existant) + affichage de la date ("Reprise de ton dernier avis du JJ/MM/AAAA").
+- [x] Boutons flottants Sauvegarder / Sortir sans sauvegarder.
+- [x] Sauvegarder = `upsert` sur `(user_id, ub_id)` — vérifié : deux sauvegardes successives du même utilisateur sur le même lieu ne créent toujours qu'une seule ligne.
+- [x] Étape 1 avis général : échelle standard 5 niveaux (§3.1) + commentaire libre optionnel.
+- [x] Étape 2 configuration en grille compacte, échelle standard (§5.5, §3.1) : chaque cellule démarre à "Abs", les sous-options (accessibilité/type) n'apparaissent qu'une fois l'état touché (progressive disclosure, §3).
+- [x] Étape 3 équipements, échelle standard (§5.5, §3.1). *(Photo par équipement reportée au Lot 6, comme prévu par §5.6.)*
+- [x] **Moteur offline/sync porté et testé** (§4.7 — risque principal du projet, maintenant traité) : `queueAvis.js`, queue locale `localStorage` avec relecture automatique au démarrage et sur l'évènement `online`. **Testé en conditions simulées de coupure réseau dans le navigateur** : sauvegarde → échec réseau détecté → mise en attente locale (badge visible "avis en attente d'envoi") → reconnexion → envoi automatique → vérifié en base, une seule ligne, aucune perte ni duplication.
+
+**Bug rencontré et corrigé en cours de route** : `bind:value={etats[cle]}` plantait (`props_invalid_value`) quand la clé n'existait pas encore dans l'objet réactif `etats`. Corrigé en initialisant `etats` avec toutes les clés à `'Abs'` dès la déclaration — qui est de toute façon le comportement demandé par le plan ("chaque ligne démarre à l'état absent"), donc la correction du bug a aussi comblé un oubli d'implémentation.
+
+**Simplification assumée pour ce lot** : pas encore de carte/fiche sanitaire (Lot 2/3) pour choisir un lieu réel — un sélecteur provisoire (champ texte UB_id) permet d'exercer le formulaire en attendant. À retirer quand le Lot 2/3 sera fait.
 
 ### Lot 6 — Photos
 - [ ] Nouveau bouton de capture, gros et identifiable (style obturateur natif), remplace la barre actuelle.
@@ -326,6 +331,7 @@ Prochaine action concrète : créer le nouveau dépôt GitHub (Lot 0) — reste 
 
 _(À compléter au fil de l'eau : date, lot, décision ou avancement.)_
 
+- 2026-08-21 — **Lot 5 terminé et vérifié** : formulaire "Donner son avis" en 3 étapes, préremplissage/reprise de l'avis précédent, boutons flottants, upsert confirmé sans duplication. **Le moteur offline/sync (risque principal du projet) a été porté et testé en conditions de coupure réseau simulée** — sauvegarde mise en attente localement, badge visible, envoi automatique à la reconnexion, aucune perte ni doublon vérifié en base. Bug de binding Svelte rencontré et corrigé en route (a aussi comblé un oubli : les cellules doivent démarrer à "Abs"). Sélecteur de sanitaire provisoire en attendant le Lot 2/3.
 - 2026-08-21 — Champ **commentaire libre optionnel** ajouté à `Sanitary_Reviews` (point ouvert du Lot 4 tranché) : 4 commentaires v1 rétro-remplis dans les avis "Paul Hixe" déjà migrés, `get_avis_summary` mis à jour pour le renvoyer.
 - 2026-08-21 — **Lot 4 terminé et vérifié** : table `Sanitary_Reviews`, RLS, fonction d'agrégation `get_avis_summary` (testée), `Incident_Reports.user_id` ajoutée, 12 avis migrés vers "Paul Hixe" (approximatif, voir détail dans le Lot 4). **Découverte majeure en cours de route** : les tables `Toilet_Ratings`/`Toilet_Photos`/`Toilet_Equipment_Reports`, décrites à tort en §4.3 comme un schéma abandonné, sont en réalité activement écrites par `report_toilet_feedback` (le vrai chemin d'écriture de v1 en production) — corrigé dans le document. Elles prouvent noir sur blanc le problème de fond du projet : la moyenne v1 n'est pas dédupliquée par appareil, donc modifier son avis biaise la moyenne au lieu de la remplacer. Point ouvert repéré : absence de champ commentaire libre dans le formulaire V2 prévu — à trancher avant le Lot 5.
 
