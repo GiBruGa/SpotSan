@@ -79,7 +79,8 @@ Le projet Supabase `UrBizia-DataWareHouse` (`mnsfstjgrueyuvejfvvk`) est **un seu
 
 ### 4.4 Décisions encore ouvertes
 
-- [x] **Nouveau dépôt Git ou branche sur l'existant** — *Décidé 2026-08-21* : nouveau dépôt GitHub (base propre copiée de v1, v2 développée dedans, redéploiement GitHub Pages sur la nouvelle adresse). *(Rappel : un "repo" = dépôt Git, le projet de code versionné hébergé sur GitHub, ici `GiBruGa/SpotSan`.)*
+- [x] **Nouveau dépôt Git ou branche sur l'existant** — *Décidé et fait, 2026-08-21* : nouveau dépôt `GiBruGa/SpotSan-V2` créé (public), cloné localement (`SpotSan-V2/`), ce document déplacé dedans. v1 reste intouchée à son adresse actuelle (`GiBruGa/SpotSan`, local `SpotSan/`) — **rien n'est renommé pour l'instant**, voir la décision de bascule ci-dessous.
+- [x] **Bascule de production v1 → v2** — *Décidé 2026-08-21* : on ne touche à rien côté v1 tant que v2 n'est pas testée de façon un peu avancée (v1 est en production réelle, sert des utilisateurs de terrain aujourd'hui — un renommage prématuré risquerait de casser l'app pour ceux qui l'ont déjà installée en PWA, `gibruga.github.io/SpotSan/` ne suit pas forcément une redirection de renommage). Quand v2 sera prête : renommer `GiBruGa/SpotSan` → `GiBruGa/SpotSan-V1` (clarté), et faire la bascule des utilisateurs vers v2 (`GiBruGa/SpotSan-V2`, à ce moment-là probablement lui-même renommé pour reprendre l'adresse `SpotSan` de production, ou redirigé — modalité exacte à définir au moment de la bascule). Voir Lot 9.
 - [x] **Migration des avis existants** — *Décidé 2026-08-21* : toutes les données v1 sans auteur (`Rating_*`/`Equipment`/`Comment` de `SanitaryBlocks_Inventory`, `Incident_Reports`, **et** les tables orphelines `Toilet_Ratings`/`Toilet_Photos`/`Toilet_Equipment_Reports`/`Toilet_Position_Votes`) sont migrées vers l'utilisateur placeholder "Paul Hixe" (§4.5) — rien n'est jeté.
 - [x] **Photos par équipement** — *Décidé* : modèle à 3 niveaux + taxonomies actées, voir §4.6/§5.6.
 - [ ] **`Incident_Reports.user_id`** — cette table n'a aujourd'hui qu'un `Reported_by text`, pas de vraie clé utilisateur. Vu que les Incivilités/Vandalismes sont l'objet principal de l'outil (bandeau en tête de doc), je recommande d'ajouter une vraie colonne `user_id uuid` (comme `Sanitary_Reviews`) plutôt que de rester en texte libre — ça permettra un jour de savoir qui contribue le plus à la base d'entraînement, de filtrer les faux signalements par utilisateur, etc. Décision par défaut retenue pour le Lot 4, à signaler si tu préfères rester en texte.
@@ -255,10 +256,10 @@ Prochaine action concrète : créer le nouveau dépôt GitHub (Lot 0) — reste 
 - [x] v1 archivée : nouveau dépôt GitHub pour v2 (§4.4).
 
 ### Lot 0bis — Socle technique Vite + Svelte
-- [ ] Scaffolding Vite + Svelte dans le nouveau dépôt, arborescence de composants (au minimum : un composant réutilisable pour l'échelle standard §3.1).
-- [ ] Workflow GitHub Actions : build (`vite build`) + déploiement GitHub Pages sur push `main` (§4.7).
-- [ ] **Portage soigné du moteur offline/sync** (`dirtyFeedback`/`pendingNewToilets`/`pendingIncidents`) dans le modèle réactif Svelte — risque principal identifié en §4.7, à valider par un test réel réseau coupé avant de considérer ce lot terminé.
-- [ ] Service worker / PWA (cache-first app-shell, manifest) reconstruit ou adapté à la sortie de build Vite.
+- [x] **Scaffolding Vite + Svelte** — fait 2026-08-21 : Node.js LTS installé sur la machine, projet créé (Svelte 5, JS, pas TypeScript), arborescence `src/lib/components/`. Composant réutilisable `EchelleEtat.svelte` créé pour l'échelle standard §3.1 (5 niveaux + `extensions` en props pour Abs/HS/Débordante...) — vérifié fonctionnel en dev (binding réactif testé au clic dans le navigateur).
+- [x] **Workflow GitHub Actions** — fait 2026-08-21 : `.github/workflows/deploy.yml` (build + `actions/deploy-pages`), Pages configurée en source "GitHub Actions" côté GitHub. Se déclenche au prochain push sur `main`.
+- [ ] **Portage soigné du moteur offline/sync** — **volontairement pas fait à ce stade.** Il n'y a encore aucune donnée/RPC à synchroniser dans l'app Svelte (ça viendra avec le Lot 4/5) ; porter le moteur maintenant reviendrait à le construire dans le vide. À traiter quand le Lot 5 (formulaire) sera assez avancé pour avoir de vraies écritures à mettre en queue — reste le risque principal du projet (§4.7), ne pas l'oublier en route.
+- [x] **Service worker / PWA** — fait 2026-08-21, via `vite-plugin-pwa` (génère un service worker de précache app-shell + `runtimeCaching` réseau-d'abord pour les ressources externes, plutôt qu'un fichier écrit à la main — les noms de fichiers Vite changent à chaque build). `public/manifest.json` réutilise les icônes v1, nommé "SpotSan V2 (beta)" pour rester visuellement distinct de v1 si les deux PWA sont installées côte à côte pendant les tests.
 
 ### Lot 1 — Comptes utilisateurs
 - [ ] `ALTER TABLE SitInZen_Users` additif : `pseudo`, `avatar_url`, `handicaps text[]`, `consent_at timestamptz`, `phone_verified boolean default false` (§4.1 — réutilisation de la table existante, rien renommé/supprimé, module badge non impacté).
@@ -305,9 +306,18 @@ Prochaine action concrète : créer le nouveau dépôt GitHub (Lot 0) — reste 
 - [ ] Implémentation algorithme §6.
 - [ ] Affichage des 2 configurations + 2 états les plus fréquents sur la fiche lecture.
 
+### Lot 9 — Bascule de production v1 → v2 (à déclencher seulement quand v2 est testée de façon avancée, §4.4)
+- [ ] Renommer `GiBruGa/SpotSan` → `GiBruGa/SpotSan-V1` (v1 gelée, plus de trafic dessus à ce stade).
+- [ ] Décider et exécuter la modalité de reprise d'adresse pour v2 (renommage de `SpotSan-V2` → `SpotSan`, ou redirection) — à définir au moment venu.
+- [ ] Communiquer aux utilisateurs de terrain la bascule (réinstallation PWA si l'URL change).
+- [ ] Vérifier que le lien `homepage`/Pages de v1 (actuellement `https://gibruga.github.io/SpotSan/`) reste résolu quelque part (redirection ou message) plutôt que de finir en 404 sec.
+
 ## 8. Suivi
 
 _(À compléter au fil de l'eau : date, lot, décision ou avancement.)_
+
+- 2026-08-21 — **Lot 0bis lancé et pour l'essentiel terminé** : Node.js LTS installé, scaffold Vite+Svelte 5 en place, composant `EchelleEtat.svelte` créé et vérifié dans le navigateur, service worker/PWA via `vite-plugin-pwa`, workflow GitHub Actions de déploiement configuré (Pages en mode "GitHub Actions"). Le portage du moteur offline-sync est délibérément repoussé au Lot 5 (rien à synchroniser tant que le formulaire n'existe pas) — reste le point de vigilance principal du projet.
+- 2026-08-21 — Lancement effectif : dépôt `GiBruGa/SpotSan-V2` créé et poussé (ce document y a été déplacé). Décision de bascule (Lot 9) actée : v1 reste intouchée en production tant que v2 n'est pas testée de façon avancée ; renommage `SpotSan`→`SpotSan-V1` et bascule des utilisateurs de terrain repoussés à ce moment-là, pas maintenant.
 
 - 2026-08-21 — Document créé à partir des retours d'usage v1 et du cadrage donné par Gilles.
 - 2026-08-21 — Réponses de Gilles intégrées (1ère vague) : téléphone déclaratif sans OTP (avec `phone_verified` prévu pour plus tard), échelle standard 5 étoiles (avis général) / 5 niveaux pouce-smiley (tout le reste) + Abs/HS/Vide, identifiant utilisateur = UUID interne (pas le téléphone directement). Restent ouverts : libellé état "plein" pour la poubelle, nouveau dépôt vs branche, stack technique, sort des données `Rating_*`/`Equipment` héritées, périmètre des photos par équipement.
