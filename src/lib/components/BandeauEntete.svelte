@@ -33,8 +33,11 @@
       <img class="avatar-photo" src={profil.avatar_url} alt="" />
     {:else}
       <!-- Par defaut (aucune photo choisie) : logo SpotSan plutot qu'un
-           emoji generique -- demande du 2026-08-21. -->
-      <img class="avatar-photo" src="/icon-192.png" alt="" />
+           emoji generique -- demande du 2026-08-21. import.meta.env.BASE_URL
+           (pas un chemin absolu en dur) : l'app est servie sous /SpotSan-V2/,
+           un chemin racine ignorerait ce sous-repertoire (bug rencontre et
+           corrige le 2026-08-21, 404 en production). -->
+      <img class="avatar-photo" src="{import.meta.env.BASE_URL}icon-192.png" alt="" />
     {/if}
     <span class="pseudo">{profil.pseudo}</span>
   </button>
