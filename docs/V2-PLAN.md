@@ -1,0 +1,319 @@
+# SpotSan V2 — Plan de refonte UX & lots de réalisation
+
+Document de référence vivant. À tenir à jour au fil de la réalisation (cocher les cases, ajouter les décisions prises dans "Décisions actées"). Rédigé le 2026-08-21 suite au retour d'usage sur SpotSan v1.
+
+> ## 🎯 Objet principal de l'outil pour UrBizia (à ne jamais perdre de vue)
+>
+> **La détection des Incivilités et Vandalismes est la raison d'être principale de SpotSan pour UrBizia** — pas une fonctionnalité parmi d'autres. Le but est de constituer, via les photos remontées par les utilisateurs, une **base d'entraînement pour une IA de détection automatique des Incivilités et Vandalismes**. Toute décision touchant à cette fonction (facilité de déclaration, qualité/quantité des photos collectées, structuration des tags qui serviront de labels d'entraînement) doit être traitée en priorité, avant le confort des autres écrans. Voir §5.6.
+
+## 1. Constat de départ (v1)
+
+Retours terrain remontés par les utilisateurs :
+
+1. Personne ne crée de compte, tout le monde reste en anonyme.
+2. Confusion entre les infos affichées (lecture, remontées par d'autres) et le formulaire (saisie) — les gens cliquent sur les données existantes en espérant les modifier.
+3. Le formulaire paraît trop long *au premier coup d'œil* (avant même d'avoir essayé de le remplir) → abandon.
+4. Le bouton photo (une barre fine) n'est pas identifié comme un déclencheur de prise de vue.
+5. Sans reconnaissance de l'utilisateur, un avis modifié devient un avis supplémentaire au lieu d'une mise à jour → avis dupliqués, stats faussées.
+
+## 2. Décision de principe
+
+- **Archiver v1** (tag/branche gelés) pour pouvoir y revenir si v2 n'aboutit pas.
+- **Repartir de la base de v1** (carte, data model toilettes, sync Supabase) mais reconstruire les parcours compte/consultation/saisie en s'appuyant sur les patterns d'apps grand public (Google Maps/Waze pour la carte et la fiche lieu, apps de livraison pour les formulaires par étapes, appareils photo natifs pour la capture).
+
+## 3. Principes directeurs (à respecter pendant toute la réalisation)
+
+- **Lecture ≠ saisie, visuellement sans ambiguïté.** Les infos remontées par les prédécesseurs sont dans des cartes/blocs non cliquables (ou clic = zoom photo seulement) ; la saisie ne se fait que dans l'écran formulaire dédié, jamais en éditant le bloc de lecture in situ.
+- **Un avis par personne par lieu, amendable.** Techniquement : `upsert` sur une contrainte unique `(user_id, ub_id)`, jamais un `insert` brut pour un utilisateur qui a déjà un avis sur ce lieu.
+- **Valeurs par défaut qui réduisent la saisie**, pas qui l'alourdissent : équipement non coché = "absent / sans objet" par défaut, pas un champ obligatoire à renseigner activement.
+- **Progressive disclosure** : sections repliables / étapes, jamais un mur unique qui scrolle à l'infini dès l'ouverture.
+- **Cible tactile généreuse** pour toute action fréquente (bouton photo, étoiles, pouce), pas de zone < 44px.
+- **Offline-first préservé** : tout ce qui existe en v1 sur ce point (queue locale, sync différée, dégradation silencieuse) doit survivre à la refonte.
+- **Français partout**, conventions de code existantes (voir `CLAUDE.md` v1) sauf décision explicite contraire (§4).
+
+### 3.1 Échelle d'état standard (composant unique réutilisé dans toute l'appli, y compris l'avis général)
+
+Décidé le 2026-08-21, complété le 2026-08-21 — **un seul composant d'échelle, utilisé absolument partout**, y compris pour l'avis général (plus de distinction étoiles/reste) :
+
+- Échelle à 5 niveaux, partout : 👎 pouce baissé · 🙁 triste · 😐 neutre · 🙂 souriant · 👍 pouce levé.
+- **Raison de l'abandon des étoiles pour l'avis général** : les étoiles ont été inventées pour adoucir un avis potentiellement dénigrant envers un commerce/une personne. Ici ça ne s'applique pas — nommer clairement l'état évite au contraire les faux espoirs, en particulier pour une personne en situation de handicap qui pourrait croire à tort qu'un sanitaire reste praticable alors qu'il est dégradé. La clarté prime sur la retenue.
+- Extensions possibles par élément, en plus de l'échelle à 5 niveaux, quand pertinent : **Abs** (absent — valeur par défaut, rien à faire pour l'utilisateur), **HS** (hors service), **Vide** (consommable épuisé : papier, savon, essuie-tout).
+- **Poubelle** : échelle à 5 niveaux + **Abs** (par défaut) + **Débordante**, mais **pas de "Vide"** — un état "vide" n'est pas réellement constatable sur le terrain (impossible de savoir si elle vient d'être vidée), donc pas fiable à collecter.
+
+### 3.2 Conventions de nommage & rédaction
+
+- **Format des numéros de téléphone**, à adopter partout dans l'outil (code, DB, affichage) :
+  - International : `+33 000 000 001` — indicatif pays puis 3 groupes de 3 chiffres.
+  - Local (France) : `0 000 000 01` — `0` puis les mêmes 9 chiffres, groupés 3/3/2.
+- **"Incivilités et Vandalismes"** : toujours au pluriel, dans tous les libellés d'écran, boutons, textes d'aide. (Le nom de table existant `Incident_Reports` reste en anglais/singulier côté DB — cette règle concerne uniquement les textes visibles par l'utilisateur.)
+
+## 4. Décisions
+
+### 4.1 Décisions actées (2026-08-21)
+
+- **Téléphone déclaratif, sans vérification SMS dans un premier temps** (confirmé — c'était déjà le principe retenu). Pas de coût, pas d'OTP à ce stade. Pour pouvoir ajouter une vérification plus tard sans réécrire le modèle : la table utilisateurs prévoit dès maintenant une colonne `phone_verified boolean default false` (jamais vraie tant qu'aucun module de vérification n'existe) et un identifiant interne stable (voir 4.1 ci-dessous) qui ne dépend pas du téléphone. Ajouter la vérification plus tard consistera à brancher un écran OTP qui passe ce booléen à `true` — aucune reprise du modèle de données.
+  - *Pour mémoire, un OTP ("one-time password") est le code à usage unique envoyé par SMS pour prouver que l'utilisateur possède bien le numéro déclaré. C'est ce mécanisme qui a un coût (l'envoi du SMS passe par un opérateur tiers payant type Twilio) — pas la vérification en elle-même.*
+- **Identifiant utilisateur = UUID interne UrBizia, pas le numéro de téléphone directement.** Le numéro de portable reste le moyen de connexion (login) et un attribut modifiable de l'utilisateur, mais la clé technique qui relie un avis à son auteur (`user_id` dans `Sanitary_Reviews`, voir Lot 4) est cet identifiant interne. Raison : un numéro de téléphone peut changer (perte, changement d'opérateur, réattribution) — si on l'utilisait comme clé, changer de numéro romprait le lien avec tout l'historique d'avis de la personne.
+- **Échelle d'état standard** : voir §3.1.
+- **Compte SpotSan V2 = extension de `SitInZen_Users`**, pas une nouvelle table. Ajouts prévus par `ALTER TABLE` additif uniquement (rien renommé/supprimé) : `pseudo`, `avatar_url`, `handicaps text[]` (sous-ensemble de `['Visuel','Surdité','Moteur']`), `consent_at timestamptz`, `phone_verified boolean default false`. `Is_PMR` existant reste tel quel (utilisé par le module badge) ; à voir en Lot 1 s'il se déduit de `handicaps` contenant `'Moteur'` ou reste saisi indépendamment.
+- **Pas de second projet Supabase pour "isoler v1".** Le projet `UrBizia-DataWareHouse` est partagé par tous les outils UrBizia (contrairement à GitHub, 1 repo par outil) et `SanitaryBlocks_Inventory` est déjà partagée StatSan↔SpotSan — le dupliquer casserait ce partage ou emporterait FBS/RFQ/StatSan pour rien. La recouvrabilité de v1 vient du dépôt GitHub archivé (code intact, même Supabase) + du Lot 4 qui n'est prévu qu'en ajouts, jamais en suppression des colonnes/RPC v1 existants.
+
+### 4.3 Audit Supabase du 2026-08-21 — découvertes à trancher avant le Lot 1/4
+
+Le projet Supabase `UrBizia-DataWareHouse` (`mnsfstjgrueyuvejfvvk`) est **un seul projet partagé par tous les outils UrBizia** (FBS, RFQ, StatSan, EkoMa, SpotSan) — contrairement à GitHub où chaque outil a son propre dépôt. `SanitaryBlocks_Inventory` en particulier est déjà partagée entre StatSan (source de vérité) et SpotSan : ce n'est pas une table "SpotSan seul".
+
+**Inventaire des tables actuelles (schéma `public`)**, groupées par famille :
+- *StatSan/SpotSan (données sanitaires)* : `SanitaryBlocks_Inventory`, `POI_Inventory`, `POI_Category_Icons`, `Studies`, `Study_Entities`, `Incident_Reports`.
+- *Contrôle d'accès physique par badge (module séparé, en cours, ne pas toucher incidemment)* : `SitInZen_Users`, `SitInZen_Badges`, `Sanitaire_Access_Points`, `Access_Grants`.
+- *Accès centralisé aux outils* : `profiles`, `tool_access`, `contractors`.
+- *FBS/RFQ* : `fbs`, `pcrm`, `sow`, `rfq_fiches`, `fbs_backup_log`, `acronymes`, `competences`, `lexique`, `lexique_domaines`.
+- *Divers SpotSan déjà en base mais pas dans le modèle actuel décrit par `CLAUDE.md`* : `Toilet_Ratings`, `Toilet_Photos`, `Toilet_Equipment_Reports`, `Toilet_Position_Votes`, `Mobile_Debug_Log`.
+- *Archivées (schéma `archive`, 0 ligne)* : `toilette_annotations`, `new_points`.
+
+**Convention de nommage déjà en usage** (à suivre pour les nouvelles tables V2, ex. `Sanitary_Reviews`) : familles StatSan/SpotSan/StatSan-access en `PascalCase_Avec_Underscores` (`SanitaryBlocks_Inventory`, `Incident_Reports`, `SitInZen_Users`...) ; familles FBS/RFQ en `snake_case` minuscule (`fbs`, `contractors`, `tool_access`...). Cohérent en soi (une convention par périmètre fonctionnel) — rien à corriger, juste à respecter selon la famille dans laquelle on écrit.
+
+**Deux découvertes qui changent la donne pour ce plan :**
+
+1. **`Toilet_Ratings` / `Toilet_Photos` / `Toilet_Equipment_Reports` / `Toilet_Position_Votes` existent déjà** (20/41/63/3 lignes) et ressemblent à une **tentative antérieure abandonnée** du même problème qu'on résout ici : une ligne par soumission (pas un état unique mutable), avec `device_id` au lieu d'un vrai utilisateur. Le `CLAUDE.md` actuel de SpotSan ne les mentionne pas du tout — `app.js` v1 n'écrit plus dedans (il écrit dans les colonnes `Rating_*`/`Equipment` de `SanitaryBlocks_Inventory` via RPC). Ces données ne sont donc probablement plus lues par rien aujourd'hui.
+2. **`SitInZen_Users` existe déjà** (0 ligne, table vide mais structure en place) et couvre déjà une bonne partie du compte utilisateur qu'on est en train de concevoir : `user_id` (UUID, lié à `auth.users`), `Phone` (unique, commentée "carte d'identité de fait"), `Full_Name`, `Birthdate`, `Is_PMR`, `Has_Enfant_Key`, `Sexe_Declare`. C'est exactement la table identifiée le 2026-08-05 comme candidate pour l'"Usager identifié" de PointSan Mobile — donc le compte SpotSan V2 qu'on conçoit maintenant et cette table pourraient être **la même chose**, pas deux systèmes séparés. Il manquerait juste : pseudo, avatar, handicaps (Visuel/Surdité/Moteur — plus riche que le seul `Is_PMR`), consentement horodaté, `phone_verified`.
+
+### 4.4 Décisions encore ouvertes
+
+- [x] **Nouveau dépôt Git ou branche sur l'existant** — *Décidé 2026-08-21* : nouveau dépôt GitHub (base propre copiée de v1, v2 développée dedans, redéploiement GitHub Pages sur la nouvelle adresse). *(Rappel : un "repo" = dépôt Git, le projet de code versionné hébergé sur GitHub, ici `GiBruGa/SpotSan`.)*
+- [x] **Migration des avis existants** — *Décidé 2026-08-21* : toutes les données v1 sans auteur (`Rating_*`/`Equipment`/`Comment` de `SanitaryBlocks_Inventory`, `Incident_Reports`, **et** les tables orphelines `Toilet_Ratings`/`Toilet_Photos`/`Toilet_Equipment_Reports`/`Toilet_Position_Votes`) sont migrées vers l'utilisateur placeholder "Paul Hixe" (§4.5) — rien n'est jeté.
+- [x] **Photos par équipement** — *Décidé* : modèle à 3 niveaux + taxonomies actées, voir §4.6/§5.6.
+- [ ] **`Incident_Reports.user_id`** — cette table n'a aujourd'hui qu'un `Reported_by text`, pas de vraie clé utilisateur. Vu que les Incivilités/Vandalismes sont l'objet principal de l'outil (bandeau en tête de doc), je recommande d'ajouter une vraie colonne `user_id uuid` (comme `Sanitary_Reviews`) plutôt que de rester en texte libre — ça permettra un jour de savoir qui contribue le plus à la base d'entraînement, de filtrer les faux signalements par utilisateur, etc. Décision par défaut retenue pour le Lot 4, à signaler si tu préfères rester en texte.
+- [ ] **Anonymisation des personnes identifiables dans les photos I&V** (§5.6.3) — non tranché, ne bloque pas le lancement mais à trancher avant mise en production (Lot 6).
+
+### 4.5 Utilisateur placeholder pour reprendre les données v1 (décidé 2026-08-21)
+
+Pour ne rien perdre de ce qui a déjà été saisi (en particulier les Incivilités et Vandalismes, §3.2) au moment de basculer sur le modèle "un avis = un utilisateur" : toutes les données existantes sans auteur sont rattachées à un unique utilisateur placeholder.
+
+- Nom : **Paul Hixe**.
+- Téléphone : **+33 000 000 001** (format standard §3.2).
+- Portée : tout ce qui aujourd'hui n'a pas d'auteur individualisable — colonnes `Rating_*`/`Equipment`/`Comment` de `SanitaryBlocks_Inventory`, et `Incident_Reports` (`Reported_by`).
+- "Paul Hixe" sera créé dans `SitInZen_Users` (décision §4.1 : réutilisation actée) — pas encore fait, dépend de la mise en place des colonnes additionnelles (Lot 1).
+- `Incident_Reports` n'a aujourd'hui pas de colonne `user_id` (seulement `Reported_by text`) : à la migration, soit on y ajoute `user_id` et on le pointe vers "Paul Hixe", soit on se contente de mettre `Reported_by = 'Paul Hixe'` en texte — à trancher au moment du Lot 4 selon si on veut que ces 9 signalements historiques deviennent des "avis" au sens plein du terme ou restent une trace en lecture seule.
+
+### 4.6 Photos — modèle à 3 niveaux (décidé, 2026-08-21)
+
+Suite aux précisions de Gilles, abandon de la simple opposition "5 catégories v1 vs photo par équipement" (§4.6 précédente version) au profit d'un modèle à trois niveaux distincts, cohérent avec l'objet principal de l'outil (voir bandeau en tête de document et §5.6) :
+
+1. **Infos critiques PMR** — champs structurés dédiés (pas des tags génériques, doivent rester fiables et faciles à retrouver) : vue de loin, signalétique, accès. Détail en §5.6.1.
+2. **Confort/équipements** — photo + tag choisi dans une liste fermée (chips, pas de texte libre), non directif, réutilise directement la liste d'équipements de §5.5 étape 3 plutôt que d'inventer un second vocabulaire. Détail en §5.6.2.
+3. **Incivilités et Vandalismes** — même mécanique tag+photo que le niveau 2, mais le tag devient **obligatoire** et suit une taxonomie stable dans le temps, car ces tags serviront de **labels d'entraînement pour l'IA de détection** (l'objet principal de l'outil, voir bandeau en tête de document) — pas juste un confort de navigation pour l'utilisateur suivant. Détail en §5.6.3.
+
+Ceci remplace les 5 catégories fixes de v1 (`Environment`/`CloseUp`/`Interior`/`Seat`/`Sink`) : `Environment` devient la "vue de loin" du niveau 1 ; `CloseUp`/`Interior`/`Seat`/`Sink` sont remplacées par les photos taguées des niveaux 2 et 3, plus précises.
+
+### 4.7 Stack technique — *Décidé 2026-08-21 : Vite + Svelte*
+
+SpotSan V2 passe à un vrai outillage de build, en rupture assumée avec le "tout vanilla, pas de build" de FBS/RFQ/StatSan/EkoMa — justifié par le fait que SpotSan est l'outil prioritaire de la suite et que la structure en composants réduit durablement les bugs de répétition (ex. le piège "garder les `addEventListener` synchronisés à la main" du v1 actuel).
+
+- **Vite** : outil de build/dev-server. **Svelte** : framework à composants choisi plutôt que React pour rester léger (peu de cérémonie, compile en JS quasi-vanilla à l'exécution, petit bundle — important pour un usage mobile terrain, potentiellement en zone mal couverte).
+- **Risque principal identifié, à traiter avec soin en Lot 4bis** : le moteur offline/sync de v1 (`dirtyFeedback`/`pendingNewToilets`/`pendingIncidents`, la queue locale qui permet de saisir sans réseau et de synchroniser plus tard) doit être repensé dans le modèle réactif de Svelte, pas juste recopié — c'est la fonctionnalité la plus critique de l'app (le terrain n'a pas toujours de réseau) donc la plus de soin à apporter pendant le portage, avec test réel en coupant le réseau avant de considérer ce lot terminé.
+- **Déploiement** : ajouter un workflow GitHub Actions qui build (`vite build`) et publie sur GitHub Pages à chaque push sur `main`, pour garder le geste "push → site à jour" sans étape manuelle à se souvenir de faire (aujourd'hui inexistant, à créer).
+
+## 5. Parcours cible
+
+### 5.1 Compte utilisateur
+- Identifiant = n° de portable + préfixe pays.
+- Choix pseudo + avatar.
+- Champs optionnels : sexe (ou refus de préciser), année de naissance, handicaps (Visuel / Surdité / Moteur, choix multiple).
+- Texte de légalité sur la collecte de données affiché à l'inscription.
+- Rappel visible à tout moment : suppression du compte + des données personnelles sur demande.
+- Bandeau d'en-tête : avatar + pseudo + menu utilisateur → infos personnelles, suppression du compte.
+
+### 5.2 Carte
+- Inchangée, sauf : le point bleu de position utilisateur doit être **toujours au premier plan** (pane Leaflet dédié au-dessus des marker clusters) et **plus visible** (taille augmentée / halo), pour ne plus disparaître sous les autres marqueurs au zoom 1km.
+
+### 5.3 Fiche sanitaire (lecture)
+Bloc en lecture seule, non éditable au clic, dans cet ordre :
+1. Mention "Informations données par vos prédécesseurs".
+2. Photos.
+3. Stats avis général + état (odeur, propreté...).
+4. Configuration / prestations (nb de cellules, PMR, etc.).
+5. Équipements (douches, urinoirs, lave-mains...).
+
+Puis bouton **"Donnez votre avis"** → bascule vers le formulaire.
+
+### 5.4 Reprise de l'avis précédent de l'utilisateur
+- Si l'utilisateur a déjà un avis sur ce lieu : le retrouver, afficher sa date, préremplir le formulaire avec ses dernières valeurs.
+- Bouton **Sauvegarder** → `update` de son avis existant (pas un nouvel avis) + date mise à jour.
+- Bouton **Sortir sans sauvegarder** → abandon, aucune écriture.
+- Les deux en boutons flottants, toujours visibles pendant la saisie.
+
+### 5.5 Formulaire "Donner son avis" — structure
+**Étape 1 — Avis général**
+- Avis général : échelle standard 5 niveaux (§3.1) — plus de composant étoiles séparé.
+
+**Étape 2 — Configuration (prestations)**, en grille compacte multi-colonnes :
+
+| Cellule | Accessibilité | Type (si toilette) | État |
+|---|---|---|---|
+| Toilettes PMR | Séparé Dames/Messieurs · Mixte | Classique · Automatique · Chimique · Sèche | échelle standard §3.1 (👎…👍) · Abs *(par défaut)* · HS |
+| Toilettes Standard | idem | idem | idem |
+| Urinoir Hommes | Séparé Dames/Messieurs · Mixte | — | idem |
+| Urinoir Femmes | idem | — | idem |
+| Douches PMR | idem | — | idem |
+| Douches Standard | idem | — | idem |
+| Vestiaires PMR | idem | — | idem |
+| Vestiaires Standards | idem | — | idem |
+
+Chaque ligne démarre à l'état "absent / sans objet" — l'utilisateur ne touche que ce qui existe réellement sur place (réduit la saisie perçue comme longue).
+
+**Étape 3 — Équipements**, échelle standard §3.1 partout (photos : voir §5.6.2, système de tags plutôt qu'un bouton par équipement) :
+- Siège de toilette (Adulte / Enfant-surbaissé) + état — toilettes uniquement.
+- Distributeur papier toilette + état, avec "Vide" — si toilette.
+- Lave-main (par cellule ou commun) + état, avec "Abs" *(par défaut)* et "HS".
+- Distributeur de savon + état, avec "Vide".
+- Sèche-main + état.
+- Distributeur d'essuie-tout + état, avec "Vide".
+- Poubelle + état, avec "Débordante" (pas de "Vide", non constatable — §3.1).
+- Éclairage naturel : oui / non.
+- Verrou mécanique de sûreté : oui / non.
+
+### 5.6 Photos, signalétique & Incivilités/Vandalismes (décidé, 2026-08-21)
+
+Voir bandeau en tête de document : la collecte de photos d'Incivilités et Vandalismes (§5.6.3) pour entraîner une IA de détection est **l'objet principal de l'outil pour UrBizia**. Ce qui suit priorise cette fonction, avant le confort des autres écrans.
+
+#### 5.6.1 Infos critiques PMR (niveau 1)
+
+Champs structurés dédiés, affichés en priorité dans le bloc lecture (§5.3), chacun avec sa propre photo optionnelle. **Chaque type de photo a une finalité précise, à afficher comme consigne de cadrage au moment de la prise de vue** — sans quoi ces 3 catégories deviennent aussi floues que l'ancien "CloseUp" de v1 et perdent leur utilité :
+
+- **Vue de loin** (remplace `Environment` de v1). *Finalité : repérer visuellement le sanitaire en arrivant dans la zone, dans un environnement parfois chargé (mobilier urbain, foule, végétation).* Consigne à afficher : cadrer depuis l'endroit où un usager arriverait typiquement (rue, parking, allée), en gardant des repères du décor environnant — pas un gros plan.
+- **Signalétique**. État d'usage constaté — Disponible / Momentanément indisponible (nettoyage) / Condamné-HS — pour ne pas se déplacer pour rien. *Finalité : rendre l'état déclaré vérifiable par une photo du panneau/de l'indicateur réel (affiche de fermeture, voyant, scellés).* Consigne à afficher : cadrer le panneau ou l'indicateur lui-même, pas une vue large.
+- **Accès**. Rampe, pente d'escalier, main courante, largeur de passage. *Finalité : permettre à une personne de juger à l'avance si son handicap spécifique est compatible, avant de se déplacer.* Consigne à afficher : cadrer le cheminement d'accès (porte, marches, rampe) de façon à ce que la largeur et la pente soient visibles.
+
+#### 5.6.2 Confort/équipements (niveau 2)
+
+Photo + tag choisi dans une liste fermée (chips à taper, pas de texte libre), optionnel, non directif — pour donner une idée sans être normatif. Plusieurs photos possibles, chacune avec un ou plusieurs tags.
+
+**Tags retenus, actés le 2026-08-21** (liste resserrée par Gilles, remplace la proposition précédente) :
+- Siège toilette
+- Lave-main
+- Visibilité distributeurs (eau, savon, séchage)
+- Poubelle
+- Distributeur papier toilette / essuie-tout
+
+**Tags envisagés, non retenus au lancement** — à réévaluer selon l'usage réel plutôt qu'ajoutés par anticipation (risque de surcharger le formulaire, cf. principe §3 "réduire la saisie perçue comme longue") : éclairage naturel, verrou mécanique anti-intrusion, commande porte, décompte du temps d'utilisation, luminosité, ambiance.
+- *Remarque* : éclairage naturel et verrou mécanique sont déjà des champs à part entière en étape 3 (§5.5) — pas besoin d'un tag en plus, ce serait redondant.
+- *Remarque* : commande porte et décompte du temps d'utilisation décrivent plutôt des sanitaires automatiques (déjà couvert par le champ `Automatic` existant) qu'un problème de confort ponctuel — à creuser plus tard comme un champ structuré dédié si besoin, pas comme un tag photo.
+- *Remarque* : luminosité et ambiance sont trop subjectives pour un tag+photo unique — mieux couvertes par la photo "vue de loin" (§5.6.1) déjà prévue, qui donne déjà une idée de l'ambiance générale.
+
+#### 5.6.3 Incivilités et Vandalismes (niveau 3 — objet principal de l'outil)
+
+Reprend le flux "signaler" déjà existant en v1 (photo obligatoire + texte libre optionnel, écriture en append-only dans `Incident_Reports`, jamais modifiable/supprimable — préserve l'intégrité de la base d'entraînement), avec deux changements :
+- **Tag obligatoire**, choisi dans une taxonomie fermée et stable dans le temps (pas retouchée au fil de l'eau, car elle définit les classes que l'IA apprendra à reconnaître). **Taxonomie actée le 2026-08-21**, établie par Gilles à partir des fréquences constatées sur le terrain (remplace la proposition générique précédente) :
+  - Excès de papier dans les toilettes / corps étranger rigide
+  - Déchets, papiers, fluides non identifiés dans le bol du lave-main
+  - Défaut de nettoyage (salissures par accumulation, calcaire, algues)
+  - Dégradation matérielle (bris, casses, coups, griffures)
+  - Graffiti / Tag
+  - Déchets / encombrants abandonnés
+  - Équipement arraché
+  - Feu / Brûlure
+  - Salissures volontaires
+  - Serrure ou porte forcée
+  - Excréments au sol ou sur les murs
+  - Autre (texte libre, comme aujourd'hui)
+- **Mise en avant dans l'interface** : le bouton "Signaler une Incivilité ou un Vandalisme" doit être aussi visible/accessible que "Donnez votre avis" — pas une fonction secondaire enfouie dans un menu, cohérent avec le fait que c'est l'objet principal de l'outil.
+- ⚠️ **Point à ne pas oublier, à traiter avant mise en production** : ces photos alimentant une base d'entraînement IA, vérifier qu'elles ne capturent pas de personnes identifiables (visages, plaques d'immatriculation) sans consentement — au minimum un rappel à l'utilisateur au moment de la prise de vue, éventuellement un floutage automatique à envisager plus tard. Pas tranché, à revoir avec Gilles.
+
+## 6. Agrégation des avis → stats "Avis précédents"
+
+Objectif : à partir de tous les avis individuels sur un lieu, remonter **les 2 configurations les plus plausibles** et **les 2 états les plus fréquents**.
+
+**Proposition d'algorithme :**
+
+1. Le modèle "un avis par utilisateur, amendable" (§3) élimine déjà le problème classique du double-comptage : à un instant donné il n'existe qu'un seul avis courant par utilisateur et par lieu, donc chaque personne pèse pour 1, pas pour N mises à jour successives.
+2. Traiter la **configuration comme un vecteur complet** (tuple : nb de chaque type de cellule + leurs sous-attributs), pas champ par champ — sinon on peut recomposer un "consensus" incohérent qu'aucun utilisateur n'a réellement rapporté (ex. moyenne bancale entre "2 PMR + 1 douche + 5 urinoirs" et "0 PMR + 0 douche + 40 urinoirs").
+3. Regrouper les avis dont le vecteur configuration est **identique**, compter les occurrences, classer par fréquence décroissante (départage par récence). Les 2 vecteurs les plus fréquents = "les 2 configurations les plus plausibles".
+4. Une saisie aberrante isolée (ex. quelqu'un rapporte 40 urinoirs par erreur) ne matche aucun autre vecteur → elle reste un singleton et sort naturellement du top 2, sans détection d'outlier explicite à coder.
+5. Sous un seuil d'échantillon (ex. < 3 avis), ne pas fabriquer de "consensus" : afficher plutôt le dernier avis en date tel quel, avec sa date, en indiquant "à confirmer" plutôt qu'une fausse certitude statistique.
+6. Même logique pour les états (portes/propreté/odeur) : mode des tuples d'état, top 2.
+7. Amélioration possible plus tard (v2.1) si le matching exact produit trop de singletons faute de volume : tolérance de distance entre vecteurs proches (ex. ±1 sur un comptage) pour les regrouper — à ne faire que si l'exact-match s'avère insuffisant en usage réel, pas en anticipation.
+
+Algorithme retenu pour le lancement (Lot 8) — seule brique non encore éprouvée sur des données réelles, à surveiller une fois du volume accumulé.
+
+## 7. Lots de réalisation
+
+### Séquencement pour le lancement
+
+Tous les points de conception sont actés (seuls restent ouverts, sans bloquer le démarrage : `Incident_Reports.user_id` §4.4, anonymisation photos I&V §5.6.3 — à trancher avant la mise en prod, pas avant de commencer). Ordre recommandé, en 5 phases :
+
+- **Phase 1 — Fondations (Lot 0 + Lot 0bis).** Rien d'autre ne peut commencer sérieusement avant : dépôt v2, scaffolding Vite+Svelte, et surtout le portage/test du moteur offline-sync (le risque principal du projet, §4.7) — le valider tôt évite de découvrir un problème structurel après avoir construit tout le reste par-dessus.
+- **Phase 2 — Backend (Lot 1 + Lot 4), en parallèle.** Comptes utilisateurs (`SitInZen_Users` étendue, "Paul Hixe") et modèle de données avis (`Sanitary_Reviews`, migration des données héritées) peuvent avancer de front — tous deux du travail Supabase, indépendants l'un de l'autre jusqu'à ce que Lot 4 ait besoin d'un `user_id` valide à référencer.
+- **Phase 3 — Écrans (Lot 2, 3, 5, 6), en parallèle une fois Phase 1+2 posées.** Carte, fiche lecture, formulaire "Donner son avis", photos 3-niveaux — tous consomment le socle de composants (Lot 0bis) et le schéma (Lot 4). Le Lot 6 (photos, niveau 3 = objet principal de l'outil) mérite d'être traité en premier dans cette phase, pas en dernier, vu sa priorité affichée en tête de document.
+- **Phase 4 — Polish (Lot 7).** Perception de la longueur du formulaire — se juge surtout une fois le Lot 5 construit, en observant le résultat réel plutôt qu'en anticipant.
+- **Phase 5 — Stats (Lot 8).** Agrégation "avis précédents" — a besoin d'un minimum de volume de données réelles (ou de jeu de test) pour être vérifiable ; peut attendre que l'app tourne un peu en usage réel/beta avant d'être peaufinée.
+
+Prochaine action concrète : créer le nouveau dépôt GitHub (Lot 0) — reste à choisir son nom, `GiBruGa/SpotSan` restant pris par v1.
+
+### Lot 0 — Cadrage & archivage
+- [ ] Ce document relu et validé.
+- [ ] Décisions §4.4 restantes tranchées (reste : `Incident_Reports.user_id`, anonymisation I&V — aucune ne bloque le démarrage).
+- [x] v1 archivée : nouveau dépôt GitHub pour v2 (§4.4).
+
+### Lot 0bis — Socle technique Vite + Svelte
+- [ ] Scaffolding Vite + Svelte dans le nouveau dépôt, arborescence de composants (au minimum : un composant réutilisable pour l'échelle standard §3.1).
+- [ ] Workflow GitHub Actions : build (`vite build`) + déploiement GitHub Pages sur push `main` (§4.7).
+- [ ] **Portage soigné du moteur offline/sync** (`dirtyFeedback`/`pendingNewToilets`/`pendingIncidents`) dans le modèle réactif Svelte — risque principal identifié en §4.7, à valider par un test réel réseau coupé avant de considérer ce lot terminé.
+- [ ] Service worker / PWA (cache-first app-shell, manifest) reconstruit ou adapté à la sortie de build Vite.
+
+### Lot 1 — Comptes utilisateurs
+- [ ] `ALTER TABLE SitInZen_Users` additif : `pseudo`, `avatar_url`, `handicaps text[]`, `consent_at timestamptz`, `phone_verified boolean default false` (§4.1 — réutilisation de la table existante, rien renommé/supprimé, module badge non impacté).
+- [ ] Connexion déclarative par n° de portable, sans vérification SMS (§4.1) — écran de vérification OTP branchable plus tard sans reprise du modèle.
+- [ ] Créer l'utilisateur placeholder "Paul Hixe" (§4.5).
+- [ ] Écran d'inscription : texte légal + rappel droit à la suppression.
+- [ ] Self-service suppression de compte + données personnelles.
+- [ ] Bandeau d'en-tête : avatar + pseudo + menu utilisateur.
+
+### Lot 2 — Carte
+- [ ] Point bleu utilisateur en pane dédié au-dessus des clusters, taille augmentée.
+
+### Lot 3 — Fiche sanitaire (lecture)
+- [ ] Réorganisation du bloc lecture (ordre §5.3), non cliquable pour édition.
+- [ ] Bouton "Donnez votre avis".
+
+### Lot 4 — Modèle de données "avis"
+- [ ] Nouvelle table `Sanitary_Reviews` (ou équivalent) : un avis = 1 ligne par `(user_id, ub_id)` où `user_id` est l'UUID interne (§4.1, pas le téléphone), contrainte unique, `updated_at`.
+- [ ] Colonnes/jsonb pour configuration (§5.5 étape 2) et équipements (§5.5 étape 3), toutes sur l'échelle standard §3.1.
+- [ ] RPC ou fonction d'agrégation implémentant l'algorithme §6.
+- [ ] Migration des données v1 héritées vers "Paul Hixe", y compris les tables `Toilet_*` orphelines (décidé, §4.5 / §4.4).
+
+### Lot 5 — Formulaire "Donner son avis"
+- [ ] Préremplissage depuis le dernier avis de l'utilisateur (si existant) + affichage de la date.
+- [ ] Boutons flottants Sauvegarder / Sortir sans sauvegarder.
+- [ ] Sauvegarder = `upsert` sur `(user_id, ub_id)`.
+- [ ] Étape 1 avis général : échelle standard 5 niveaux (§3.1).
+- [ ] Étape 2 configuration en grille compacte, échelle standard (§5.5, §3.1).
+- [ ] Étape 3 équipements + photo par équipement, échelle standard (§5.5, §3.1).
+
+### Lot 6 — Photos
+- [ ] Nouveau bouton de capture, gros et identifiable (style obturateur natif), remplace la barre actuelle.
+- [ ] Niveau 1 (§5.6.1) : 3 champs structurés (vue de loin / signalétique / accès), **avec consigne de cadrage affichée à la prise de vue pour chacun** — sans ça la finalité se perd.
+- [ ] Niveau 2 (§5.6.2) : photo + tag équipement (chips, liste fermée), plusieurs photos possibles.
+- [ ] Niveau 3 (§5.6.3) : bouton "Signaler une Incivilité ou un Vandalisme" aussi visible que "Donnez votre avis", tag obligatoire (taxonomie §5.6.3, à valider), append-only comme en v1.
+- [ ] Vérifier avant mise en prod : absence de personnes identifiables dans les photos I&V (§5.6.3, non tranché).
+
+### Lot 7 — Perception de la longueur du formulaire
+- [ ] Découpage en étapes visibles (indicateur de progression).
+- [ ] Valeurs par défaut "absent" pour ne toucher que l'existant.
+- [ ] Test utilisateur informel sur la perception "long" avant/après.
+
+### Lot 8 — Stats "Avis précédents"
+- [ ] Implémentation algorithme §6.
+- [ ] Affichage des 2 configurations + 2 états les plus fréquents sur la fiche lecture.
+
+## 8. Suivi
+
+_(À compléter au fil de l'eau : date, lot, décision ou avancement.)_
+
+- 2026-08-21 — Document créé à partir des retours d'usage v1 et du cadrage donné par Gilles.
+- 2026-08-21 — Réponses de Gilles intégrées (1ère vague) : téléphone déclaratif sans OTP (avec `phone_verified` prévu pour plus tard), échelle standard 5 étoiles (avis général) / 5 niveaux pouce-smiley (tout le reste) + Abs/HS/Vide, identifiant utilisateur = UUID interne (pas le téléphone directement). Restent ouverts : libellé état "plein" pour la poubelle, nouveau dépôt vs branche, stack technique, sort des données `Rating_*`/`Equipment` héritées, périmètre des photos par équipement.
+- 2026-08-21 — Tous les points de conception actés. Nettoyage des références obsolètes dans le document (§4.6/§5.6 marquées décidées, numéro de lot corrigé §6). Plan de travail en 5 phases ajouté en tête de §7 pour le lancement. Restent ouverts sans bloquer le démarrage : `Incident_Reports.user_id` (recommandation par défaut retenue : ajouter la colonne), anonymisation photos I&V (à trancher avant mise en prod).
+- 2026-08-21 — Taxonomies §5.6.2 et §5.6.3 actées : tags confort/équipements resserrés à 5 (siège, lave-main, visibilité distributeurs, poubelle, distributeur papier/essuie-tout) avec 6 tags envisagés mais volontairement non retenus au lancement (2 redondants avec des champs existants, 2 relevant plutôt d'un futur champ "sanitaire automatique", 2 trop subjectifs pour un tag) ; taxonomie Incivilités/Vandalismes (12 tags) établie par Gilles à partir des fréquences terrain, remplace la proposition générique initiale.
+- 2026-08-21 — **Objet principal de l'outil clarifié par Gilles et mis en évidence en tête de document** : SpotSan existe d'abord pour collecter des photos d'Incivilités et Vandalismes en vue d'entraîner une IA de détection — priorité absolue sur les autres écrans. §4.6/§5.6 réécrites en conséquence : modèle photo à 3 niveaux (infos critiques PMR avec consigne de cadrage par finalité / confort-équipement à tags optionnels / Incivilités-Vandalismes à tag obligatoire servant de label d'entraînement, taxonomie proposée à valider). Point de vigilance ajouté : anonymisation des personnes identifiables dans les photos I&V, non tranché.
+- 2026-08-21 — Stack technique tranchée : **Vite + Svelte**, rupture assumée avec le "tout vanilla" du reste de la suite UrBizia puisque SpotSan est l'outil prioritaire. Point de vigilance identifié et noté (§4.7, Lot 0bis) : le portage du moteur offline/sync est le risque principal du projet, à valider par un test réseau coupé avant de clore ce lot. Seul point encore ouvert : périmètre des photos par équipement (§4.6).
+- 2026-08-21 — Réponses de Gilles intégrées (3e vague) : tables `Toilet_*` orphelines migrées vers "Paul Hixe" comme le reste. §4.6 (photos par équipement) et §4.7 (stack technique) ajoutées pour expliquer ces deux points en clair, avec recommandation, en attente de décision.
+- 2026-08-21 — Réponses de Gilles intégrées (2e vague) : échelle standard étendue à l'avis général (plus d'étoiles séparées), poubelle = "Débordante" sans "Vide". Audit Supabase effectué : découverte de `SitInZen_Users` (candidate pour le compte SpotSan V2) et de tables `Toilet_*` orphelines d'un schéma antérieur. Gilles a tranché : nouveau dépôt GitHub pour v2 avec redéploiement Pages ; migration des données v1 sans auteur vers un utilisateur placeholder "Paul Hixe" (+33 000 000 001) ; format téléphone standard adopté (§3.2) ; règle "Incivilités et Vandalismes" toujours au pluriel actée ; réutilisation de `SitInZen_Users` confirmée ; pas de second projet Supabase confirmé. Restent ouverts : sort des tables `Toilet_*` orphelines, stack technique, périmètre photos par équipement.
