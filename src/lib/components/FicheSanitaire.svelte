@@ -11,7 +11,7 @@
   import { CELLULES, EQUIPEMENTS } from '../config/cellules.js'
   import IndicateurEtat from './IndicateurEtat.svelte'
 
-  let { ubId, onDonnerAvis, onRetour } = $props()
+  let { ubId, onDonnerAvis, onSignaler, onRetour } = $props()
 
   let chargement = $state(true)
   let sanitaire = $state(null)
@@ -127,9 +127,14 @@
       {/if}
     </section>
 
-    <button type="button" class="donner-avis" onclick={() => onDonnerAvis?.(ubId)}>
-      Donnez votre avis
-    </button>
+    <div class="actions">
+      <button type="button" class="donner-avis" onclick={() => onDonnerAvis?.(ubId)}>
+        Donnez votre avis
+      </button>
+      <button type="button" class="signaler" onclick={() => onSignaler?.(ubId)}>
+        Signaler une Incivilité ou un Vandalisme
+      </button>
+    </div>
   {/if}
 </div>
 
@@ -242,14 +247,33 @@
     font-size: 0.85rem;
   }
 
-  .donner-avis {
+  /* Les deux actions sont volontairement aussi visibles l'une que
+     l'autre (§5.6.3) -- signaler une Incivilite/Vandalisme n'est pas une
+     fonction secondaire, c'est l'objet principal de l'outil. */
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    pointer-events: auto;
+  }
+
+  .donner-avis,
+  .signaler {
     min-height: 48px;
     border-radius: 999px;
     border: none;
-    background: #540e28;
-    color: #fff;
     font-weight: 600;
     cursor: pointer;
     pointer-events: auto;
+  }
+
+  .donner-avis {
+    background: #540e28;
+    color: #fff;
+  }
+
+  .signaler {
+    background: #c55a7a;
+    color: #fff;
   }
 </style>

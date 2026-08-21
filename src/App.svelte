@@ -8,6 +8,7 @@
   import Carte from './lib/components/Carte.svelte'
   import FicheSanitaire from './lib/components/FicheSanitaire.svelte'
   import FormulaireAvis from './lib/components/FormulaireAvis.svelte'
+  import SignalerIncivilite from './lib/components/SignalerIncivilite.svelte'
 
   let chargement = $state(true)
   let erreurInit = $state('')
@@ -17,6 +18,7 @@
 
   let ubIdFiche = $state(null)
   let ubIdFormulaire = $state(null)
+  let ubIdSignalement = $state(null)
   let versionFiche = $state(0)
 
   onMount(async () => {
@@ -58,6 +60,11 @@
     versionFiche++ // force le rechargement de la fiche (avis a jour)
     enAttente = nombreEnAttente()
   }
+
+  function surFermetureSignalement() {
+    ubIdSignalement = null
+    versionFiche++
+  }
 </script>
 
 {#if chargement}
@@ -68,11 +75,14 @@
   <Inscription onValide={surInscriptionValidee} />
 {:else if ubIdFormulaire}
   <FormulaireAvis {userId} ubId={ubIdFormulaire} onFerme={surFermetureFormulaire} />
+{:else if ubIdSignalement}
+  <SignalerIncivilite {userId} ubId={ubIdSignalement} onFerme={surFermetureSignalement} />
 {:else if ubIdFiche}
   {#key versionFiche}
     <FicheSanitaire
       ubId={ubIdFiche}
       onDonnerAvis={(id) => (ubIdFormulaire = id)}
+      onSignaler={(id) => (ubIdSignalement = id)}
       onRetour={() => (ubIdFiche = null)}
     />
   {/key}

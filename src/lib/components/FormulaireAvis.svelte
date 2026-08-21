@@ -5,9 +5,16 @@
 
   import { onMount } from 'svelte'
   import EchelleEtat from './EchelleEtat.svelte'
+  import BoutonPhoto from './BoutonPhoto.svelte'
   import { CELLULES, ACCESSIBILITE_OPTIONS, TYPE_OPTIONS, EQUIPEMENTS } from '../config/cellules.js'
   import { chargerDernierAvis } from '../avis.js'
   import { sauvegarderAvis } from '../queueAvis.js'
+
+  const SIGNALETIQUE_OPTIONS = [
+    { valeur: 'Disponible', label: 'Disponible' },
+    { valeur: 'Indisponible_nettoyage', label: 'Momentanément indisponible (nettoyage)' },
+    { valeur: 'Condamne_HS', label: 'Condamné / HS' },
+  ]
 
   let { userId, ubId, nomLieu = '', onFerme } = $props()
 
@@ -31,6 +38,22 @@
   let etats = $state(etatsParDefaut())
   let eclairageNaturel = $state(null)
   let verrouMecanique = $state(null)
+
+  // Etape 4 -- photos (Lot 6, §5.6). Niveau 1 : champs structures avec
+  // finalite propre a chacun (§5.6.1). Niveau 2 : photos taguees
+  // confort/equipements, liste fermee (§5.6.2).
+  let photoVueLoin = $state(null)
+  let signaletique = $state(null)
+  let photoSignaletique = $state(null)
+  let photoAcces = $state(null)
+  let photosConfort = $state([])
+
+  function ajouterPhotoConfort(tag, url) {
+    photosConfort = [...photosConfort, { tag, url }]
+  }
+  function retirerPhotoConfort(index) {
+    photosConfort = photosConfort.filter((_, i) => i !== index)
+  }
 
   function accessibilite(cle) {
     return configuration[cle]?.accessibilite ?? null
@@ -62,6 +85,11 @@
         etats = { ...etatsParDefaut(), ...(dernier.etats ?? {}) }
         eclairageNaturel = dernier.eclairage_naturel
         verrouMecanique = dernier.verrou_mecanique
+        photoVueLoin = dernier.photo_vue_loin
+        signaletique = dernier.signaletique
+        photoSignaletique = dernier.photo_signaletique
+        photoAcces = dernier.photo_acces
+        photosConfort = dernier.photos_confort ?? []
       }
     } catch (e) {
       console.error(e)
@@ -83,6 +111,11 @@
         etats,
         eclairage_naturel: eclairageNaturel,
         verrou_mecanique: verrouMecanique,
+        photo_vue_loin: photoVueLoin,
+        signaletique,
+        photo_signaletique: photoSignaletique,
+        photo_acces: photoAcces,
+        photos_confort: photosConfort,
       })
       messageStatut = horsLigne
         ? 'Pas de réseau — ton avis est enregistré sur ton téléphone et sera envoyé dès que possible.'
@@ -113,6 +146,7 @@
         <button type="button" class:active={etape === 1} onclick={() => (etape = 1)}>1. Avis</button>
         <button type="button" class:active={etape === 2} onclick={() => (etape = 2)}>2. Configuration</button>
         <button type="button" class:active={etape === 3} onclick={() => (etape = 3)}>3. Équipements</button>
+        <button type="button" class:active={etape === 4} onclick={() => (etape = 4)}>4. Photos</button>
       </div>
     </header>
 
@@ -178,6 +212,65 @@
               <button type="button" class:selected={verrouMecanique === true} onclick={() => (verrouMecanique = verrouMecanique === true ? null : true)}>Oui</button>
               <button type="button" class:selected={verrouMecanique === false} onclick={() => (verrouMecanique = verrouMecanique === false ? null : false)}>Non</button>
             </div>
+          </div>
+        </section>
+      {:else if etape === 4}
+        <section class="grille-photos">
+          <div class="groupe-photo">
+            <h3>Vue de loin</h3>
+            <BoutonPhoto
+              consigne="Repérer le sanitaire dans son environnement : cadre depuis l'endroit où on arrive (rue, parking, allée), pas un gros plan."
+              bind:valeur={photoVueLoin}
+            />
+          </div>
+
+          <div class="groupe-photo">
+            <h3>Signalétique</h3>
+            <div class="chips">
+              {#each SIGNALETIQUE_OPTIONS as opt (opt.valeur)}
+                <button
+                  type="button"
+                  class:selected={signaletique === opt.valeur}
+                  onclick={() => (signaletique = signaletique === opt.valeur ? null : opt.valeur)}
+                >{opt.label}</button>
+              {/each}
+            </div>
+            <BoutonPhoto
+              consigne="Rendre l'état vérifiable : cadre le panneau ou l'indicateur lui-même (affiche de fermeture, voyant), pas une vue large."
+              bind:valeur={photoSignaletique}
+            />
+          </div>
+
+          <div class="groupe-photo">
+            <h3>Accès</h3>
+            <BoutonPhoto
+              consigne="Juger l'accessibilité avant de se déplacer : cadre le cheminement (porte, marches, rampe) pour que largeur et pente soient visibles."
+              bind:valeur={photoAcces}
+            />
+          </div>
+
+          <div class="groupe-photo">
+            <h3>Confort / équipements (facultatif)</h3>
+            <p class="note-photos">Pour donner une idée à quoi ça ressemble, sans être normatif.</p>
+            <div class="tags-confort">
+              {#each EQUIPEMENTS as e (e.cle)}
+                <div class="tag-confort">
+                  <BoutonPhoto onTermine={(url) => ajouterPhotoConfort(e.label, url)} />
+                  <span class="tag-confort-label">{e.label}</span>
+                </div>
+              {/each}
+            </div>
+            {#if photosConfort.length}
+              <ul class="liste-photos-confort">
+                {#each photosConfort as p, i (i)}
+                  <li>
+                    <img src={p.url} alt={p.tag} />
+                    <span>{p.tag}</span>
+                    <button type="button" onclick={() => retirerPhotoConfort(i)}>Retirer</button>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
           </div>
         </section>
       {/if}
@@ -320,6 +413,75 @@
     border-color: #540e28;
     background: #f6dde3;
     font-weight: 600;
+  }
+
+  .grille-photos {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .groupe-photo h3 {
+    font-size: 0.95rem;
+    margin: 0 0 0.5rem;
+  }
+
+  .note-photos {
+    font-size: 0.8rem;
+    color: #888;
+    margin: 0 0 0.6rem;
+  }
+
+  .tags-confort {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .tag-confort {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    width: 5.5rem;
+  }
+
+  .tag-confort-label {
+    font-size: 0.72rem;
+    text-align: center;
+    color: #444;
+  }
+
+  .liste-photos-confort {
+    list-style: none;
+    margin: 0.8rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .liste-photos-confort li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.82rem;
+  }
+
+  .liste-photos-confort img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+
+  .liste-photos-confort button {
+    margin-left: auto;
+    border: none;
+    background: none;
+    color: #c55a7a;
+    font-size: 0.78rem;
+    cursor: pointer;
   }
 
   .statut {
