@@ -53,3 +53,30 @@ export async function supprimerCompte() {
 
   await supabase.auth.signOut()
 }
+
+/**
+ * Met a jour les informations personnelles (pseudo/avatar/telephone/sexe/
+ * annee/handicaps). Ne touche jamais phone_verified/consent_at.
+ */
+export async function mettreAJourProfil(userId, profil) {
+  const { data, error } = await supabase
+    .from('SitInZen_Users')
+    .update({
+      Phone: profil.telephone,
+      pseudo: profil.pseudo,
+      avatar_url: profil.avatar,
+      Sexe_Declare: profil.sexe,
+      Birthdate: profil.anneeNaissance ? `${profil.anneeNaissance}-01-01` : null,
+      handicaps: profil.handicaps.length ? profil.handicaps : null,
+    })
+    .eq('user_id', userId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+/** Se deconnecte sans supprimer le compte -- une nouvelle session anonyme sera creee au prochain chargement. */
+export async function seDeconnecter() {
+  await supabase.auth.signOut()
+}

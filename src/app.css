@@ -1,6 +1,39 @@
 :root {
   color-scheme: light dark;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Tokens clair/sombre (retour utilisateur du 2026-08-22, mecanique
+     posee dans theme.js). Couverture partielle assumee pour l'instant :
+     seuls le bandeau et ses sous-panneaux les utilisent aujourd'hui --
+     le reste de l'app (formulaires, fiche) garde ses couleurs fixes en
+     attendant une passe de reprise plus large. */
+  --fond: #ffffff;
+  --fond-carte: #f5f0eb;
+  --texte: #1a1414;
+  --texte-attenue: #666666;
+  --bordure: #cccccc;
+  --accent: #540e28;
+  --accent-fond: #f6dde3;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --fond: #1a1414;
+    --fond-carte: #241a1a;
+    --texte: #f5f0eb;
+    --texte-attenue: #b3a9a9;
+    --bordure: #4a3a3a;
+    --accent-fond: #3a1520;
+  }
+}
+
+:root[data-theme='dark'] {
+  --fond: #1a1414;
+  --fond-carte: #241a1a;
+  --texte: #f5f0eb;
+  --texte-attenue: #b3a9a9;
+  --bordure: #4a3a3a;
+  --accent-fond: #3a1520;
 }
 
 * {
@@ -9,4 +42,6 @@
 
 body {
   margin: 0;
+  background: var(--fond);
+  color: var(--texte);
 }
