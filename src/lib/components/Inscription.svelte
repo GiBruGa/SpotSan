@@ -89,7 +89,8 @@
 
   <div class="champ">
     <span>Avatar (facultatif)</span>
-    <BoutonPhoto capture={null} bind:valeur={avatar} />
+    <!-- anonymiser=false : montrer son visage est justement le but d'un avatar. -->
+    <BoutonPhoto capture={null} anonymiser={false} bind:valeur={avatar} />
     <small>Prends une photo ou choisis-en une dans tes photos.</small>
   </div>
 

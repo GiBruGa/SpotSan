@@ -10,7 +10,12 @@
   // arriere, adapte aux photos de terrain. capture=null : laisse le
   // choix natif complet (appareil photo OU galerie) -- utilise pour
   // l'avatar, ou choisir une photo existante a du sens.
-  let { consigne = '', bucket = 'PointSan-Photos', dossier = '', capture = 'environment', valeur = $bindable(null), onTermine } = $props()
+  //
+  // anonymiser=true par defaut (secure-by-default) : floute automatiquement
+  // les visages detectes avant l'envoi (voir anonymisation.js, chantier
+  // lance le 2026-08-22). A desactiver explicitement seulement pour
+  // l'avatar (Inscription.svelte) -- montrer son visage est le but.
+  let { consigne = '', bucket = 'PointSan-Photos', dossier = '', capture = 'environment', anonymiser = true, valeur = $bindable(null), onTermine } = $props()
 
   let input
   let enCours = $state(false)
@@ -22,7 +27,7 @@
     erreur = ''
     enCours = true
     try {
-      const url = await televerserPhoto(fichier, { bucket, dossier })
+      const url = await televerserPhoto(fichier, { bucket, dossier, anonymiser })
       valeur = url
       onTermine?.(url)
     } catch (err) {
@@ -55,6 +60,8 @@
     {/if}
   </button>
 
+  {#if enCours && anonymiser}<p class="traitement">Floutage des visages…</p>{/if}
+
   <input
     bind:this={input}
     type="file"
@@ -81,6 +88,12 @@
     text-align: center;
     margin: 0;
     max-width: 22rem;
+  }
+
+  .traitement {
+    font-size: 0.78rem;
+    color: #888;
+    margin: 0;
   }
 
   .obturateur {
