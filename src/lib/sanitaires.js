@@ -1,13 +1,19 @@
 import { supabase } from './supabaseClient.js'
 
-const COLONNES_CARTE = 'UB_id, Name, Latitude, Longitude'
+// Colonnes necessaires au rendu carte + a la classification par famille de
+// source et aux filtres d'affinage (repris fidelement de v1, cf. classify()
+// et passesRefinements() dans SpotSan/app.js).
+const COLONNES_CARTE = 'UB_id, Name, Latitude, Longitude, Sources, Verified, Certified, Exists, Automatic, PMR, Adapte_Enfant, Rating_Overall'
 
-/** Sanitaires existants dans une zone (bbox), pour l'affichage sur la carte. */
+/**
+ * Sanitaires dans une zone (bbox), pour l'affichage sur la carte -- inclut
+ * aussi les sanitaires supprimes (Exists=false), comme en v1 (chip
+ * "Supprimées", masquee par defaut mais activable).
+ */
 export async function chargerSanitairesDansZone(bounds, limite = 500) {
   const { data, error } = await supabase
     .from('SanitaryBlocks_Inventory')
     .select(COLONNES_CARTE)
-    .eq('Exists', true)
     .gte('Latitude', bounds.getSouth())
     .lte('Latitude', bounds.getNorth())
     .gte('Longitude', bounds.getWest())

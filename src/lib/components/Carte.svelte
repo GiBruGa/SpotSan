@@ -1,10 +1,13 @@
 <script>
-  // Carte (Lot 2, plan V2-PLAN.md §5.2) : inchangee par rapport a v1 sauf
-  // le point bleu utilisateur, qui doit rester au premier plan et etre
-  // plus visible -- c'etait le tout premier probleme signale au debut de
-  // ce projet ("le rond bleu... se retrouve en dessous de tous les
-  // autres signes"). Corrige ici via un pane Leaflet dedie, au-dessus du
-  // pane des marqueurs/clusters, avec un halo et un point plus gros.
+  // Carte (Lot 2, plan V2-PLAN.md §5.2 + retour utilisateur du 2026-08-22
+  // qui a redemande les filtres de v1, retires par erreur au Lot 2).
+  //
+  // Le point bleu utilisateur reste au premier plan (pane Leaflet dedie,
+  // au-dessus du pane des marqueurs/clusters) -- c'etait le tout premier
+  // probleme signale au debut de ce projet.
+  //
+  // Filtres : port fidele de v1 (chips par famille de source +
+  // affinages PMR/Enfant/4★ mini, combinables), voir classification.js.
 
   import { onMount, onDestroy } from 'svelte'
   import L from 'leaflet'
@@ -13,13 +16,20 @@
   import 'leaflet.markercluster/dist/MarkerCluster.css'
   import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
   import { chargerSanitairesDansZone } from '../sanitaires.js'
+  import { FAMILLES, COULEURS, LIBELLES, classifier, passeAffinages, chipsParDefaut, affinagesParDefaut } from '../classification.js'
 
   let { onChoixSanitaire } = $props()
 
   let conteneurCarte
   let map
-  let clusterGroup
+  let groupes = {}
   let markerPosition
+  let donneesBrutes = []
+
+  let panneauOuvert = $state(false)
+  let chips = $state(chipsParDefaut())
+  let affinages = $state(affinagesParDefaut())
+  let comptes = $state({ verified: 0, gouv: 0, osm: 0, certified: 0, supprimees: 0 })
 
   const VUE_PAR_DEFAUT = { lat: 46.6, lon: 2.5, zoom: 6 } // France entiere
 
@@ -34,26 +44,65 @@
     }).addTo(map)
   }
 
+  function creerMarqueur(t, categorie, supprime) {
+    const couleur = supprime ? COULEURS.supprimees : COULEURS[categorie]
+    const marqueur = L.circleMarker([t.Latitude, t.Longitude], {
+      radius: 8,
+      weight: 2,
+      color: couleur,
+      fillColor: couleur,
+      fillOpacity: supprime ? 0.35 : 0.85,
+      opacity: supprime ? 0.55 : 1,
+    })
+    marqueur.bindTooltip(t.Name || t.UB_id)
+    marqueur.on('click', () => onChoixSanitaire?.(t.UB_id))
+    return marqueur
+  }
+
+  /** Reconstruit les 5 groupes a partir de donneesBrutes (deja en cache -- pas de requete reseau) selon les chips/affinages actifs. */
+  function redessiner() {
+    Object.values(groupes).forEach((g) => {
+      map.removeLayer(g)
+      g.clearLayers()
+    })
+    const nouveauxComptes = { verified: 0, gouv: 0, osm: 0, certified: 0, supprimees: 0 }
+
+    for (const t of donneesBrutes) {
+      if (t.Latitude == null || t.Longitude == null) continue
+      if (!passeAffinages(t, affinages)) continue
+      const supprime = t.Exists === false
+      const categorie = supprime ? 'supprimees' : classifier(t)
+      nouveauxComptes[categorie]++
+      groupes[categorie].addLayer(creerMarqueur(t, categorie, supprime))
+    }
+
+    comptes = nouveauxComptes
+    Object.keys(chips).forEach((k) => {
+      if (chips[k]) map.addLayer(groupes[k])
+    })
+  }
+
   async function rafraichirSanitaires() {
     try {
-      const rows = await chargerSanitairesDansZone(map.getBounds())
-      clusterGroup.clearLayers()
-      for (const r of rows) {
-        if (r.Latitude == null || r.Longitude == null) continue
-        const marker = L.circleMarker([r.Latitude, r.Longitude], {
-          radius: 8,
-          weight: 2,
-          color: '#540e28',
-          fillColor: '#f6dde3',
-          fillOpacity: 1,
-        })
-        marker.bindTooltip(r.Name || r.UB_id)
-        marker.on('click', () => onChoixSanitaire?.(r.UB_id))
-        clusterGroup.addLayer(marker)
-      }
+      donneesBrutes = await chargerSanitairesDansZone(map.getBounds())
+      redessiner()
     } catch (e) {
       console.error('Chargement des sanitaires impossible', e)
     }
+  }
+
+  function toggleChip(k) {
+    chips[k] = !chips[k]
+    redessiner()
+  }
+
+  function toggleAffinage(k) {
+    affinages[k] = !affinages[k]
+    redessiner()
+  }
+
+  function nombreFiltresActifs() {
+    return Object.values(chips).filter(Boolean).length + Object.values(affinages).filter(Boolean).length
   }
 
   function placerPointUtilisateur(lat, lon) {
@@ -89,7 +138,9 @@
     map = L.map(conteneurCarte, {
       center: [VUE_PAR_DEFAUT.lat, VUE_PAR_DEFAUT.lon],
       zoom: VUE_PAR_DEFAUT.zoom,
+      zoomControl: false,
     })
+    L.control.zoom({ position: 'bottomleft' }).addTo(map)
 
     // Pane dedie, z-index au-dessus du pane des marqueurs/clusters (600) --
     // le point bleu ne doit plus jamais disparaitre sous les autres pins.
@@ -98,8 +149,9 @@
 
     ajouterTuiles()
 
-    clusterGroup = L.markerClusterGroup()
-    map.addLayer(clusterGroup)
+    for (const k of [...FAMILLES, 'supprimees']) {
+      groupes[k] = L.markerClusterGroup()
+    }
 
     map.on('moveend', rafraichirSanitaires)
     rafraichirSanitaires()
@@ -111,12 +163,117 @@
   })
 </script>
 
-<div class="carte" bind:this={conteneurCarte}></div>
+<div class="carte" bind:this={conteneurCarte}>
+  <div class="filtres">
+    <button type="button" class="filtres-entete" onclick={() => (panneauOuvert = !panneauOuvert)}>
+      <span>⚙ Filtres</span>
+      <span class="filtres-nombre">({nombreFiltresActifs()})</span>
+      <span class="filtres-caret">{panneauOuvert ? '▴' : '▾'}</span>
+    </button>
+
+    {#if panneauOuvert}
+      <div class="filtres-panneau">
+        <div class="filtres-groupe">
+          {#each [...FAMILLES, 'supprimees'] as k (k)}
+            <button type="button" class="chip" class:on={chips[k]} onclick={() => toggleChip(k)}>
+              <span class="pastille" style="background:{COULEURS[k]}"></span>
+              {LIBELLES[k]}
+              {#if comptes[k]}<span class="chip-n">{comptes[k]}</span>{/if}
+            </button>
+          {/each}
+        </div>
+        <div class="filtres-groupe">
+          <button type="button" class="chip" class:on={affinages.pmr} onclick={() => toggleAffinage('pmr')}>PMR</button>
+          <button type="button" class="chip" class:on={affinages.enfant} onclick={() => toggleAffinage('enfant')}>Enfant</button>
+          <button type="button" class="chip" class:on={affinages.bienNotees} onclick={() => toggleAffinage('bienNotees')}>4★ mini</button>
+        </div>
+      </div>
+    {/if}
+  </div>
+</div>
 
 <style>
   .carte {
     position: absolute;
     inset: 0;
+  }
+
+  .filtres {
+    position: absolute;
+    top: 0.6rem;
+    left: 0.6rem;
+    z-index: 700;
+    max-width: calc(100% - 1.2rem);
+  }
+
+  .filtres-entete {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 38px;
+    padding: 0 0.8rem;
+    border-radius: 999px;
+    border: none;
+    background: #fff;
+    color: #1a1414;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+  }
+
+  .filtres-nombre {
+    color: #540e28;
+  }
+
+  .filtres-panneau {
+    margin-top: 0.4rem;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    padding: 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .filtres-groupe {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 34px;
+    padding: 0 0.6rem;
+    border-radius: 999px;
+    border: 1px solid #ccc;
+    background: #fff;
+    color: #999;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+
+  .chip.on {
+    border-color: #540e28;
+    color: #1a1414;
+    font-weight: 600;
+    background: #f6dde3;
+  }
+
+  .pastille {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .chip-n {
+    color: #888;
+    font-size: 0.72rem;
   }
 
   :global(.position-utilisateur-icone) {
