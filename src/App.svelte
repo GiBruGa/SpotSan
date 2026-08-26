@@ -2,8 +2,10 @@
   import { onMount } from 'svelte'
   import { useRegisterSW } from 'virtual:pwa-register/svelte'
   import { assurerSession } from './lib/supabaseClient.js'
-  import { chargerProfil, creerProfil, supprimerCompte } from './lib/profil.js'
+  import { chargerProfil, creerProfil, connecterParTelephone, supprimerCompte } from './lib/profil.js'
   import { viderQueue, nombreEnAttente } from './lib/queueAvis.js'
+  import Accueil from './lib/components/Accueil.svelte'
+  import Connexion from './lib/components/Connexion.svelte'
   import Inscription from './lib/components/Inscription.svelte'
   import BandeauEntete from './lib/components/BandeauEntete.svelte'
   import Carte from './lib/components/Carte.svelte'
@@ -16,6 +18,8 @@
   let userId = $state(null)
   let profil = $state(null)
   let enAttente = $state(0)
+  // 'accueil' | 'connexion' | 'inscription' -- tant que !profil.
+  let vueAuth = $state('accueil')
 
   let ubIdFiche = $state(null)
   let ubIdFormulaire = $state(null)
@@ -57,10 +61,15 @@
     profil = await creerProfil(userId, donnees)
   }
 
+  async function surConnexionValidee(telephone) {
+    profil = await connecterParTelephone(telephone)
+  }
+
   async function surSuppression() {
     await supprimerCompte()
     profil = null
     userId = null
+    vueAuth = 'accueil'
     const session = await assurerSession()
     userId = session.user.id
   }
@@ -68,6 +77,7 @@
   async function surDeconnexion() {
     profil = null
     userId = null
+    vueAuth = 'accueil'
     const session = await assurerSession()
     userId = session.user.id
     profil = await chargerProfil(userId)
@@ -97,7 +107,13 @@
 {:else if erreurInit}
   <p class="etat erreur">{erreurInit}</p>
 {:else if !profil}
-  <Inscription onValide={surInscriptionValidee} />
+  {#if vueAuth === 'connexion'}
+    <Connexion onValide={surConnexionValidee} onRetour={() => (vueAuth = 'accueil')} />
+  {:else if vueAuth === 'inscription'}
+    <Inscription onValide={surInscriptionValidee} />
+  {:else}
+    <Accueil onConnexion={() => (vueAuth = 'connexion')} onInscription={() => (vueAuth = 'inscription')} />
+  {/if}
 {:else if ubIdFormulaire}
   <FormulaireAvis {userId} ubId={ubIdFormulaire} onFerme={surFermetureFormulaire} />
 {:else if ubIdSignalement}

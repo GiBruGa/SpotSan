@@ -80,3 +80,26 @@ export async function mettreAJourProfil(userId, profil) {
 export async function seDeconnecter() {
   await supabase.auth.signOut()
 }
+
+/**
+ * Connexion declarative a un compte existant par numero de telephone (pas
+ * d'OTP -- decision actee le 2026-08-24, meme niveau de confiance que
+ * l'inscription). Rattache le compte trouve a la session anonyme courante
+ * via l'Edge Function login-by-phone (reassignation cote serveur, seule
+ * facon de le faire sous RLS). Leve une erreur avec message 'compte_introuvable'
+ * si aucun compte n'a ce numero.
+ */
+export async function connecterParTelephone(telephone) {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Pas de session active')
+
+  const { data, error } = await supabase.functions.invoke('login-by-phone', {
+    body: { telephone },
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  })
+  if (error) {
+    const contexte = await error.context?.json?.().catch(() => null)
+    throw new Error(contexte?.error || 'connexion_impossible')
+  }
+  return data.profil
+}

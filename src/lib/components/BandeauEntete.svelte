@@ -6,6 +6,7 @@
   import { APP_VERSION } from '../version.js'
   import { themeActuel, definirTheme } from '../theme.js'
   import { seDeconnecter } from '../profil.js'
+  import { chargerAvatarParDefaut } from '../identiteVisuelle.js'
   import MesInformations from './MesInformations.svelte'
   import InstallationQR from './InstallationQR.svelte'
   import AProposPanel from './AProposPanel.svelte'
@@ -17,6 +18,17 @@
   let vue = $state('accueil')
   let suppressionEnCours = $state(false)
   let theme = $state(themeActuel())
+
+  // Avatar par defaut (aucune photo choisie) : icone dynamique depuis
+  // acronymes, conditionnee par le sexe declare (demande du 2026-08-22)
+  // puis par le statut PMR, prioritaire (demande du 2026-08-24) -- remplace
+  // l'ancien .png statique fige (qui ne suivait plus l'evolution de la
+  // marque, cf. memoire "shared visual identity").
+  let avatarParDefaut = $state(null)
+  $effect(() => {
+    const estPMR = profil.Is_PMR || profil.handicaps?.includes('Moteur')
+    chargerAvatarParDefaut(profil.Sexe_Declare, estPMR).then((url) => (avatarParDefaut = url))
+  })
 
   function toggleMenu() {
     menuOuvert = !menuOuvert
@@ -49,8 +61,8 @@
   <button type="button" class="profil-bouton" onclick={toggleMenu} aria-expanded={menuOuvert}>
     {#if profil.avatar_url?.startsWith('http')}
       <img class="avatar-photo" src={profil.avatar_url} alt="" />
-    {:else}
-      <img class="avatar-photo" src="{import.meta.env.BASE_URL}icon-192.png" alt="" />
+    {:else if avatarParDefaut}
+      <img class="avatar-photo" src={avatarParDefaut} alt="" />
     {/if}
     <span class="pseudo">{profil.pseudo}</span>
   </button>
