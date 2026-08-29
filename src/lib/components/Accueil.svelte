@@ -5,10 +5,12 @@
   // en plus le choix connexion/creation puisque V2, contrairement a v1, a
   // de vrais comptes).
   import { chargerIconeSvg, svgVersDataUri } from '../identiteVisuelle.js'
+  import AProposPanel from './AProposPanel.svelte'
 
   let { onConnexion, onInscription } = $props()
 
   let logo = $state(null)
+  let apropos = $state(false)
   $effect(() => {
     chargerIconeSvg('SpotSan').then((svg) => {
       if (svg) logo = svgVersDataUri(svg)
@@ -17,9 +19,11 @@
 </script>
 
 <div class="accueil">
-  {#if logo}
-    <img class="logo" src={logo} alt="" />
-  {/if}
+  <div class="logo">
+    {#if logo}
+      <img src={logo} alt="" />
+    {/if}
+  </div>
   <h1>SpotSan</h1>
   <p class="objectif">
     Trouvez rapidement un sanitaire adapté. Géolocalisez, constatez, donnez une note…
@@ -30,6 +34,17 @@
     <button type="button" class="principal" onclick={onInscription}>Créer un compte</button>
     <button type="button" class="secondaire" onclick={onConnexion}>J'ai déjà un compte</button>
   </div>
+
+  <p class="rights">© 2026 UrBizia — Outil interne, tous droits réservés et exclusifs.</p>
+  {#if apropos}
+    <div class="apropos-overlay">
+      <div class="apropos-box">
+        <AProposPanel onFerme={() => (apropos = false)} />
+      </div>
+    </div>
+  {:else}
+    <button type="button" class="apropos-lien" onclick={() => (apropos = true)}>ⓘ À propos</button>
+  {/if}
 </div>
 
 <style>
@@ -45,10 +60,28 @@
     gap: 1rem;
   }
 
+  /* Cadre circulaire "a l'androide", meme convention que EkoMa (2026-08-24) : l'icone source a
+     une marge de securite autour du pictogramme sur son plan de travail 512x512, qui se verrait
+     comme du vide si affichee telle quelle. overflow:hidden + l'image agrandie a 125% (centree
+     par le flex) rogne cette marge au niveau du cercle GRIS du gabarit Android (reference W3C,
+     80% de diametre -- pas le cercle rouge/66%, plus strict, qui sert a dessiner l'icone). */
   .logo {
-    width: 96px;
-    height: 96px;
-    margin-bottom: 0.5rem;
+    width: 216px;
+    height: 216px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    background: #f4f1ee;
+  }
+
+  .logo img {
+    width: 125%;
+    height: 125%;
+    display: block;
+    flex-shrink: 0;
   }
 
   h1 {
@@ -91,5 +124,41 @@
     border: 1px solid #540e28;
     background: transparent;
     color: #540e28;
+  }
+
+  .rights {
+    margin: 1.5rem 0 0;
+    color: #888;
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+
+  .apropos-lien {
+    margin-top: 0.4rem;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 0.78rem;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .apropos-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 20, 20, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    z-index: 100;
+  }
+
+  .apropos-box {
+    max-width: 380px;
+    width: 100%;
+    background: #fff;
+    border-radius: 14px;
+    padding: 1.3rem;
   }
 </style>
