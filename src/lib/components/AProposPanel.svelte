@@ -3,13 +3,22 @@
   // repris tel quel de la convention deja en usage sur EkoMa/SpotSan v1
   // (voir memoire projet "centralized tool access").
 
-  import { APP_VERSION } from '../version.js'
+  import { APP_VERSION, CHANGELOG } from '../version.js'
 
   let { onFerme } = $props()
+  const dernier = CHANGELOG[0]
 </script>
 
 <div class="apropos">
   <h2>SpotSan {APP_VERSION}</h2>
+  {#if dernier}
+    <div class="changelog">
+      <div class="titre">Nouveautés {dernier.version}</div>
+      <ul>
+        {#each dernier.items as i (i)}<li>{i}</li>{/each}
+      </ul>
+    </div>
+  {/if}
   <p class="slogan">SpotSan est un service conçu par UrBizia.</p>
   <p class="legal">
     © 2026 UrBizia. Tous droits réservés. Cette application, son code source et les données
@@ -38,6 +47,24 @@
     font-size: 0.85rem;
     font-weight: 600;
     margin: 0;
+  }
+
+  .changelog {
+    text-align: left;
+    font-size: 0.78rem;
+    color: #444;
+    line-height: 1.5;
+  }
+
+  .changelog .titre {
+    font-weight: 700;
+    color: #c55a7a;
+    margin-bottom: 0.2rem;
+  }
+
+  .changelog ul {
+    margin: 0;
+    padding-left: 1.1rem;
   }
 
   .legal {
