@@ -24,7 +24,7 @@
       <img src={logo} alt="" />
     {/if}
   </div>
-  <h1>SpotSan</h1>
+  <h1><span class="wm-strong">Spot</span><span class="wm-soft">San</span></h1>
   <p class="objectif">
     Trouvez rapidement un sanitaire adapté. Géolocalisez, constatez, donnez une note…
     et aidez à repérer les incivilités et dégradations pour améliorer les sanitaires publics.
@@ -88,7 +88,17 @@
     margin: 0;
     font-size: 1.6rem;
     font-weight: 700;
-    color: #540e28;
+  }
+
+  /* Nom en deux couleurs (Charte Graphique UrBizia.md §1). Cet ecran est
+     encore light-only (pas de couverture theme sombre ici, cf. le "reste"
+     deja note ailleurs) -- valeurs mode clair uniquement pour l'instant. */
+  .wm-strong {
+    color: #81093c;
+  }
+
+  .wm-soft {
+    color: #c55a7a;
   }
 
   .objectif {
