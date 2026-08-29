@@ -1,16 +1,15 @@
 <script>
-  // Ecran de creation de compte (plan V2-PLAN.md §5.1).
-  // Telephone declaratif (pas d'OTP, voir §4.1), pseudo + avatar (vraie
-  // photo prise ou choisie sur le telephone, cf. demande du 2026-08-21 --
-  // remplace l'ancienne liste fermee d'emoji), champs facultatifs, texte
-  // legal et rappel du droit a la suppression.
+  // Deuxieme etape de la creation de compte (le telephone est deja verifie
+  // et le mot de passe deja pose par SecuriserCompte.svelte a ce stade --
+  // decision du 2026-08-29, remplace l'ancienne inscription declarative).
+  // Pseudo + avatar (vraie photo prise ou choisie sur le telephone, cf.
+  // demande du 2026-08-21 -- remplace l'ancienne liste fermee d'emoji),
+  // champs facultatifs, texte legal et rappel du droit a la suppression.
 
   import BoutonPhoto from './BoutonPhoto.svelte'
 
-  let { onValide } = $props()
+  let { telephone, onValide } = $props()
 
-  let indicatif = $state('+33')
-  let numeroLocal = $state('')
   let nom = $state('')
   let prenom = $state('')
   let pseudo = $state('')
@@ -32,10 +31,6 @@
 
   async function valider() {
     erreur = ''
-    if (!numeroLocal.trim()) {
-      erreur = 'Le numéro de portable est obligatoire.'
-      return
-    }
     if (!nom.trim() || !prenom.trim()) {
       erreur = 'Le nom et le prénom sont obligatoires.'
       return
@@ -51,10 +46,6 @@
 
     enCours = true
     try {
-      // Format standard §3.2 : indicatif + 3 groupes de 3 chiffres.
-      const chiffres = numeroLocal.replace(/\D/g, '')
-      const telephone = `${indicatif} ${chiffres.slice(0, 3)} ${chiffres.slice(3, 6)} ${chiffres.slice(6, 9)}`.trim()
-
       await onValide({
         telephone,
         nom: nom.trim(),
@@ -77,20 +68,7 @@
 
 <div class="inscription">
   <h1>Créer mon compte SpotSan</h1>
-
-  <label class="champ">
-    <span>Numéro de portable *</span>
-    <div class="tel">
-      <input type="text" bind:value={indicatif} class="indicatif" aria-label="Indicatif pays" />
-      <input
-        type="tel"
-        bind:value={numeroLocal}
-        placeholder="6 12 34 56 78"
-        aria-label="Numéro de portable"
-      />
-    </div>
-    <small>Déclaratif pour l'instant, pas de code envoyé par SMS.</small>
-  </label>
+  <p class="aide">Numéro {telephone} vérifié. Complète maintenant ton profil.</p>
 
   <label class="champ">
     <span>Nom *</span>
@@ -179,6 +157,12 @@
     gap: 1.1rem;
   }
 
+  .aide {
+    margin: 0;
+    color: #555;
+    font-size: 0.9rem;
+  }
+
   .champ {
     display: flex;
     flex-direction: column;
@@ -200,16 +184,6 @@
     font-size: 1rem;
     color: #1a1414;
     background: #fff;
-  }
-
-  .tel {
-    display: flex;
-    gap: 0.4rem;
-  }
-
-  .indicatif {
-    width: 4rem;
-    text-align: center;
   }
 
   small {

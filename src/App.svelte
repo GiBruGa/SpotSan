@@ -1,12 +1,13 @@
 <script>
   import { onMount } from 'svelte'
   import { useRegisterSW } from 'virtual:pwa-register/svelte'
-  import { assurerSession } from './lib/supabaseClient.js'
-  import { chargerProfil, creerProfil, connecterParTelephone, supprimerCompte } from './lib/profil.js'
+  import { supabase, assurerSession } from './lib/supabaseClient.js'
+  import { chargerProfil, creerProfil, supprimerCompte } from './lib/profil.js'
   import { viderQueue, nombreEnAttente } from './lib/queueAvis.js'
   import Accueil from './lib/components/Accueil.svelte'
   import Connexion from './lib/components/Connexion.svelte'
   import Inscription from './lib/components/Inscription.svelte'
+  import SecuriserCompte from './lib/components/SecuriserCompte.svelte'
   import BandeauEntete from './lib/components/BandeauEntete.svelte'
   import Carte from './lib/components/Carte.svelte'
   import FicheSanitaire from './lib/components/FicheSanitaire.svelte'
@@ -18,8 +19,15 @@
   let userId = $state(null)
   let profil = $state(null)
   let enAttente = $state(0)
-  // 'accueil' | 'connexion' | 'inscription' -- tant que !profil.
+  // 'accueil' | 'connexion' | 'inscription' (verif telephone+mdp) |
+  // 'inscription-details' (reste du profil) | 'securiser' (depuis le lien
+  // "pas de mot de passe" de Connexion) | 'securiser-existant' (gate forcee,
+  // profil deja charge mais compte Auth encore anonyme) -- tant que !profil
+  // ou vueAuth === 'securiser-existant'.
   let vueAuth = $state('accueil')
+  // Telephone deja verifie par SecuriserCompte pendant une inscription,
+  // en attente que Inscription.svelte collecte le reste (nom/pseudo/etc).
+  let telephoneEnCoursInscription = $state('')
 
   let ubIdFiche = $state(null)
   let ubIdFormulaire = $state(null)
@@ -40,6 +48,13 @@
       const session = await assurerSession()
       userId = session.user.id
       profil = await chargerProfil(userId)
+      // Profil deja cree (avant le 2026-08-29) mais compte Auth toujours
+      // anonyme : mot de passe jamais defini -- on force sa mise en place
+      // avant de laisser entrer, comme demande par Gilles ("a leur
+      // prochaine connexion").
+      if (profil && session.user.is_anonymous) {
+        vueAuth = 'securiser-existant'
+      }
     } catch (e) {
       console.error(e)
       erreurInit = "Connexion impossible pour l'instant. Réessaie plus tard."
@@ -57,12 +72,36 @@
     enAttente = nombreEnAttente()
   })
 
-  async function surInscriptionValidee(donnees) {
-    profil = await creerProfil(userId, donnees)
+  /** Rafraichit userId depuis la session courante -- necessaire apres tout
+   *  signInWithOtp/verifyOtp/signInWithPassword, qui changent l'identite
+   *  Auth active (differente de l'anonyme de depart). */
+  async function rafraichirUserId() {
+    const { data: { session } } = await supabase.auth.getSession()
+    userId = session.user.id
+    return session
   }
 
-  async function surConnexionValidee(telephone) {
-    profil = await connecterParTelephone(telephone)
+  /** Callback unique de SecuriserCompte (inscription, migration, mot de
+   *  passe oublie -- meme flux dans les 3 cas, voir ce composant). */
+  async function surSecuriseTermine({ profil: profilTrouve, telephone }) {
+    await rafraichirUserId()
+    if (profilTrouve) {
+      profil = profilTrouve
+      vueAuth = 'accueil'
+    } else {
+      telephoneEnCoursInscription = telephone
+      vueAuth = 'inscription-details'
+    }
+  }
+
+  async function surInscriptionDetailsValidee(donnees) {
+    profil = await creerProfil(userId, { ...donnees, telephone: telephoneEnCoursInscription })
+  }
+
+  async function surConnexionReussie() {
+    await rafraichirUserId()
+    profil = await chargerProfil(userId)
+    vueAuth = 'accueil'
   }
 
   async function surSuppression() {
@@ -106,11 +145,21 @@
   <p class="etat">Chargement…</p>
 {:else if erreurInit}
   <p class="etat erreur">{erreurInit}</p>
-{:else if !profil}
+{:else if !profil || vueAuth === 'securiser-existant'}
   {#if vueAuth === 'connexion'}
-    <Connexion onValide={surConnexionValidee} onRetour={() => (vueAuth = 'accueil')} />
+    <Connexion
+      onValide={surConnexionReussie}
+      onRetour={() => (vueAuth = 'accueil')}
+      onSansMotDePasse={() => (vueAuth = 'securiser')}
+    />
   {:else if vueAuth === 'inscription'}
-    <Inscription onValide={surInscriptionValidee} />
+    <SecuriserCompte onTermine={surSecuriseTermine} onRetour={() => (vueAuth = 'accueil')} />
+  {:else if vueAuth === 'inscription-details'}
+    <Inscription telephone={telephoneEnCoursInscription} onValide={surInscriptionDetailsValidee} />
+  {:else if vueAuth === 'securiser'}
+    <SecuriserCompte onTermine={surSecuriseTermine} onRetour={() => (vueAuth = 'connexion')} />
+  {:else if vueAuth === 'securiser-existant'}
+    <SecuriserCompte telephoneConnu={profil?.Phone} onTermine={surSecuriseTermine} />
   {:else}
     <Accueil onConnexion={() => (vueAuth = 'connexion')} onInscription={() => (vueAuth = 'inscription')} />
   {/if}

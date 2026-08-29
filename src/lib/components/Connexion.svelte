@@ -1,19 +1,27 @@
 <script>
-  // Ecran de connexion a un compte existant, par numero de telephone
-  // (declaratif, pas d'OTP -- meme principe que l'inscription, decision
-  // actee le 2026-08-24). Complement d'Accueil.svelte.
+  // Ecran de connexion a un compte existant, par telephone + mot de passe
+  // reel (remplace la connexion declarative du 2026-08-24 -- decision de
+  // Gilles le 2026-08-29). Le cas "pas encore de mot de passe" (compte
+  // Usager cree avant ce changement, ou mot de passe oublie) est gere par
+  // SecuriserCompte.svelte, atteint via le lien ci-dessous plutot que
+  // devine automatiquement -- Supabase ne distingue pas "mauvais mot de
+  // passe" de "compte pas encore migre" cote client, donc pas de detection
+  // fiable possible ici.
 
-  let { onValide, onRetour } = $props()
+  import { supabase } from '../supabaseClient.js'
+
+  let { onValide, onRetour, onSansMotDePasse } = $props()
 
   let indicatif = $state('+33')
   let numeroLocal = $state('')
+  let motDePasse = $state('')
   let erreur = $state('')
   let enCours = $state(false)
 
   async function valider() {
     erreur = ''
-    if (!numeroLocal.trim()) {
-      erreur = 'Entre ton numéro de portable.'
+    if (!numeroLocal.trim() || !motDePasse) {
+      erreur = 'Entre ton numéro de portable et ton mot de passe.'
       return
     }
 
@@ -21,11 +29,11 @@
     try {
       const chiffres = numeroLocal.replace(/\D/g, '')
       const telephone = `${indicatif} ${chiffres.slice(0, 3)} ${chiffres.slice(3, 6)} ${chiffres.slice(6, 9)}`.trim()
-      await onValide(telephone)
+      const { error } = await supabase.auth.signInWithPassword({ phone: telephone, password: motDePasse })
+      if (error) throw error
+      await onValide?.()
     } catch (e) {
-      erreur = e.message === 'compte_introuvable'
-        ? "Aucun compte n'est associé à ce numéro."
-        : 'Connexion impossible pour le moment. Réessaie dans un instant.'
+      erreur = 'Numéro ou mot de passe incorrect.'
       console.error(e)
     } finally {
       enCours = false
@@ -35,7 +43,7 @@
 
 <div class="connexion">
   <h1>Se connecter</h1>
-  <p class="aide">Retrouve ton compte avec le numéro de portable utilisé à l'inscription.</p>
+  <p class="aide">Retrouve ton compte avec ton numéro de portable et ton mot de passe.</p>
 
   <label class="champ">
     <span>Numéro de portable</span>
@@ -48,7 +56,11 @@
         aria-label="Numéro de portable"
       />
     </div>
-    <small>Déclaratif pour l'instant, pas de code envoyé par SMS.</small>
+  </label>
+
+  <label class="champ">
+    <span>Mot de passe</span>
+    <input type="password" bind:value={motDePasse} />
   </label>
 
   {#if erreur}<p class="erreur">{erreur}</p>{/if}
@@ -56,6 +68,7 @@
   <button type="button" class="valider" onclick={valider} disabled={enCours}>
     {enCours ? 'Connexion…' : 'Se connecter'}
   </button>
+  <button type="button" class="lien" onclick={onSansMotDePasse}>Pas encore de mot de passe, ou mot de passe oublié ?</button>
   <button type="button" class="retour" onclick={onRetour}>Retour</button>
 </div>
 
@@ -98,7 +111,8 @@
   }
 
   input[type='text'],
-  input[type='tel'] {
+  input[type='tel'],
+  input[type='password'] {
     min-height: 44px;
     padding: 0 0.7rem;
     border-radius: 8px;
@@ -111,11 +125,6 @@
   .indicatif {
     width: 4rem;
     text-align: center;
-  }
-
-  small {
-    color: #777;
-    font-size: 0.78rem;
   }
 
   .erreur {
@@ -138,6 +147,16 @@
   .valider:disabled {
     opacity: 0.6;
     cursor: default;
+  }
+
+  .lien {
+    border: none;
+    background: transparent;
+    color: #540e28;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
   }
 
   .retour {

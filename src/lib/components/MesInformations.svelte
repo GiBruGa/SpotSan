@@ -10,8 +10,10 @@
 
   const HANDICAPS_POSSIBLES = ['Visuel', 'Moteur']
 
-  let indicatif = $state(profil.Phone?.split(' ')[0] ?? '+33')
-  let numeroLocal = $state(profil.Phone?.split(' ').slice(1).join('') ?? '')
+  // Le telephone n'est plus modifiable ici depuis le 2026-08-29 : c'est
+  // desormais l'identifiant Auth verifie (telephone+mot de passe), le
+  // changer necessite une nouvelle verification par SMS -- hors perimetre
+  // de cet ecran, pas de UI de changement de numero pour l'instant.
   let nom = $state(profil.Nom ?? '')
   let prenom = $state(profil.Prenom ?? '')
   let pseudo = $state(profil.pseudo ?? '')
@@ -29,8 +31,8 @@
 
   async function enregistrer() {
     erreur = ''
-    if (!numeroLocal.trim() || !pseudo.trim()) {
-      erreur = 'Le numéro de portable et le pseudo sont obligatoires.'
+    if (!pseudo.trim()) {
+      erreur = 'Le pseudo est obligatoire.'
       return
     }
     if (!nom.trim() || !prenom.trim()) {
@@ -39,10 +41,8 @@
     }
     enCours = true
     try {
-      const chiffres = numeroLocal.replace(/\D/g, '')
-      const telephone = `${indicatif} ${chiffres.slice(0, 3)} ${chiffres.slice(3, 6)} ${chiffres.slice(6, 9)}`.trim()
       const nouveauProfil = await mettreAJourProfil(userId, {
-        telephone,
+        telephone: profil.Phone,
         nom: nom.trim(),
         prenom: prenom.trim(),
         pseudo: pseudo.trim(),
@@ -65,13 +65,10 @@
 <div class="mes-infos">
   <h2>Mes informations</h2>
 
-  <label class="champ">
-    <span>Numéro de portable *</span>
-    <div class="tel">
-      <input type="text" bind:value={indicatif} class="indicatif" aria-label="Indicatif pays" />
-      <input type="tel" bind:value={numeroLocal} aria-label="Numéro de portable" />
-    </div>
-  </label>
+  <div class="champ">
+    <span>Numéro de portable</span>
+    <p class="valeur-figee">{profil.Phone}</p>
+  </div>
 
   <label class="champ">
     <span>Nom *</span>
@@ -165,14 +162,16 @@
     background: #fff;
   }
 
-  .tel {
+  .valeur-figee {
+    margin: 0;
+    padding: 0 0.6rem;
+    min-height: 40px;
     display: flex;
-    gap: 0.4rem;
-  }
-
-  .indicatif {
-    width: 3.5rem;
-    text-align: center;
+    align-items: center;
+    color: #555;
+    font-size: 0.9rem;
+    background: #f5f0eb;
+    border-radius: 8px;
   }
 
   .chips {

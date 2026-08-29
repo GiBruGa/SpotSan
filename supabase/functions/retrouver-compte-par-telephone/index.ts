@@ -1,20 +1,25 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-// Connexion a un compte existant par numero de telephone (declaratif, pas
-// d'OTP -- meme niveau de confiance que l'inscription, decision actee avec
-// Gilles le 2026-08-24). Deployee via l'integration Supabase MCP (pas de
-// Supabase CLI dans ce depot) -- ce fichier est la copie de reference
-// versionnee dans git.
+// Remplace login-by-phone (2026-08-29, passage au telephone+mot de passe
+// reel -- decision de Gilles). Ancien role : LA mecanique de connexion
+// elle-meme (declaratif, sans verification). Nouveau role : un helper
+// appele juste APRES une verification reelle du telephone (signInWithOtp
+// + verifyOtp, voir SecuriserCompte.svelte cote client) pour retrouver
+// et reattacher les donnees SitInZen_Users/Sanitary_Reviews d'un compte
+// qui vivait encore sous un ancien user_id anonyme (cree avant ce
+// changement, ou sur un autre appareil). Deployee via l'integration
+// Supabase MCP (pas de Supabase CLI dans ce depot) -- ce fichier est la
+// copie de reference versionnee dans git.
 //
-// L'appelant est deja une session anonyme fraiche (sans profil SitInZen_Users
-// encore) au moment ou cet ecran est atteignable -- voir App.svelte. On
-// retrouve le compte existant par Phone, puis on RE-POINTE ses lignes
-// (SitInZen_Users, Sanitary_Reviews) vers l'auth.uid() de la session
-// appelante, dans cet ordre precis : reassigner AVANT de supprimer
-// l'ancien auth.users, sinon une eventuelle cascade FK supprimerait le
-// profil qu'on veut justement garder. Le module badge (SitInZen_Badges,
-// Access_Grants) n'est pas touche ici -- "en cours, ne pas toucher
-// incidemment" (V2-PLAN.md §4).
+// Trois issues possibles, toutes en 200 (aucune n'est une erreur) :
+//  - profil trouve sous un AUTRE user_id -> reassigne a l'appelant, renvoye
+//  - profil deja sous le user_id de l'appelant -> renvoye tel quel (no-op)
+//  - aucun profil pour ce telephone -> { profil: null } (nouvelle inscription)
+//
+// Reassigner AVANT de supprimer l'ancien auth.users, sinon une eventuelle
+// cascade FK supprimerait le profil qu'on veut justement garder. Le module
+// badge (SitInZen_Badges, Access_Grants) n'est pas touche ici -- "en cours,
+// ne pas toucher incidemment" (V2-PLAN.md §4).
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,13 +64,17 @@ Deno.serve(async (req: Request) => {
       .from("SitInZen_Users")
       .select("*")
       .eq("Phone", telephone)
-      .neq("user_id", user.id)
       .maybeSingle();
     if (rechercheError) throw rechercheError;
 
     if (!existant) {
-      return new Response(JSON.stringify({ error: "compte_introuvable" }), {
-        status: 404,
+      return new Response(JSON.stringify({ profil: null }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (existant.user_id === user.id) {
+      return new Response(JSON.stringify({ profil: existant }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -86,10 +95,11 @@ Deno.serve(async (req: Request) => {
       .eq("user_id", ancienUserId);
     if (reassignAvisError) throw reassignAvisError;
 
-    // Best-effort : l'ancienne session anonyme devient orpheline. Si la
-    // suppression echoue (compte deja supprime entre-temps, etc.), le
-    // transfert du profil ci-dessus reste valide -- on ne bloque pas
-    // dessus.
+    // Best-effort : l'ancien user_id devient orphelin (anonyme, ou meme
+    // reel si l'appelant s'est deja identifie ailleurs entre-temps -- rare,
+    // mais sans consequence : ses seules donnees etaient deja reassignees
+    // ci-dessus). Si la suppression echoue, le transfert du profil reste
+    // valide -- on ne bloque pas dessus.
     await adminClient.auth.admin.deleteUser(ancienUserId).catch(() => {});
 
     return new Response(JSON.stringify({ profil: profilTransfere }), {
