@@ -92,9 +92,11 @@
 
   /* Nom en deux couleurs (Charte Graphique UrBizia.md §1). Cet ecran est
      encore light-only (pas de couverture theme sombre ici, cf. le "reste"
-     deja note ailleurs) -- valeurs mode clair uniquement pour l'instant. */
+     deja note ailleurs) -- valeurs mode clair uniquement pour l'instant.
+     Corrige 2026-08-24, 2e fois (1ere correction utilisait a tort #81093C
+     pour le 1er segment -- erreur de recopie des hex, corrigee le meme jour). */
   .wm-strong {
-    color: #81093c;
+    color: #540e28;
   }
 
   .wm-soft {
