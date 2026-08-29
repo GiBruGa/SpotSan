@@ -7,8 +7,9 @@
 
   import BoutonPhoto from './BoutonPhoto.svelte'
   import { signalerIncivilite, TAXONOMIE_INCIVILITES } from '../incidents.js'
+  import { obtenirPosition } from '../geolocalisation.js'
 
-  let { userId, ubId, onFerme } = $props()
+  let { ubId, onFerme } = $props()
 
   let photoUrl = $state(null)
   let tag = $state(null)
@@ -28,11 +29,18 @@
     }
     enCours = true
     try {
-      await signalerIncivilite({ userId, ubId, photoUrl, tag, description })
+      const { lat, lon } = await obtenirPosition()
+      await signalerIncivilite({ ubId, photoUrl, tag, description, lat, lon })
       onFerme?.()
     } catch (e) {
       console.error(e)
-      erreur = 'Envoi impossible, réessaie.'
+      if (e.message === 'geolocalisation_indisponible' || e.message === 'geolocalisation_refusee') {
+        erreur = 'Active la localisation pour signaler — il faut être sur place, près du sanitaire.'
+      } else if (e.message?.includes('trop_loin')) {
+        erreur = 'Tu dois être à proximité du sanitaire pour signaler.'
+      } else {
+        erreur = 'Envoi impossible, réessaie.'
+      }
     } finally {
       enCours = false
     }

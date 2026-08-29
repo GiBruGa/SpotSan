@@ -166,7 +166,7 @@
 {:else if ubIdFormulaire}
   <FormulaireAvis {userId} ubId={ubIdFormulaire} onFerme={surFermetureFormulaire} />
 {:else if ubIdSignalement}
-  <SignalerIncivilite {userId} ubId={ubIdSignalement} onFerme={surFermetureSignalement} />
+  <SignalerIncivilite ubId={ubIdSignalement} onFerme={surFermetureSignalement} />
 {:else if ubIdFiche}
   {#key versionFiche}
     <FicheSanitaire

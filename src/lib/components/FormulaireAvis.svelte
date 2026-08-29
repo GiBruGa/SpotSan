@@ -9,6 +9,7 @@
   import { CELLULES, ACCESSIBILITE_OPTIONS, TYPE_OPTIONS, EQUIPEMENTS } from '../config/cellules.js'
   import { chargerDernierAvis } from '../avis.js'
   import { sauvegarderAvis } from '../queueAvis.js'
+  import { obtenirPosition } from '../geolocalisation.js'
 
   const SIGNALETIQUE_OPTIONS = [
     { valeur: 'Disponible', label: 'Disponible' },
@@ -102,20 +103,24 @@
     enregistrement = true
     messageStatut = ''
     try {
+      const { lat, lon } = await obtenirPosition()
       const { horsLigne } = await sauvegarderAvis({
-        user_id: userId,
         ub_id: ubId,
-        avis_general: avisGeneral,
-        commentaire: commentaire.trim() || null,
-        configuration,
-        etats,
-        eclairage_naturel: eclairageNaturel,
-        verrou_mecanique: verrouMecanique,
-        photo_vue_loin: photoVueLoin,
-        signaletique,
-        photo_signaletique: photoSignaletique,
-        photo_acces: photoAcces,
-        photos_confort: photosConfort,
+        lat,
+        lon,
+        donnees: {
+          avis_general: avisGeneral,
+          commentaire: commentaire.trim() || null,
+          configuration,
+          etats,
+          eclairage_naturel: eclairageNaturel,
+          verrou_mecanique: verrouMecanique,
+          photo_vue_loin: photoVueLoin,
+          signaletique,
+          photo_signaletique: photoSignaletique,
+          photo_acces: photoAcces,
+          photos_confort: photosConfort,
+        },
       })
       messageStatut = horsLigne
         ? 'Pas de réseau — ton avis est enregistré sur ton téléphone et sera envoyé dès que possible.'
@@ -123,7 +128,13 @@
       setTimeout(() => onFerme?.(), 900)
     } catch (e) {
       console.error(e)
-      messageStatut = "Erreur inattendue, réessaie."
+      if (e.message === 'geolocalisation_indisponible' || e.message === 'geolocalisation_refusee') {
+        messageStatut = 'Active la localisation pour donner ton avis — il faut être sur place, près du sanitaire.'
+      } else if (e.message?.includes('trop_loin')) {
+        messageStatut = 'Tu dois être à proximité du sanitaire pour donner ton avis.'
+      } else {
+        messageStatut = 'Erreur inattendue, réessaie.'
+      }
     } finally {
       enregistrement = false
     }

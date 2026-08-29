@@ -18,16 +18,20 @@ export const TAXONOMIE_INCIVILITES = [
 /**
  * Signalement d'Incivilité/Vandalisme (Lot 6, §5.6.3) : photo + tag
  * obligatoires (le tag sert de label d'entrainement IA, pas juste de
- * confort de navigation), texte libre optionnel. Append-only, comme v1
- * -- un INSERT direct, pas d'update possible (pas de policy UPDATE).
+ * confort de navigation), texte libre optionnel. Append-only, comme v1 --
+ * jamais modifiable ni supprimable cote Usager (seul un admin le peut,
+ * depuis EkoMa). Passe par le RPC signaler_incivilite (2026-08-29) plutot
+ * qu'un insert direct : verifie la contrainte de proximite cote serveur
+ * avant d'ecrire -- user_id vient de auth.uid(), plus besoin de le passer.
  */
-export async function signalerIncivilite({ userId, ubId, photoUrl, tag, description }) {
-  const { error } = await supabase.from('Incident_Reports').insert({
-    UB_id: ubId,
-    user_id: userId,
-    Photo: photoUrl,
-    tag,
-    Description: description?.trim() || null,
+export async function signalerIncivilite({ ubId, photoUrl, tag, description, lat, lon }) {
+  const { error } = await supabase.rpc('signaler_incivilite', {
+    p_ub_id: ubId,
+    p_lat: lat,
+    p_lon: lon,
+    p_tag: tag,
+    p_description: description?.trim() || null,
+    p_photo: photoUrl,
   })
   if (error) throw error
 }
