@@ -56,7 +56,7 @@
 </script>
 
 <header class="bandeau">
-  <span class="marque">SpotSan <span class="version">{APP_VERSION}</span></span>
+  <span class="marque"><span class="wm-strong">Spot</span><span class="wm-soft">San</span> <span class="version">{APP_VERSION}</span></span>
 
   <button type="button" class="profil-bouton" onclick={toggleMenu} aria-expanded={menuOuvert}>
     {#if profil.avatar_url?.startsWith('http')}
@@ -133,6 +133,20 @@
   .marque {
     font-weight: 700;
     font-size: 1.1rem;
+  }
+
+  /* Wordmark deux couleurs (Charte Graphique UrBizia.md §1). Le fond du bandeau est --accent
+     (#540e28) en permanence, quel que soit le theme clair/sombre de l'app (--accent n'est pas
+     redefini par le theme dans app.css) -- donc on utilise toujours les valeurs "mode sombre"
+     de la regle ici : elles contrastent correctement sur ce fond fixe, contrairement aux valeurs
+     mode clair (#540E28 serait invisible sur un fond #540E28) ou aux premieres valeurs #81093C
+     essayees avant correction (contraste insuffisant, cf. memoire "charte graphique"). */
+  .wm-strong {
+    color: #c55a7a;
+  }
+
+  .wm-soft {
+    color: #ffc3d5;
   }
 
   .version {
