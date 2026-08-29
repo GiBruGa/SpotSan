@@ -12,10 +12,13 @@
 
   let indicatif = $state(profil.Phone?.split(' ')[0] ?? '+33')
   let numeroLocal = $state(profil.Phone?.split(' ').slice(1).join('') ?? '')
+  let nom = $state(profil.Nom ?? '')
+  let prenom = $state(profil.Prenom ?? '')
   let pseudo = $state(profil.pseudo ?? '')
   let avatar = $state(profil.avatar_url ?? null)
   let sexe = $state(profil.Sexe_Declare ?? null)
   let anneeNaissance = $state(profil.Birthdate ? Number(profil.Birthdate.slice(0, 4)) : '')
+  let adresse = $state(profil.Adresse ?? '')
   let handicaps = $state(profil.handicaps ?? [])
   let enCours = $state(false)
   let erreur = $state('')
@@ -30,16 +33,23 @@
       erreur = 'Le numéro de portable et le pseudo sont obligatoires.'
       return
     }
+    if (!nom.trim() || !prenom.trim()) {
+      erreur = 'Le nom et le prénom sont obligatoires.'
+      return
+    }
     enCours = true
     try {
       const chiffres = numeroLocal.replace(/\D/g, '')
       const telephone = `${indicatif} ${chiffres.slice(0, 3)} ${chiffres.slice(3, 6)} ${chiffres.slice(6, 9)}`.trim()
       const nouveauProfil = await mettreAJourProfil(userId, {
         telephone,
+        nom: nom.trim(),
+        prenom: prenom.trim(),
         pseudo: pseudo.trim(),
         avatar,
         sexe,
         anneeNaissance: anneeNaissance ? Number(anneeNaissance) : null,
+        adresse: adresse.trim() || null,
         handicaps,
       })
       onEnregistre?.(nouveauProfil)
@@ -64,6 +74,16 @@
   </label>
 
   <label class="champ">
+    <span>Nom *</span>
+    <input type="text" bind:value={nom} maxlength="80" />
+  </label>
+
+  <label class="champ">
+    <span>Prénom *</span>
+    <input type="text" bind:value={prenom} maxlength="80" />
+  </label>
+
+  <label class="champ">
     <span>Pseudo *</span>
     <input type="text" bind:value={pseudo} maxlength="30" />
   </label>
@@ -84,6 +104,11 @@
   <label class="champ">
     <span>Année de naissance (facultatif)</span>
     <input type="number" bind:value={anneeNaissance} min="1900" max="2026" />
+  </label>
+
+  <label class="champ">
+    <span>Adresse (facultatif)</span>
+    <input type="text" bind:value={adresse} maxlength="200" />
   </label>
 
   <div class="champ">

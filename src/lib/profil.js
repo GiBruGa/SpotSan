@@ -14,10 +14,13 @@ export async function chargerProfil(userId) {
  * @param {string} userId
  * @param {{
  *   telephone: string,
+ *   nom: string,
+ *   prenom: string,
  *   pseudo: string,
  *   avatar: string,
  *   sexe: 'Homme' | 'Femme' | null,
  *   anneeNaissance: number | null,
+ *   adresse: string | null,
  *   handicaps: string[],
  * }} profil
  */
@@ -27,10 +30,13 @@ export async function creerProfil(userId, profil) {
     .insert({
       user_id: userId,
       Phone: profil.telephone,
+      Nom: profil.nom,
+      Prenom: profil.prenom,
       pseudo: profil.pseudo,
       avatar_url: profil.avatar,
       Sexe_Declare: profil.sexe,
       Birthdate: profil.anneeNaissance ? `${profil.anneeNaissance}-01-01` : null,
+      Adresse: profil.adresse || null,
       handicaps: profil.handicaps.length ? profil.handicaps : null,
       consent_at: new Date().toISOString(),
       phone_verified: false,
@@ -55,18 +61,21 @@ export async function supprimerCompte() {
 }
 
 /**
- * Met a jour les informations personnelles (pseudo/avatar/telephone/sexe/
- * annee/handicaps). Ne touche jamais phone_verified/consent_at.
+ * Met a jour les informations personnelles (pseudo/avatar/telephone/nom/
+ * prenom/sexe/annee/adresse/handicaps). Ne touche jamais phone_verified/consent_at.
  */
 export async function mettreAJourProfil(userId, profil) {
   const { data, error } = await supabase
     .from('SitInZen_Users')
     .update({
       Phone: profil.telephone,
+      Nom: profil.nom,
+      Prenom: profil.prenom,
       pseudo: profil.pseudo,
       avatar_url: profil.avatar,
       Sexe_Declare: profil.sexe,
       Birthdate: profil.anneeNaissance ? `${profil.anneeNaissance}-01-01` : null,
+      Adresse: profil.adresse || null,
       handicaps: profil.handicaps.length ? profil.handicaps : null,
     })
     .eq('user_id', userId)

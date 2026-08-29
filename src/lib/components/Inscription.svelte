@@ -11,10 +11,13 @@
 
   let indicatif = $state('+33')
   let numeroLocal = $state('')
+  let nom = $state('')
+  let prenom = $state('')
   let pseudo = $state('')
   let avatar = $state(null)
   let sexe = $state(null) // 'Homme' | 'Femme' | null (= non precise)
   let anneeNaissance = $state('')
+  let adresse = $state('')
   let handicaps = $state([])
   let accepteConditions = $state(false)
   let erreur = $state('')
@@ -31,6 +34,10 @@
     erreur = ''
     if (!numeroLocal.trim()) {
       erreur = 'Le numéro de portable est obligatoire.'
+      return
+    }
+    if (!nom.trim() || !prenom.trim()) {
+      erreur = 'Le nom et le prénom sont obligatoires.'
       return
     }
     if (!pseudo.trim()) {
@@ -50,10 +57,13 @@
 
       await onValide({
         telephone,
+        nom: nom.trim(),
+        prenom: prenom.trim(),
         pseudo: pseudo.trim(),
         avatar,
         sexe,
         anneeNaissance: anneeNaissance ? Number(anneeNaissance) : null,
+        adresse: adresse.trim() || null,
         handicaps,
       })
     } catch (e) {
@@ -83,6 +93,16 @@
   </label>
 
   <label class="champ">
+    <span>Nom *</span>
+    <input type="text" bind:value={nom} maxlength="80" />
+  </label>
+
+  <label class="champ">
+    <span>Prénom *</span>
+    <input type="text" bind:value={prenom} maxlength="80" />
+  </label>
+
+  <label class="champ">
     <span>Pseudo *</span>
     <input type="text" bind:value={pseudo} maxlength="30" />
   </label>
@@ -108,6 +128,11 @@
     <input type="number" bind:value={anneeNaissance} min="1900" max="2026" placeholder="1990" />
   </label>
 
+  <label class="champ">
+    <span>Adresse (facultatif)</span>
+    <input type="text" bind:value={adresse} maxlength="200" />
+  </label>
+
   <div class="champ">
     <span>Handicap(s) déclarés (facultatif)</span>
     <div class="chips">
@@ -123,9 +148,9 @@
 
   <div class="legal">
     <p>
-      Les informations que tu fournis (numéro de portable, pseudo, avatar, et les champs
-      facultatifs ci-dessus) sont utilisées uniquement pour te reconnaître d'un avis à l'autre
-      et éviter les doublons. Elles ne sont ni vendues ni partagées avec un tiers.
+      Les informations que tu fournis (numéro de portable, nom, prénom, pseudo, avatar, et les
+      champs facultatifs ci-dessus) sont utilisées uniquement pour te reconnaître d'un avis à
+      l'autre et éviter les doublons. Elles ne sont ni vendues ni partagées avec un tiers.
     </p>
     <p>
       <strong>Tu peux à tout moment demander la suppression de ton compte et de toutes tes
