@@ -35,7 +35,7 @@
     <button type="button" class="secondaire" onclick={onConnexion}>J'ai déjà un compte</button>
   </div>
 
-  <p class="rights">© 2026 UrBizia — Outil interne, tous droits réservés et exclusifs.</p>
+  <p class="rights">© 2026 UrBizia — Tous droits réservés.</p>
   {#if apropos}
     <div class="apropos-overlay">
       <div class="apropos-box">
