@@ -60,16 +60,12 @@
     gap: 1rem;
   }
 
-  /* Cadre circulaire "a l'androide", meme convention que EkoMa (2026-08-24) : l'icone source a
-     une marge de securite autour du pictogramme sur son plan de travail 512x512, qui se verrait
-     comme du vide si affichee telle quelle. overflow:hidden + l'image agrandie a 125% (centree
-     par le flex) rogne cette marge au niveau du cercle GRIS du gabarit Android (reference W3C,
-     80% de diametre -- pas le cercle rouge/66%, plus strict, qui sert a dessiner l'icone). */
+  /* Logo "usage general" (Charte Graphique UrBizia.md §4, revu le 2026-08-29) : affiche tel
+     quel, carre, sans rognage ni zoom -- seuls l'icone OS/PWA (gabarit dedie, pas affiche ici)
+     et l'avatar (cercle delibere de l'UI, cf. BandeauEntete.svelte) gardent un cadre circulaire. */
   .logo {
     width: 216px;
     height: 216px;
-    border-radius: 50%;
-    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -78,8 +74,8 @@
   }
 
   .logo img {
-    width: 125%;
-    height: 125%;
+    width: 100%;
+    height: 100%;
     display: block;
     flex-shrink: 0;
   }

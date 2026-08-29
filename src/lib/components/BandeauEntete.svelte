@@ -62,7 +62,7 @@
     {#if profil.avatar_url?.startsWith('http')}
       <img class="avatar-photo" src={profil.avatar_url} alt="" />
     {:else if avatarParDefaut}
-      <img class="avatar-photo" src={avatarParDefaut} alt="" />
+      <span class="avatar-defaut"><img src={avatarParDefaut} alt="" /></span>
     {/if}
     <span class="pseudo">{profil.pseudo}</span>
   </button>
@@ -173,6 +173,27 @@
     height: 26px;
     border-radius: 50%;
     object-fit: cover;
+  }
+
+  /* Icone par defaut (pas de vraie photo) : dessinee sur le gabarit
+     avatar (cercle de securite a 90%), zoom 111% (1/0.9) pour caler ce
+     cercle sur le cadre visible -- voir Charte Graphique UrBizia.md §4. */
+  .avatar-defaut {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .avatar-defaut img {
+    width: 111%;
+    height: 111%;
+    display: block;
+    flex-shrink: 0;
   }
 
   .pseudo {
