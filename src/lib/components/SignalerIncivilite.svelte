@@ -6,16 +6,31 @@
   // d'entrainement, pas un confort de navigation.
 
   import BoutonPhoto from './BoutonPhoto.svelte'
-  import { signalerIncivilite, TAXONOMIE_INCIVILITES } from '../incidents.js'
+  import { signalerIncivilite, chargerTaxonomieIncivilites } from '../incidents.js'
   import { obtenirPosition } from '../geolocalisation.js'
+  import { onMount } from 'svelte'
 
   let { ubId, onFerme } = $props()
 
   let photoUrl = $state(null)
-  let tag = $state(null)
+  let tags = $state([])
+  let taxonomie = $state([])
   let description = $state('')
   let enCours = $state(false)
   let erreur = $state('')
+
+  onMount(async () => {
+    try {
+      taxonomie = await chargerTaxonomieIncivilites()
+    } catch (e) {
+      console.error(e)
+      erreur = 'Impossible de charger la liste des problèmes, réessaie.'
+    }
+  })
+
+  function basculer(t) {
+    tags = tags.includes(t) ? tags.filter((x) => x !== t) : [...tags, t]
+  }
 
   async function envoyer() {
     erreur = ''
@@ -23,14 +38,14 @@
       erreur = 'Une photo est obligatoire pour signaler une Incivilité ou un Vandalisme.'
       return
     }
-    if (!tag) {
-      erreur = 'Choisis le type de problème constaté.'
+    if (!tags.length) {
+      erreur = 'Choisis au moins un type de problème constaté.'
       return
     }
     enCours = true
     try {
       const { lat, lon } = await obtenirPosition()
-      await signalerIncivilite({ ubId, photoUrl, tag, description, lat, lon })
+      await signalerIncivilite({ ubId, photoUrl, tags, description, lat, lon })
       onFerme?.()
     } catch (e) {
       console.error(e)
@@ -62,10 +77,10 @@
   </section>
 
   <section class="champ">
-    <span>Type de problème *</span>
+    <span>Type de problème * <span class="hint">(plusieurs choix possibles)</span></span>
     <div class="chips">
-      {#each TAXONOMIE_INCIVILITES as t (t)}
-        <button type="button" class:selected={tag === t} onclick={() => (tag = tag === t ? null : t)}>{t}</button>
+      {#each taxonomie as t (t)}
+        <button type="button" class:selected={tags.includes(t)} onclick={() => basculer(t)}>{t}</button>
       {/each}
     </div>
   </section>
@@ -116,6 +131,12 @@
   .champ span {
     font-weight: 600;
     font-size: 0.9rem;
+  }
+
+  .champ .hint {
+    font-weight: 400;
+    color: #888;
+    font-size: 0.78rem;
   }
 
   .chips {
