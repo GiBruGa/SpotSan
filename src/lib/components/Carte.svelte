@@ -33,14 +33,14 @@
 
   const VUE_PAR_DEFAUT = { lat: 46.6, lon: 2.5, zoom: 6 } // France entiere
 
+  // CARTO exige desormais une cle API pour ses fonds de carte (raster) --
+  // watermark "API KEY REQUIRED" signale le 2026-08-31. Bascule sur OSM
+  // standard : gratuit, sans cle, mais un seul style (pas de variante
+  // sombre dediee comme avec CARTO dark_all/light_all).
   function ajouterTuiles() {
-    const sombre = window.matchMedia('(prefers-color-scheme: dark)').matches
-    const url = sombre
-      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-    L.tileLayer(url, {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      maxZoom: 20,
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
+      maxZoom: 19,
     }).addTo(map)
   }
 
