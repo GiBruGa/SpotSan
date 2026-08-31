@@ -7,7 +7,8 @@
   // > bouton "Donnez votre avis".
 
   import { onMount } from 'svelte'
-  import { chargerSanitaire, chargerResumeAvis } from '../sanitaires.js'
+  import { chargerSanitaire, chargerResumeAvis, signalerStatutSanitaire } from '../sanitaires.js'
+  import { obtenirPosition } from '../geolocalisation.js'
   import { CELLULES, EQUIPEMENTS } from '../config/cellules.js'
   import IndicateurEtat from './IndicateurEtat.svelte'
 
@@ -29,6 +30,35 @@
 
   function libelle(cle, liste) {
     return liste.find((x) => x.cle === cle)?.label ?? cle
+  }
+
+  // Signalement "Inexistant"/"Hors Service" -- systeme de consensus type
+  // Waze (3 signalements concordants basculent la categorie sur la carte),
+  // cf. signaler_statut_sanitaire cote base. Meme contrainte de proximite
+  // que "Donner son avis" (il faut etre sur place).
+  let statutEnCours = $state(null)
+  let messageStatut = $state('')
+  async function signalerStatut(statut) {
+    statutEnCours = statut
+    messageStatut = ''
+    try {
+      const { lat, lon } = await obtenirPosition()
+      const { bascule } = await signalerStatutSanitaire(ubId, statut, { lat, lon })
+      messageStatut = bascule
+        ? 'Merci — assez de signalements concordants, la carte est mise à jour.'
+        : 'Merci, ton signalement est enregistré.'
+    } catch (e) {
+      console.error(e)
+      if (e.message === 'geolocalisation_indisponible' || e.message === 'geolocalisation_refusee') {
+        messageStatut = 'Active la localisation pour signaler — il faut être sur place.'
+      } else if (e.message?.includes('trop_loin')) {
+        messageStatut = 'Tu dois être à proximité du sanitaire pour signaler.'
+      } else {
+        messageStatut = 'Erreur inattendue, réessaie.'
+      }
+    } finally {
+      statutEnCours = null
+    }
   }
 
   // Fallback vers les comptages v1 (deja fiables, source StatSan) quand
@@ -59,11 +89,6 @@
     <p class="mention-predecesseurs">Informations données par vos prédécesseurs</p>
 
     <section class="bloc">
-      <h2>Photos</h2>
-      <p class="a-venir">Photos à venir (Lot 6).</p>
-    </section>
-
-    <section class="bloc">
       <h2>Avis général et état</h2>
       {#if resume?.suffisant}
         <p class="note">D'après {resume.total_avis} avis.</p>
@@ -84,6 +109,35 @@
       {:else}
         <p class="note">Aucun avis pour l'instant — sois le premier à en laisser un.</p>
       {/if}
+    </section>
+
+    <!-- Hors du bloc de lecture (pointer-events:none) : ce sont de vraies
+         actions, cf. principe "lecture <> saisie" du haut de ce fichier. -->
+    <div class="signalement-statut">
+      <span class="signalement-question">Ce sanitaire a disparu ou ne fonctionne plus ?</span>
+      <div class="signalement-boutons">
+        <button type="button" disabled={!!statutEnCours} onclick={() => signalerStatut('Inexistant')}>
+          {statutEnCours === 'Inexistant' ? 'Signalement…' : 'Inexistant'}
+        </button>
+        <button type="button" disabled={!!statutEnCours} onclick={() => signalerStatut('Hors_Service')}>
+          {statutEnCours === 'Hors_Service' ? 'Signalement…' : 'Hors Service'}
+        </button>
+      </div>
+      {#if messageStatut}<p class="signalement-message">{messageStatut}</p>{/if}
+    </div>
+
+    <section class="bloc">
+      <h2>Photos</h2>
+      {#if resume?.photos?.length}
+        <div class="galerie-photos">
+          {#each resume.photos as url (url)}
+            <img src={url} alt="" loading="lazy" />
+          {/each}
+        </div>
+      {:else}
+        <p class="note">Pas encore de photo.</p>
+      {/if}
+      <p class="note">Ajoutez des photos si vous le jugez utile, depuis « Donnez votre avis ».</p>
     </section>
 
     <section class="bloc">
@@ -207,6 +261,61 @@
   .note {
     font-size: 0.85rem;
     color: #666;
+    margin: 0;
+  }
+
+  .galerie-photos {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.2rem;
+  }
+
+  .galerie-photos img {
+    width: 84px;
+    height: 84px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .signalement-statut {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0 0.2rem;
+  }
+
+  .signalement-question {
+    font-size: 0.85rem;
+    color: #666;
+  }
+
+  .signalement-boutons {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .signalement-boutons button {
+    flex: 1;
+    min-height: 40px;
+    border-radius: 999px;
+    border: 1px solid #c55a7a;
+    background: #fff;
+    color: #c55a7a;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .signalement-boutons button:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .signalement-message {
+    font-size: 0.8rem;
+    color: #540e28;
     margin: 0;
   }
 

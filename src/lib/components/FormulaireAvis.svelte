@@ -5,17 +5,12 @@
 
   import { onMount } from 'svelte'
   import EchelleEtat from './EchelleEtat.svelte'
+  import EchelleCompte from './EchelleCompte.svelte'
   import BoutonPhoto from './BoutonPhoto.svelte'
   import { CELLULES, ACCESSIBILITE_OPTIONS, TYPE_OPTIONS, EQUIPEMENTS } from '../config/cellules.js'
   import { chargerDernierAvis } from '../avis.js'
   import { sauvegarderAvis } from '../queueAvis.js'
   import { obtenirPosition } from '../geolocalisation.js'
-
-  const SIGNALETIQUE_OPTIONS = [
-    { valeur: 'Disponible', label: 'Disponible' },
-    { valeur: 'Indisponible_nettoyage', label: 'Momentanément indisponible (nettoyage)' },
-    { valeur: 'Condamne_HS', label: 'Condamné / HS' },
-  ]
 
   let { userId, ubId, nomLieu = '', onFerme } = $props()
 
@@ -44,7 +39,6 @@
   // finalite propre a chacun (§5.6.1). Niveau 2 : photos taguees
   // confort/equipements, liste fermee (§5.6.2).
   let photoVueLoin = $state(null)
-  let signaletique = $state(null)
   let photoSignaletique = $state(null)
   let photoAcces = $state(null)
   let photosConfort = $state([])
@@ -87,7 +81,6 @@
         eclairageNaturel = dernier.eclairage_naturel
         verrouMecanique = dernier.verrou_mecanique
         photoVueLoin = dernier.photo_vue_loin
-        signaletique = dernier.signaletique
         photoSignaletique = dernier.photo_signaletique
         photoAcces = dernier.photo_acces
         photosConfort = dernier.photos_confort ?? []
@@ -116,7 +109,6 @@
           eclairage_naturel: eclairageNaturel,
           verrou_mecanique: verrouMecanique,
           photo_vue_loin: photoVueLoin,
-          signaletique,
           photo_signaletique: photoSignaletique,
           photo_acces: photoAcces,
           photos_confort: photosConfort,
@@ -175,7 +167,7 @@
           {#each CELLULES as c (c.cle)}
             <div class="ligne-cellule">
               <span class="nom-cellule">{c.label}</span>
-              <EchelleEtat bind:value={etats[c.cle]} extensions={['Abs', 'HS']} />
+              <EchelleCompte bind:value={etats[c.cle]} />
               {#if etats[c.cle] && etats[c.cle] !== 'Abs'}
                 <div class="sous-options">
                   <div class="chips">
@@ -227,6 +219,10 @@
         </section>
       {:else if etape === 4}
         <section class="grille-photos">
+          <p class="consigne-camera">
+            Prends une nouvelle photo à chaque fois — ne choisis pas une photo déjà présente sur ton téléphone.
+          </p>
+
           <div class="groupe-photo">
             <h3>Vue de loin</h3>
             <BoutonPhoto
@@ -237,15 +233,9 @@
 
           <div class="groupe-photo">
             <h3>Signalétique</h3>
-            <div class="chips">
-              {#each SIGNALETIQUE_OPTIONS as opt (opt.valeur)}
-                <button
-                  type="button"
-                  class:selected={signaletique === opt.valeur}
-                  onclick={() => (signaletique = signaletique === opt.valeur ? null : opt.valeur)}
-                >{opt.label}</button>
-              {/each}
-            </div>
+            <p class="note-photos">
+              Voyez-vous comment savoir si le sanitaire est disponible, momentanément indisponible ou Hors Service / Condamné ?
+            </p>
             <BoutonPhoto
               consigne="Rendre l'état vérifiable : cadre le panneau ou l'indicateur lui-même (affiche de fermeture, voyant), pas une vue large."
               bind:valeur={photoSignaletique}
@@ -441,6 +431,15 @@
     font-size: 0.8rem;
     color: #888;
     margin: 0 0 0.6rem;
+  }
+
+  .consigne-camera {
+    font-size: 0.8rem;
+    color: #540e28;
+    background: #f6dde3;
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    margin: 0;
   }
 
   .tags-confort {

@@ -12,6 +12,7 @@ export const COULEURS = {
   osm: '#2fb344',
   certified: '#FFC3D5',
   supprimees: '#8a5555',
+  hors_service: '#c55a7a',
 }
 
 export const LIBELLES = {
@@ -20,6 +21,7 @@ export const LIBELLES = {
   verified: 'Vérifiées = .gouv + internet',
   certified: 'contribution UrBizia',
   supprimees: 'Supprimées',
+  hors_service: 'Hors Service',
 }
 
 /** Meme ordre de priorite qu'en v1 : Certified avant Verified. */
@@ -30,6 +32,18 @@ export function classifier(t) {
   return 'osm'
 }
 
+/**
+ * Categorie effective d'affichage : supprime (Exists=false, systeme de vote
+ * "Inexistant") et hors_service (Statut_Operationnel, vote "Hors Service")
+ * prevalent sur la classification par source -- cf. sanitaires.js
+ * signalerStatutSanitaire (2026-08-31).
+ */
+export function categorieAffichage(t) {
+  if (t.Exists === false) return 'supprimees'
+  if (t.Statut_Operationnel === 'Hors_Service') return 'hors_service'
+  return classifier(t)
+}
+
 export function passeAffinages(t, affinages) {
   if (affinages.pmr && !(t.PMR > 0)) return false
   if (affinages.enfant && t.Adapte_Enfant !== true) return false
@@ -38,7 +52,7 @@ export function passeAffinages(t, affinages) {
 }
 
 export function chipsParDefaut() {
-  return { verified: true, gouv: true, osm: true, certified: true, supprimees: false }
+  return { verified: true, gouv: true, osm: true, certified: true, supprimees: false, hors_service: true }
 }
 
 export function affinagesParDefaut() {

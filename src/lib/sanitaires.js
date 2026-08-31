@@ -3,7 +3,7 @@ import { supabase } from './supabaseClient.js'
 // Colonnes necessaires au rendu carte + a la classification par famille de
 // source et aux filtres d'affinage (repris fidelement de v1, cf. classify()
 // et passesRefinements() dans SpotSan/app.js).
-const COLONNES_CARTE = 'UB_id, Name, Latitude, Longitude, Sources, Verified, Certified, Exists, Automatic, PMR, Adapte_Enfant, Rating_Overall'
+const COLONNES_CARTE = 'UB_id, Name, Latitude, Longitude, Sources, Verified, Certified, Exists, Automatic, PMR, Adapte_Enfant, Rating_Overall, Statut_Operationnel'
 
 /**
  * Sanitaires dans une zone (bbox), pour l'affichage sur la carte -- inclut
@@ -45,6 +45,25 @@ export async function chargerSanitaire(ubId) {
 /** Stats agregees des avis (algorithme §6, fonction get_avis_summary cote base). */
 export async function chargerResumeAvis(ubId) {
   const { data, error } = await supabase.rpc('get_avis_summary', { p_ub_id: ubId })
+  if (error) throw error
+  return data
+}
+
+/**
+ * Signale "Inexistant" ou "Hors Service" (systeme de consensus type Waze --
+ * cf. vote_toilet_position pour le precedent direct) : chaque Usager a une
+ * voix par sanitaire (upsert), 3 votes concordants basculent la categorie
+ * sur la carte. Pas de chemin retour automatique -- voir V2-PLAN.md §8
+ * (2026-08-31) pour l'angle mort connu et sa solution prevue (menu
+ * Exploitant EkoMa, pas encore construit).
+ */
+export async function signalerStatutSanitaire(ubId, statut, { lat, lon }) {
+  const { data, error } = await supabase.rpc('signaler_statut_sanitaire', {
+    p_ub_id: ubId,
+    p_statut: statut,
+    p_lat: lat,
+    p_lon: lon,
+  })
   if (error) throw error
   return data
 }

@@ -16,7 +16,7 @@
   import 'leaflet.markercluster/dist/MarkerCluster.css'
   import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
   import { chargerSanitairesDansZone } from '../sanitaires.js'
-  import { FAMILLES, COULEURS, LIBELLES, classifier, passeAffinages, chipsParDefaut, affinagesParDefaut } from '../classification.js'
+  import { FAMILLES, COULEURS, LIBELLES, categorieAffichage, passeAffinages, chipsParDefaut, affinagesParDefaut } from '../classification.js'
 
   let { onChoixSanitaire } = $props()
 
@@ -29,7 +29,7 @@
   let panneauOuvert = $state(false)
   let chips = $state(chipsParDefaut())
   let affinages = $state(affinagesParDefaut())
-  let comptes = $state({ verified: 0, gouv: 0, osm: 0, certified: 0, supprimees: 0 })
+  let comptes = $state({ verified: 0, gouv: 0, osm: 0, certified: 0, supprimees: 0, hors_service: 0 })
 
   const VUE_PAR_DEFAUT = { lat: 46.6, lon: 2.5, zoom: 6 } // France entiere
 
@@ -44,8 +44,9 @@
     }).addTo(map)
   }
 
-  function creerMarqueur(t, categorie, supprime) {
-    const couleur = supprime ? COULEURS.supprimees : COULEURS[categorie]
+  function creerMarqueur(t, categorie) {
+    const supprime = categorie === 'supprimees'
+    const couleur = COULEURS[categorie]
     const marqueur = L.circleMarker([t.Latitude, t.Longitude], {
       radius: 8,
       weight: 2,
@@ -59,21 +60,20 @@
     return marqueur
   }
 
-  /** Reconstruit les 5 groupes a partir de donneesBrutes (deja en cache -- pas de requete reseau) selon les chips/affinages actifs. */
+  /** Reconstruit les groupes a partir de donneesBrutes (deja en cache -- pas de requete reseau) selon les chips/affinages actifs. */
   function redessiner() {
     Object.values(groupes).forEach((g) => {
       map.removeLayer(g)
       g.clearLayers()
     })
-    const nouveauxComptes = { verified: 0, gouv: 0, osm: 0, certified: 0, supprimees: 0 }
+    const nouveauxComptes = { verified: 0, gouv: 0, osm: 0, certified: 0, supprimees: 0, hors_service: 0 }
 
     for (const t of donneesBrutes) {
       if (t.Latitude == null || t.Longitude == null) continue
       if (!passeAffinages(t, affinages)) continue
-      const supprime = t.Exists === false
-      const categorie = supprime ? 'supprimees' : classifier(t)
+      const categorie = categorieAffichage(t)
       nouveauxComptes[categorie]++
-      groupes[categorie].addLayer(creerMarqueur(t, categorie, supprime))
+      groupes[categorie].addLayer(creerMarqueur(t, categorie))
     }
 
     comptes = nouveauxComptes
@@ -149,7 +149,7 @@
 
     ajouterTuiles()
 
-    for (const k of [...FAMILLES, 'supprimees']) {
+    for (const k of [...FAMILLES, 'supprimees', 'hors_service']) {
       groupes[k] = L.markerClusterGroup()
     }
 
@@ -176,7 +176,7 @@
         <!-- Liste a cocher, colonne unique (demande Gilles du 2026-08-31 --
              remplace les puces qui s'enchainaient en ligne, peu lisibles). -->
         <div class="filtres-cases">
-          {#each [...FAMILLES, 'supprimees'] as k (k)}
+          {#each [...FAMILLES, 'hors_service', 'supprimees'] as k (k)}
             <label class="case-filtre">
               <input type="checkbox" checked={chips[k]} onchange={() => toggleChip(k)} />
               <span class="pastille" style="background:{COULEURS[k]}"></span>
