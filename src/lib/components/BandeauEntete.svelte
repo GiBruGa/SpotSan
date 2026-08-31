@@ -7,6 +7,7 @@
   import { themeActuel, definirTheme } from '../theme.js'
   import { seDeconnecter } from '../profil.js'
   import { chargerAvatarParDefaut } from '../identiteVisuelle.js'
+  import { obtenirPosition } from '../geolocalisation.js'
   import MesInformations from './MesInformations.svelte'
   import InstallationQR from './InstallationQR.svelte'
   import AProposPanel from './AProposPanel.svelte'
@@ -53,6 +54,29 @@
     await seDeconnecter()
     onDeconnexion?.()
   }
+
+  // Provoque l'invite systeme de localisation depuis le menu, sans
+  // attendre l'ouverture de la carte (demande Gilles 2026-08-31) --
+  // pratique pour l'autoriser a l'avance, avant d'en avoir besoin sur le
+  // terrain. Le resultat lui-meme n'est pas utilise, seul l'effet de bord
+  // (invite navigateur, puis permission memorisee) nous interesse ici.
+  let statutLocalisation = $state('')
+  let demandeLocalisationEnCours = $state(false)
+  async function demanderLocalisation() {
+    demandeLocalisationEnCours = true
+    statutLocalisation = ''
+    try {
+      await obtenirPosition()
+      statutLocalisation = 'Localisation autorisée.'
+    } catch (e) {
+      statutLocalisation =
+        e.message === 'geolocalisation_indisponible'
+          ? "Ton appareil ne propose pas de localisation."
+          : "Localisation refusée — active-la dans les réglages de ton navigateur si tu changes d'avis."
+    } finally {
+      demandeLocalisationEnCours = false
+    }
+  }
 </script>
 
 <header class="bandeau">
@@ -81,7 +105,12 @@
         {/if}
 
         <button type="button" class="menu-action" onclick={() => (vue = 'infos')}>Mes informations</button>
-        <button type="button" class="menu-action" onclick={() => (vue = 'installation')}>Installer l'application (QR code)</button>
+        <button type="button" class="menu-action" onclick={() => (vue = 'installation')}>QR code — passe l'appli SpotSan à ton voisin</button>
+
+        <button type="button" class="menu-action" disabled={demandeLocalisationEnCours} onclick={demanderLocalisation}>
+          {demandeLocalisationEnCours ? 'Demande en cours…' : 'Autoriser la localisation'}
+        </button>
+        {#if statutLocalisation}<p class="note-localisation">{statutLocalisation}</p>{/if}
 
         <div class="theme-choix">
           <span>Affichage</span>
@@ -245,6 +274,13 @@
   .menu-infos p {
     margin: 0.2rem 0;
     font-size: 0.85rem;
+  }
+
+  .note-localisation {
+    margin: -0.3rem 0 0;
+    font-size: 0.78rem;
+    color: var(--texte);
+    opacity: 0.75;
   }
 
   .menu-action {

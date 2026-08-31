@@ -2,7 +2,9 @@
 // de v1 (SpotSan/app.js : classify(), passesRefinements(), V_COLORS,
 // V_LABELS), retire par erreur du Lot 2, redemande par Gilles le 2026-08-22.
 
-export const FAMILLES = ['verified', 'gouv', 'osm', 'certified']
+// Ordre + libelles fixes par Gilles le 2026-08-31 (liste a cocher, colonne
+// unique) : .gouv, Donnees Internet, Verifiees, contribution UrBizia.
+export const FAMILLES = ['gouv', 'osm', 'verified', 'certified']
 
 export const COULEURS = {
   verified: '#3b82f6',
@@ -13,10 +15,10 @@ export const COULEURS = {
 }
 
 export const LIBELLES = {
-  verified: 'Vérifiés',
-  gouv: 'Officiel .gouv',
-  osm: 'Données publiques',
-  certified: 'SpotSan',
+  gouv: '.gouv',
+  osm: 'Données Internet',
+  verified: 'Vérifiées = .gouv + internet',
+  certified: 'contribution UrBizia',
   supprimees: 'Supprimées',
 }
 

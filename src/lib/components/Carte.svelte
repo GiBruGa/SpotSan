@@ -173,19 +173,31 @@
 
     {#if panneauOuvert}
       <div class="filtres-panneau">
-        <div class="filtres-groupe">
+        <!-- Liste a cocher, colonne unique (demande Gilles du 2026-08-31 --
+             remplace les puces qui s'enchainaient en ligne, peu lisibles). -->
+        <div class="filtres-cases">
           {#each [...FAMILLES, 'supprimees'] as k (k)}
-            <button type="button" class="chip" class:on={chips[k]} onclick={() => toggleChip(k)}>
+            <label class="case-filtre">
+              <input type="checkbox" checked={chips[k]} onchange={() => toggleChip(k)} />
               <span class="pastille" style="background:{COULEURS[k]}"></span>
-              {LIBELLES[k]}
+              <span class="case-libelle">{LIBELLES[k]}</span>
               {#if comptes[k]}<span class="chip-n">{comptes[k]}</span>{/if}
-            </button>
+            </label>
           {/each}
         </div>
-        <div class="filtres-groupe">
-          <button type="button" class="chip" class:on={affinages.pmr} onclick={() => toggleAffinage('pmr')}>PMR</button>
-          <button type="button" class="chip" class:on={affinages.enfant} onclick={() => toggleAffinage('enfant')}>Enfant</button>
-          <button type="button" class="chip" class:on={affinages.bienNotees} onclick={() => toggleAffinage('bienNotees')}>4★ mini</button>
+        <div class="filtres-cases filtres-affinages">
+          <label class="case-filtre">
+            <input type="checkbox" checked={affinages.pmr} onchange={() => toggleAffinage('pmr')} />
+            <span class="case-libelle">PMR</span>
+          </label>
+          <label class="case-filtre">
+            <input type="checkbox" checked={affinages.enfant} onchange={() => toggleAffinage('enfant')} />
+            <span class="case-libelle">Enfant</span>
+          </label>
+          <label class="case-filtre">
+            <input type="checkbox" checked={affinages.bienNotees} onchange={() => toggleAffinage('bienNotees')} />
+            <span class="case-libelle">4★ mini</span>
+          </label>
         </div>
       </div>
     {/if}
@@ -239,34 +251,43 @@
     padding: 0.7rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.6rem;
+    min-width: 15rem;
   }
 
-  .filtres-groupe {
+  .filtres-cases {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
+    flex-direction: column;
+    gap: 0.15rem;
   }
 
-  .chip {
+  .filtres-affinages {
+    padding-top: 0.5rem;
+    border-top: 1px solid #eee;
+  }
+
+  .case-filtre {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
-    min-height: 34px;
-    padding: 0 0.6rem;
-    border-radius: 999px;
-    border: 1px solid #ccc;
-    background: #fff;
-    color: #999;
-    font-size: 0.78rem;
+    gap: 0.5rem;
+    min-height: 38px;
+    padding: 0 0.3rem;
+    border-radius: 6px;
+    color: #1a1414;
+    font-size: 0.85rem;
     cursor: pointer;
   }
 
-  .chip.on {
-    border-color: #540e28;
-    color: #1a1414;
-    font-weight: 600;
-    background: #f6dde3;
+  .case-filtre input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+    accent-color: #540e28;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .case-libelle {
+    flex: 1;
   }
 
   .pastille {

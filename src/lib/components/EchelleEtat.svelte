@@ -73,11 +73,15 @@
     font-weight: 600;
   }
 
+  /* Une seule ligne, jamais de retour (demande Gilles du 2026-08-31, plus
+     compact) -- overflow-x en filet de securite sur les tres petits ecrans
+     ou avec une taille de police systeme agrandie. */
   .echelle-etat__niveaux,
   .echelle-etat__extensions {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0.35rem;
+    overflow-x: auto;
   }
 
   .echelle-etat__bouton {
