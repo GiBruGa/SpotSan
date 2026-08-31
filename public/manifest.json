@@ -1,7 +1,7 @@
 {
-  "name": "SpotSan V2 (beta)",
-  "short_name": "SpotSan V2",
-  "description": "Constat terrain des toilettes publiques — un service UrBizia (version beta en développement)",
+  "name": "SpotSan",
+  "short_name": "SpotSan",
+  "description": "Constat terrain des toilettes publiques — un service UrBizia",
   "start_url": "./index.html",
   "id": "./index.html",
   "scope": "./",
