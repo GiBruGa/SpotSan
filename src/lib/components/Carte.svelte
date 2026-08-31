@@ -31,6 +31,36 @@
   let affinages = $state(affinagesParDefaut())
   let comptes = $state({ verified: 0, gouv: 0, osm: 0, certified: 0, supprimees: 0, hors_service: 0 })
 
+  // Recherche d'une localisation autre que la position actuelle (demande
+  // Gilles du 2026-08-31) -- geocodage via Nominatim (OpenStreetMap, gratuit,
+  // coherent avec la bascule des tuiles CARTO -> OSM du meme jour).
+  let rechercheTexte = $state('')
+  let rechercheEnCours = $state(false)
+  let rechercheErreur = $state('')
+
+  async function rechercherLocalisation() {
+    if (!rechercheTexte.trim()) return
+    rechercheEnCours = true
+    rechercheErreur = ''
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=fr&q=${encodeURIComponent(rechercheTexte.trim())}`
+      const reponse = await fetch(url)
+      const resultats = await reponse.json()
+      if (!resultats.length) {
+        rechercheErreur = 'Rien trouvé pour cette recherche.'
+        return
+      }
+      const { lat, lon } = resultats[0]
+      map.setView([Number(lat), Number(lon)], 14)
+      panneauOuvert = false
+    } catch (e) {
+      console.error(e)
+      rechercheErreur = 'Recherche impossible, réessaie.'
+    } finally {
+      rechercheEnCours = false
+    }
+  }
+
   const VUE_PAR_DEFAUT = { lat: 46.6, lon: 2.5, zoom: 6 } // France entiere
 
   // CARTO exige desormais une cle API pour ses fonds de carte (raster) --
@@ -165,6 +195,19 @@
 
 <div class="carte" bind:this={conteneurCarte}>
   <div class="filtres">
+    <form class="recherche" onsubmit={(e) => (e.preventDefault(), rechercherLocalisation())}>
+      <input
+        type="search"
+        bind:value={rechercheTexte}
+        placeholder="Chercher une ville, une adresse…"
+        aria-label="Chercher une localisation"
+      />
+      <button type="submit" class="recherche-bouton" disabled={rechercheEnCours} aria-label="Chercher">
+        {rechercheEnCours ? '…' : '🔍'}
+      </button>
+    </form>
+    {#if rechercheErreur}<p class="recherche-erreur">{rechercheErreur}</p>{/if}
+
     <button type="button" class="filtres-entete" onclick={() => (panneauOuvert = !panneauOuvert)}>
       <span>⚙ Filtres</span>
       <span class="filtres-nombre">({nombreFiltresActifs()})</span>
@@ -221,6 +264,52 @@
     left: 0.6rem;
     z-index: 700;
     max-width: calc(100% - 1.2rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: flex-start;
+  }
+
+  .recherche {
+    display: flex;
+    width: min(18rem, 70vw);
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+  }
+
+  .recherche input {
+    flex: 1;
+    min-height: 38px;
+    border: none;
+    padding: 0 0.9rem;
+    font-size: 0.85rem;
+    color: #1a1414;
+    background: transparent;
+  }
+
+  .recherche-bouton {
+    min-width: 38px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+
+  .recherche-bouton:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .recherche-erreur {
+    margin: 0;
+    padding: 0.2rem 0.8rem;
+    background: #fff;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    color: #c55a7a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   }
 
   .filtres-entete {
