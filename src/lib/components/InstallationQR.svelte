@@ -50,14 +50,14 @@
 
   .url {
     font-size: 0.75rem;
-    color: #666;
+    color: var(--texte-attenue);
     word-break: break-all;
     margin: 0;
   }
 
   .astuce {
     font-size: 0.8rem;
-    color: #444;
+    color: var(--texte);
     margin: 0;
   }
 
@@ -65,9 +65,9 @@
     min-height: 42px;
     width: 100%;
     border-radius: 999px;
-    border: 1px solid #ccc;
-    background: #fff;
-    color: #1a1414;
+    border: 1px solid var(--bordure);
+    background: var(--fond);
+    color: var(--texte);
     font-weight: 600;
     cursor: pointer;
   }

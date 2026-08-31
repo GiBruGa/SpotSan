@@ -86,22 +86,23 @@
     font-weight: 700;
   }
 
-  /* Nom en deux couleurs (Charte Graphique UrBizia.md §1). Cet ecran est
-     encore light-only (pas de couverture theme sombre ici, cf. le "reste"
-     deja note ailleurs) -- valeurs mode clair uniquement pour l'instant.
-     Corrige 2026-08-24, 2e fois (1ere correction utilisait a tort #81093C
-     pour le 1er segment -- erreur de recopie des hex, corrigee le meme jour). */
+  /* Nom en deux couleurs (Charte Graphique UrBizia.md §1). Passe sur les
+     tokens de theme le 2026-08-31 (couverture clair/sombre) -- valeurs
+     historiques #540e28/#c55a7a desormais portees par --accent-texte
+     (fixe en clair, eclaircie en sombre) et --danger-texte (deja sur les
+     deux). Corrige 2026-08-24, 2e fois (1ere correction utilisait a tort
+     #81093C pour le 1er segment -- erreur de recopie des hex). */
   .wm-strong {
-    color: #540e28;
+    color: var(--accent-texte);
   }
 
   .wm-soft {
-    color: #c55a7a;
+    color: var(--danger-texte);
   }
 
   .objectif {
     margin: 0;
-    color: #555;
+    color: var(--texte-attenue);
     font-size: 0.95rem;
     line-height: 1.5;
   }
@@ -129,14 +130,14 @@
   }
 
   .secondaire {
-    border: 1px solid #540e28;
+    border: 1px solid var(--accent-texte);
     background: transparent;
-    color: #540e28;
+    color: var(--accent-texte);
   }
 
   .rights {
     margin: 1.5rem 0 0;
-    color: #888;
+    color: var(--texte-attenue);
     font-size: 0.72rem;
     line-height: 1.5;
   }
@@ -145,7 +146,7 @@
     margin-top: 0.4rem;
     background: none;
     border: none;
-    color: #888;
+    color: var(--texte-attenue);
     font-size: 0.78rem;
     text-decoration: underline;
     cursor: pointer;
@@ -165,7 +166,8 @@
   .apropos-box {
     max-width: 380px;
     width: 100%;
-    background: #fff;
+    background: var(--fond);
+    color: var(--texte);
     border-radius: 14px;
     padding: 1.3rem;
   }

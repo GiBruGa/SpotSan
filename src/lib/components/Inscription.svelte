@@ -170,7 +170,7 @@
 
   .aide {
     margin: 0;
-    color: #555;
+    color: var(--texte-attenue);
     font-size: 0.9rem;
   }
 
@@ -199,7 +199,7 @@
   }
 
   small {
-    color: #777;
+    color: var(--texte-attenue);
     font-size: 0.78rem;
   }
 
@@ -229,11 +229,11 @@
   }
 
   .legal {
-    background: #f5f0eb;
+    background: var(--fond-carte);
     border-radius: 10px;
     padding: 0.9rem 1rem;
     font-size: 0.85rem;
-    color: #333;
+    color: var(--texte);
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
@@ -247,7 +247,7 @@
   }
 
   .erreur {
-    color: #c55a7a;
+    color: var(--danger-texte);
     font-weight: 600;
   }
 

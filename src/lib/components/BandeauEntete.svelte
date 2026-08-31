@@ -296,7 +296,7 @@
 
   .menu-action.maj {
     border-color: var(--accent);
-    color: var(--accent);
+    color: var(--accent-texte);
     font-weight: 600;
   }
 

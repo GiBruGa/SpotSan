@@ -178,12 +178,12 @@
   h1 {
     margin: 0;
     font-size: 1.4rem;
-    color: #540e28;
+    color: var(--accent-texte);
   }
 
   .aide {
     margin: 0;
-    color: #555;
+    color: var(--texte-attenue);
     font-size: 0.9rem;
   }
 
@@ -225,11 +225,11 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.85rem;
-    color: #555;
+    color: var(--texte-attenue);
   }
 
   .erreur {
-    color: #c55a7a;
+    color: var(--danger-texte);
     font-weight: 600;
     margin: 0;
   }
@@ -253,9 +253,9 @@
   .retour {
     min-height: 44px;
     border-radius: 999px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--bordure);
     background: transparent;
-    color: #555;
+    color: var(--texte);
     cursor: pointer;
   }
 </style>

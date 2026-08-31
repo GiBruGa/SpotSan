@@ -208,11 +208,11 @@
   .etat {
     padding: 2rem;
     text-align: center;
-    color: #666;
+    color: var(--texte-attenue);
   }
 
   .etat.erreur {
-    color: #c55a7a;
+    color: var(--danger-texte);
   }
 
   .ecran-carte {

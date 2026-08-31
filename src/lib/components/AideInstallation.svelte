@@ -93,16 +93,16 @@
   }
 
   .wm-strong {
-    color: #540e28;
+    color: var(--accent-texte);
   }
 
   .wm-soft {
-    color: #c55a7a;
+    color: var(--danger-texte);
   }
 
   .intro {
     margin: 0;
-    color: #555;
+    color: var(--texte-attenue);
     font-size: 0.95rem;
     line-height: 1.5;
   }
@@ -110,7 +110,7 @@
   .etapes {
     width: 100%;
     text-align: left;
-    background: #f5f0eb;
+    background: var(--fond-carte);
     border-radius: 10px;
     padding: 1rem 1.2rem;
   }
@@ -118,14 +118,14 @@
   .etapes h2 {
     font-size: 0.95rem;
     margin: 0 0 0.5rem;
-    color: #540e28;
+    color: var(--accent-texte);
   }
 
   .etapes ol {
     margin: 0;
     padding-left: 1.2rem;
     font-size: 0.88rem;
-    color: #333;
+    color: var(--texte);
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
@@ -141,9 +141,9 @@
     min-height: 48px;
     width: 100%;
     border-radius: 999px;
-    border: 1px solid #540e28;
+    border: 1px solid var(--accent-texte);
     background: transparent;
-    color: #540e28;
+    color: var(--accent-texte);
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
@@ -151,7 +151,7 @@
 
   .rights {
     margin: 1.5rem 0 0;
-    color: #888;
+    color: var(--texte-attenue);
     font-size: 0.78rem;
   }
 </style>

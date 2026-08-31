@@ -47,6 +47,20 @@ export function categorieAffichage(t) {
   return classifier(t)
 }
 
+/**
+ * Statut declaratif (domaine du champ Sanitary_Reviews.statut_declare,
+ * cf. soumettre_avis) derive des champs bruts -- sert a pre-cocher la liste
+ * dans FormulaireAvis (2026-08-31).
+ */
+export function statutActuelSanitaire(t) {
+  if (!t) return 'Disponible'
+  if (t.Exists === false) return 'Inexistante'
+  if (t.Statut_Operationnel === 'Hors_Service') return 'Hors_Service'
+  if (t.Statut_Operationnel === 'Condamne') return 'Condamne'
+  if (t.Statut_Operationnel === 'Impraticable') return 'Impraticable'
+  return 'Disponible'
+}
+
 export function passeAffinages(t, affinages) {
   if (affinages.pmr && !(t.PMR > 0)) return false
   if (affinages.enfant && t.Adapte_Enfant !== true) return false

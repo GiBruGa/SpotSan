@@ -65,7 +65,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
-    color: var(--echelle-texte-page, inherit);
+    color: var(--texte, inherit);
   }
 
   .echelle-etat__label {
@@ -85,14 +85,14 @@
   }
 
   .echelle-etat__bouton {
-    min-width: 44px;
-    min-height: 44px;
-    font-size: 1.3rem;
+    min-width: 38px;
+    min-height: 38px;
+    font-size: 1.1rem;
     line-height: 1;
     border-radius: 999px;
-    border: 1px solid var(--echelle-border, #ccc);
-    background: var(--echelle-bg, #fff);
-    color: var(--echelle-texte, #1a1414);
+    border: 1px solid var(--bordure, #ccc);
+    background: var(--fond, #fff);
+    color: var(--texte, #1a1414);
     cursor: pointer;
   }
 
@@ -116,12 +116,12 @@
   }
 
   .echelle-etat__chip {
-    min-height: 44px;
-    padding: 0 0.75rem;
+    min-height: 38px;
+    padding: 0 0.6rem;
     border-radius: 999px;
-    border: 1px solid var(--echelle-border, #ccc);
-    background: var(--echelle-bg, #fff);
-    color: var(--echelle-texte, #1a1414);
+    border: 1px solid var(--bordure, #ccc);
+    background: var(--fond, #fff);
+    color: var(--texte, #1a1414);
     font-size: 0.85rem;
     cursor: pointer;
   }

@@ -14,6 +14,16 @@
   --bordure: #cccccc;
   --accent: #540e28;
   --accent-fond: #f6dde3;
+  /* Couleur de marque utilisee comme TEXTE (titres, liens, bordures actives)
+     sur un fond qui suit le theme (--fond/--fond-carte) -- distincte de
+     --accent, qui reste fixe #540e28 en permanence pour les usages "fond
+     colore fixe + texte blanc" (bandeau, boutons pleins) qui n'ont pas
+     besoin de s'adapter. --accent-texte, lui, DOIT s'adapter : en mode
+     sombre #540e28 sur un fond sombre est illisible (retour Gilles du
+     2026-08-31) -- on reutilise #c55a7a, deja valide comme lisible sur
+     fond tres sombre (bandeau, cf. .wm-strong). */
+  --accent-texte: #540e28;
+  --danger-texte: #c55a7a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -24,6 +34,7 @@
     --texte-attenue: #b3a9a9;
     --bordure: #4a3a3a;
     --accent-fond: #3a1520;
+    --accent-texte: #e8879f;
   }
 }
 
@@ -34,6 +45,7 @@
   --texte-attenue: #b3a9a9;
   --bordure: #4a3a3a;
   --accent-fond: #3a1520;
+  --accent-texte: #e8879f;
 }
 
 * {

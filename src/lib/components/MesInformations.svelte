@@ -180,9 +180,9 @@
     min-height: 40px;
     display: flex;
     align-items: center;
-    color: #555;
+    color: var(--texte-attenue);
     font-size: 0.9rem;
-    background: #f5f0eb;
+    background: var(--fond-carte);
     border-radius: 8px;
   }
 
@@ -211,7 +211,7 @@
   }
 
   .erreur {
-    color: #c55a7a;
+    color: var(--danger-texte);
     font-weight: 600;
     font-size: 0.82rem;
     margin: 0;

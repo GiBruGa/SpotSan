@@ -7,7 +7,7 @@
 
   let { value = $bindable(null), label = '' } = $props()
 
-  const CHOIX = ['1', '2', '3', '4', 'plus de 4', 'HS', 'Abs']
+  const CHOIX = ['1', '2', '3', '4', '>4', 'HS', 'Abs']
 </script>
 
 <div class="echelle-compte" role="group" aria-label={label || 'Nombre'}>
@@ -46,21 +46,21 @@
   }
 
   .echelle-compte__bouton {
-    min-width: 40px;
-    min-height: 40px;
-    padding: 0 0.5rem;
+    min-width: 32px;
+    min-height: 34px;
+    padding: 0 0.4rem;
     flex-shrink: 0;
     border-radius: 999px;
-    border: 1px solid #ccc;
-    background: #fff;
-    color: #1a1414;
-    font-size: 0.82rem;
+    border: 1px solid var(--bordure, #ccc);
+    background: var(--fond, #fff);
+    color: var(--texte, #1a1414);
+    font-size: 0.76rem;
     cursor: pointer;
   }
 
   .echelle-compte__bouton.selected {
-    border-color: #540e28;
-    background: #540e28;
+    border-color: var(--accent, #540e28);
+    background: var(--accent, #540e28);
     color: #fff;
     font-weight: 600;
   }

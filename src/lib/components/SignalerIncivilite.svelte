@@ -108,17 +108,18 @@
     display: flex;
     flex-direction: column;
     gap: 1.2rem;
+    color: var(--texte);
   }
 
   header h1 {
     font-size: 1.15rem;
     margin: 0 0 0.4rem;
-    color: #c55a7a;
+    color: var(--danger-texte);
   }
 
   .but {
     font-size: 0.82rem;
-    color: #666;
+    color: var(--texte-attenue);
     margin: 0;
   }
 
@@ -135,7 +136,7 @@
 
   .champ .hint {
     font-weight: 400;
-    color: #888;
+    color: var(--texte-attenue);
     font-size: 0.78rem;
   }
 
@@ -174,7 +175,7 @@
   }
 
   .erreur {
-    color: #c55a7a;
+    color: var(--danger-texte);
     font-weight: 600;
     font-size: 0.85rem;
   }

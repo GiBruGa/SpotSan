@@ -10,7 +10,22 @@
   import { CELLULES, ACCESSIBILITE_OPTIONS, TYPE_OPTIONS, EQUIPEMENTS } from '../config/cellules.js'
   import { chargerDernierAvis } from '../avis.js'
   import { sauvegarderAvis } from '../queueAvis.js'
+  import { chargerSanitaire } from '../sanitaires.js'
+  import { statutActuelSanitaire } from '../classification.js'
   import { obtenirPosition } from '../geolocalisation.js'
+
+  // Statut declare avec l'avis (retour Gilles du 2026-08-31) : liste a
+  // cocher a choix unique, remplace les boutons "Inexistant"/"Hors Service"
+  // separes essayes plus tot le meme jour -- desormais un simple champ de
+  // l'avis normal, cote base voir soumettre_avis (3 avis concordants
+  // basculent la categorie sur la carte, meme principe Waze qu'avant).
+  const STATUT_OPTIONS = [
+    { valeur: 'Disponible', label: 'Disponible' },
+    { valeur: 'Impraticable', label: 'Impraticable' },
+    { valeur: 'Hors_Service', label: 'HS' },
+    { valeur: 'Condamne', label: 'Condamné' },
+    { valeur: 'Inexistante', label: 'Inexistante' },
+  ]
 
   let { userId, ubId, nomLieu = '', onFerme } = $props()
 
@@ -29,6 +44,7 @@
   }
 
   let avisGeneral = $state(null)
+  let statutDeclare = $state('Disponible')
   let commentaire = $state('')
   let configuration = $state({})
   let etats = $state(etatsParDefaut())
@@ -71,7 +87,12 @@
 
   onMount(async () => {
     try {
-      const dernier = await chargerDernierAvis(userId, ubId)
+      const [dernier, sanitaire] = await Promise.all([chargerDernierAvis(userId, ubId), chargerSanitaire(ubId)])
+      // Pre-coche le statut EN COURS (celui valide, exploitant ou 3 avis
+      // concordants) -- pas la propre derniere declaration de la personne,
+      // qui pourrait etre perimee si d'autres avis/l'exploitant ont fait
+      // bouger les choses depuis (demande Gilles du 2026-08-31).
+      statutDeclare = statutActuelSanitaire(sanitaire)
       if (dernier) {
         dateDernierAvis = dernier.updated_at
         avisGeneral = dernier.avis_general
@@ -103,6 +124,7 @@
         lon,
         donnees: {
           avis_general: avisGeneral,
+          statut_declare: statutDeclare,
           commentaire: commentaire.trim() || null,
           configuration,
           etats,
@@ -131,6 +153,7 @@
       enregistrement = false
     }
   }
+
 </script>
 
 <div class="formulaire-avis">
@@ -147,9 +170,9 @@
       {/if}
       <div class="etapes-nav">
         <button type="button" class:active={etape === 1} onclick={() => (etape = 1)}>1. Avis</button>
-        <button type="button" class:active={etape === 2} onclick={() => (etape = 2)}>2. Configuration</button>
-        <button type="button" class:active={etape === 3} onclick={() => (etape = 3)}>3. Équipements</button>
-        <button type="button" class:active={etape === 4} onclick={() => (etape = 4)}>4. Photos</button>
+        <button type="button" class:active={etape === 2} onclick={() => (etape = 2)}>2. Photos</button>
+        <button type="button" class:active={etape === 3} onclick={() => (etape = 3)}>3. Configuration</button>
+        <button type="button" class:active={etape === 4} onclick={() => (etape = 4)}>4. Équipements</button>
       </div>
     </header>
 
@@ -157,70 +180,26 @@
       {#if etape === 1}
         <section>
           <EchelleEtat label="Avis général" bind:value={avisGeneral} />
+          <div class="champ">
+            <span>Statut du sanitaire</span>
+            <div class="statut-liste" role="radiogroup" aria-label="Statut du sanitaire">
+              {#each STATUT_OPTIONS as opt (opt.valeur)}
+                <label class="statut-option">
+                  <input type="radio" name="statut-declare" value={opt.valeur} checked={statutDeclare === opt.valeur} onchange={() => (statutDeclare = opt.valeur)} />
+                  {opt.label}
+                </label>
+              {/each}
+            </div>
+          </div>
           <label class="champ">
             <span>Commentaire (facultatif)</span>
             <textarea bind:value={commentaire} rows="3" maxlength="500" placeholder="Ex. nettoyage par arrosage au sol, attention aux robes/pantalons longs…"></textarea>
           </label>
         </section>
       {:else if etape === 2}
-        <section class="grille-configuration">
-          {#each CELLULES as c (c.cle)}
-            <div class="ligne-cellule">
-              <span class="nom-cellule">{c.label}</span>
-              <EchelleCompte bind:value={etats[c.cle]} />
-              {#if etats[c.cle] && etats[c.cle] !== 'Abs'}
-                <div class="sous-options">
-                  <div class="chips">
-                    {#each ACCESSIBILITE_OPTIONS as a (a)}
-                      <button type="button" class:selected={accessibilite(c.cle) === a} onclick={() => definirAccessibilite(c.cle, a)}>{a}</button>
-                    {/each}
-                  </div>
-                  {#if c.avecType}
-                    <div class="chips">
-                      {#each TYPE_OPTIONS as t (t)}
-                        <button type="button" class:selected={type(c.cle) === t} onclick={() => definirType(c.cle, t)}>{t}</button>
-                      {/each}
-                    </div>
-                  {/if}
-                </div>
-              {/if}
-            </div>
-          {/each}
-        </section>
-      {:else if etape === 3}
-        <section class="grille-equipements">
-          {#each EQUIPEMENTS as e (e.cle)}
-            <div class="ligne-equipement">
-              <EchelleEtat label={e.label} bind:value={etats[e.cle]} extensions={e.extensions} />
-              {#if e.sousChoix && etats[e.cle] && etats[e.cle] !== 'Abs'}
-                <div class="chips">
-                  {#each e.sousChoix as s (s)}
-                    <button type="button" class:selected={sousChoix(e.cle) === s} onclick={() => definirSousChoix(e.cle, s)}>{s}</button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-          {/each}
-
-          <div class="ligne-equipement">
-            <span class="nom-cellule">Éclairage naturel</span>
-            <div class="chips">
-              <button type="button" class:selected={eclairageNaturel === true} onclick={() => (eclairageNaturel = eclairageNaturel === true ? null : true)}>Oui</button>
-              <button type="button" class:selected={eclairageNaturel === false} onclick={() => (eclairageNaturel = eclairageNaturel === false ? null : false)}>Non</button>
-            </div>
-          </div>
-          <div class="ligne-equipement">
-            <span class="nom-cellule">Verrou mécanique de sûreté</span>
-            <div class="chips">
-              <button type="button" class:selected={verrouMecanique === true} onclick={() => (verrouMecanique = verrouMecanique === true ? null : true)}>Oui</button>
-              <button type="button" class:selected={verrouMecanique === false} onclick={() => (verrouMecanique = verrouMecanique === false ? null : false)}>Non</button>
-            </div>
-          </div>
-        </section>
-      {:else if etape === 4}
         <section class="grille-photos">
           <p class="consigne-camera">
-            Prends une nouvelle photo à chaque fois — ne choisis pas une photo déjà présente sur ton téléphone.
+            Ajoute les photos qui te semblent compléter les informations déjà partagées.
           </p>
 
           <div class="groupe-photo">
@@ -274,6 +253,61 @@
             {/if}
           </div>
         </section>
+      {:else if etape === 3}
+        <section class="grille-configuration">
+          {#each CELLULES as c (c.cle)}
+            <div class="ligne-cellule">
+              <span class="nom-cellule">{c.label}</span>
+              <EchelleCompte bind:value={etats[c.cle]} />
+              {#if etats[c.cle] && etats[c.cle] !== 'Abs'}
+                <div class="sous-options">
+                  <div class="chips">
+                    {#each ACCESSIBILITE_OPTIONS as a (a)}
+                      <button type="button" class:selected={accessibilite(c.cle) === a} onclick={() => definirAccessibilite(c.cle, a)}>{a}</button>
+                    {/each}
+                  </div>
+                  {#if c.avecType}
+                    <div class="chips">
+                      {#each TYPE_OPTIONS as t (t)}
+                        <button type="button" class:selected={type(c.cle) === t} onclick={() => definirType(c.cle, t)}>{t}</button>
+                      {/each}
+                    </div>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </section>
+      {:else if etape === 4}
+        <section class="grille-equipements">
+          {#each EQUIPEMENTS as e (e.cle)}
+            <div class="ligne-equipement">
+              <EchelleEtat label={e.label} bind:value={etats[e.cle]} extensions={e.extensions} />
+              {#if e.sousChoix && etats[e.cle] && etats[e.cle] !== 'Abs'}
+                <div class="chips">
+                  {#each e.sousChoix as s (s)}
+                    <button type="button" class:selected={sousChoix(e.cle) === s} onclick={() => definirSousChoix(e.cle, s)}>{s}</button>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/each}
+
+          <div class="ligne-equipement">
+            <span class="nom-cellule">Éclairage naturel</span>
+            <div class="chips">
+              <button type="button" class:selected={eclairageNaturel === true} onclick={() => (eclairageNaturel = eclairageNaturel === true ? null : true)}>Oui</button>
+              <button type="button" class:selected={eclairageNaturel === false} onclick={() => (eclairageNaturel = eclairageNaturel === false ? null : false)}>Non</button>
+            </div>
+          </div>
+          <div class="ligne-equipement">
+            <span class="nom-cellule">Verrou mécanique de sûreté</span>
+            <div class="chips">
+              <button type="button" class:selected={verrouMecanique === true} onclick={() => (verrouMecanique = verrouMecanique === true ? null : true)}>Oui</button>
+              <button type="button" class:selected={verrouMecanique === false} onclick={() => (verrouMecanique = verrouMecanique === false ? null : false)}>Non</button>
+            </div>
+          </div>
+        </section>
       {/if}
     </div>
 
@@ -298,10 +332,14 @@
     gap: 1rem;
   }
 
+  .formulaire-avis {
+    color: var(--texte);
+  }
+
   .etat-chargement {
     padding: 2rem;
     text-align: center;
-    color: #666;
+    color: var(--texte-attenue);
   }
 
   header h1 {
@@ -311,7 +349,7 @@
 
   .reprise {
     font-size: 0.82rem;
-    color: #666;
+    color: var(--texte-attenue);
     margin: 0 0 0.6rem;
   }
 
@@ -324,16 +362,16 @@
     flex: 1;
     min-height: 40px;
     border-radius: 999px;
-    border: 1px solid #ccc;
-    background: #fff;
-    color: #1a1414;
+    border: 1px solid var(--bordure);
+    background: var(--fond);
+    color: var(--texte);
     font-size: 0.8rem;
     cursor: pointer;
   }
 
   .etapes-nav button.active {
-    border-color: #540e28;
-    background: #540e28;
+    border-color: var(--accent);
+    background: var(--accent);
     color: #fff;
     font-weight: 600;
   }
@@ -355,13 +393,36 @@
     font-size: 0.9rem;
   }
 
+  .statut-liste {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .statut-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 38px;
+    font-size: 0.88rem;
+    cursor: pointer;
+  }
+
+  .statut-option input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
   textarea {
     border-radius: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--bordure);
     padding: 0.6rem;
     font: inherit;
-    color: #1a1414;
-    background: #fff;
+    color: var(--texte);
+    background: var(--fond);
     resize: vertical;
   }
 
@@ -378,7 +439,7 @@
     flex-direction: column;
     gap: 0.5rem;
     padding-bottom: 0.8rem;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--bordure);
   }
 
   .nom-cellule {
@@ -400,19 +461,20 @@
   }
 
   .chips button {
-    min-height: 40px;
-    padding: 0 0.7rem;
+    min-height: 38px;
+    padding: 0 0.6rem;
     border-radius: 999px;
-    border: 1px solid #ccc;
-    background: #fff;
-    color: #1a1414;
-    font-size: 0.82rem;
+    border: 1px solid var(--bordure);
+    background: var(--fond);
+    color: var(--texte);
+    font-size: 0.8rem;
     cursor: pointer;
   }
 
   .chips button.selected {
-    border-color: #540e28;
-    background: #f6dde3;
+    border-color: var(--accent);
+    background: var(--accent-fond);
+    color: var(--accent-texte);
     font-weight: 600;
   }
 
@@ -429,16 +491,13 @@
 
   .note-photos {
     font-size: 0.8rem;
-    color: #888;
+    color: var(--texte-attenue);
     margin: 0 0 0.6rem;
   }
 
   .consigne-camera {
-    font-size: 0.8rem;
-    color: #540e28;
-    background: #f6dde3;
-    border-radius: 8px;
-    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+    color: var(--texte);
     margin: 0;
   }
 
@@ -459,7 +518,7 @@
   .tag-confort-label {
     font-size: 0.72rem;
     text-align: center;
-    color: #444;
+    color: var(--texte-attenue);
   }
 
   .liste-photos-confort {
@@ -489,7 +548,7 @@
     margin-left: auto;
     border: none;
     background: none;
-    color: #c55a7a;
+    color: var(--danger-texte);
     font-size: 0.78rem;
     cursor: pointer;
   }
@@ -497,7 +556,7 @@
   .statut {
     font-size: 0.85rem;
     text-align: center;
-    color: #333;
+    color: var(--texte);
   }
 
   .boutons-flottants {
@@ -508,7 +567,7 @@
     display: flex;
     gap: 0.6rem;
     padding: 0.8rem 1rem calc(0.8rem + env(safe-area-inset-bottom));
-    background: #fff;
+    background: var(--fond);
     box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
   }
 
@@ -521,14 +580,14 @@
   }
 
   .sortir {
-    border: 1px solid #ccc;
-    background: #fff;
-    color: #1a1414;
+    border: 1px solid var(--bordure);
+    background: var(--fond);
+    color: var(--texte);
   }
 
   .sauvegarder {
     border: none;
-    background: #540e28;
+    background: var(--accent);
     color: #fff;
   }
 

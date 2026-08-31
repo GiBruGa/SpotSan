@@ -7,8 +7,7 @@
   // > bouton "Donnez votre avis".
 
   import { onMount } from 'svelte'
-  import { chargerSanitaire, chargerResumeAvis, signalerStatutSanitaire } from '../sanitaires.js'
-  import { obtenirPosition } from '../geolocalisation.js'
+  import { chargerSanitaire, chargerResumeAvis } from '../sanitaires.js'
   import { CELLULES, EQUIPEMENTS } from '../config/cellules.js'
   import IndicateurEtat from './IndicateurEtat.svelte'
 
@@ -17,6 +16,9 @@
   let chargement = $state(true)
   let sanitaire = $state(null)
   let resume = $state(null)
+  // Photo agrandie (retour Gilles du 2026-08-31 : le zoom sur une photo du
+  // bandeau avait disparu -- lightbox plein ecran, ferme au clic n'importe ou.
+  let photoAgrandie = $state(null)
 
   onMount(async () => {
     try {
@@ -30,35 +32,6 @@
 
   function libelle(cle, liste) {
     return liste.find((x) => x.cle === cle)?.label ?? cle
-  }
-
-  // Signalement "Inexistant"/"Hors Service" -- systeme de consensus type
-  // Waze (3 signalements concordants basculent la categorie sur la carte),
-  // cf. signaler_statut_sanitaire cote base. Meme contrainte de proximite
-  // que "Donner son avis" (il faut etre sur place).
-  let statutEnCours = $state(null)
-  let messageStatut = $state('')
-  async function signalerStatut(statut) {
-    statutEnCours = statut
-    messageStatut = ''
-    try {
-      const { lat, lon } = await obtenirPosition()
-      const { bascule } = await signalerStatutSanitaire(ubId, statut, { lat, lon })
-      messageStatut = bascule
-        ? 'Merci — assez de signalements concordants, la carte est mise à jour.'
-        : 'Merci, ton signalement est enregistré.'
-    } catch (e) {
-      console.error(e)
-      if (e.message === 'geolocalisation_indisponible' || e.message === 'geolocalisation_refusee') {
-        messageStatut = 'Active la localisation pour signaler — il faut être sur place.'
-      } else if (e.message?.includes('trop_loin')) {
-        messageStatut = 'Tu dois être à proximité du sanitaire pour signaler.'
-      } else {
-        messageStatut = 'Erreur inattendue, réessaie.'
-      }
-    } finally {
-      statutEnCours = null
-    }
   }
 
   // Fallback vers les comptages v1 (deja fiables, source StatSan) quand
@@ -103,7 +76,7 @@
           </div>
         {/each}
       {:else if resume?.dernier_avis}
-        <p class="note">À confirmer — un seul avis pour l'instant, du {new Date(resume.dernier_avis.updated_at).toLocaleDateString('fr-FR')}.</p>
+        <p class="note note-compacte">À confirmer, avis unique du {new Date(resume.dernier_avis.updated_at).toLocaleDateString('fr-FR')}</p>
         <IndicateurEtat label="Avis général" valeur={resume.dernier_avis.avis_general} />
         {#if resume.dernier_avis.commentaire}<p class="commentaire">« {resume.dernier_avis.commentaire} »</p>{/if}
       {:else}
@@ -111,27 +84,14 @@
       {/if}
     </section>
 
-    <!-- Hors du bloc de lecture (pointer-events:none) : ce sont de vraies
-         actions, cf. principe "lecture <> saisie" du haut de ce fichier. -->
-    <div class="signalement-statut">
-      <span class="signalement-question">Ce sanitaire a disparu ou ne fonctionne plus ?</span>
-      <div class="signalement-boutons">
-        <button type="button" disabled={!!statutEnCours} onclick={() => signalerStatut('Inexistant')}>
-          {statutEnCours === 'Inexistant' ? 'Signalement…' : 'Inexistant'}
-        </button>
-        <button type="button" disabled={!!statutEnCours} onclick={() => signalerStatut('Hors_Service')}>
-          {statutEnCours === 'Hors_Service' ? 'Signalement…' : 'Hors Service'}
-        </button>
-      </div>
-      {#if messageStatut}<p class="signalement-message">{messageStatut}</p>{/if}
-    </div>
-
     <section class="bloc">
       <h2>Photos</h2>
       {#if resume?.photos?.length}
         <div class="galerie-photos">
           {#each resume.photos as url (url)}
-            <img src={url} alt="" loading="lazy" />
+            <button type="button" class="photo-vignette" onclick={() => (photoAgrandie = url)}>
+              <img src={url} alt="" loading="lazy" />
+            </button>
           {/each}
         </div>
       {:else}
@@ -192,6 +152,12 @@
   {/if}
 </div>
 
+{#if photoAgrandie}
+  <button type="button" class="photo-lightbox" onclick={() => (photoAgrandie = null)} aria-label="Fermer">
+    <img src={photoAgrandie} alt="" />
+  </button>
+{/if}
+
 <style>
   .fiche {
     max-width: 560px;
@@ -199,7 +165,8 @@
     padding: 1rem 1rem 3rem;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.8rem;
+    color: var(--texte);
   }
 
   header {
@@ -217,51 +184,56 @@
     min-height: 40px;
     padding: 0 0.8rem;
     border-radius: 999px;
-    border: 1px solid #ccc;
-    background: #fff;
-    color: #1a1414;
+    border: 1px solid var(--bordure);
+    background: var(--fond);
+    color: var(--texte);
     cursor: pointer;
   }
 
   .etat {
     padding: 2rem;
     text-align: center;
-    color: #666;
+    color: var(--texte-attenue);
   }
 
   .etat.erreur {
-    color: #c55a7a;
+    color: var(--danger-texte);
   }
 
   .mention-predecesseurs {
     font-weight: 600;
-    color: #540e28;
+    color: var(--accent-texte);
     margin: 0;
   }
 
-  /* Bloc de lecture : aucun element cliquable a l'interieur (hors le
-     bouton "Donnez votre avis", en dehors de ce bloc) -- volontaire. */
+  /* Bloc de lecture : aucun element cliquable a l'interieur (hors la
+     vignette photo, cf. .photo-vignette, et le bouton "Donnez votre avis"
+     en dehors de ce bloc) -- volontaire. */
   .bloc {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.9rem 1rem;
-    background: #f5f0eb;
+    gap: 0.4rem;
+    padding: 0.7rem 0.9rem;
+    background: var(--fond-carte);
     border-radius: 10px;
     pointer-events: none;
   }
 
   .bloc h2 {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     margin: 0;
     pointer-events: none;
   }
 
   .a-venir,
   .note {
-    font-size: 0.85rem;
-    color: #666;
+    font-size: 0.82rem;
+    color: var(--texte-attenue);
     margin: 0;
+  }
+
+  .note-compacte {
+    font-size: 0.78rem;
   }
 
   .galerie-photos {
@@ -271,52 +243,42 @@
     padding-bottom: 0.2rem;
   }
 
+  .photo-vignette {
+    flex-shrink: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    /* Seule exception cliquable du bloc en lecture -- voir commentaire .bloc. */
+    pointer-events: auto;
+  }
+
   .galerie-photos img {
     width: 84px;
     height: 84px;
     object-fit: cover;
     border-radius: 8px;
-    flex-shrink: 0;
+    display: block;
   }
 
-  .signalement-statut {
+  .photo-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 0 0.2rem;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    border: none;
+    background: rgba(0, 0, 0, 0.85);
+    cursor: zoom-out;
   }
 
-  .signalement-question {
-    font-size: 0.85rem;
-    color: #666;
-  }
-
-  .signalement-boutons {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .signalement-boutons button {
-    flex: 1;
-    min-height: 40px;
-    border-radius: 999px;
-    border: 1px solid #c55a7a;
-    background: #fff;
-    color: #c55a7a;
-    font-size: 0.82rem;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .signalement-boutons button:disabled {
-    opacity: 0.6;
-    cursor: default;
-  }
-
-  .signalement-message {
-    font-size: 0.8rem;
-    color: #540e28;
-    margin: 0;
+  .photo-lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+    object-fit: contain;
   }
 
   .commentaire {
@@ -333,7 +295,7 @@
 
   .frequence {
     font-size: 0.78rem;
-    color: #888;
+    color: var(--texte-attenue);
     min-width: 1.6rem;
   }
 
@@ -345,7 +307,7 @@
 
   .config-item {
     font-size: 0.85rem;
-    background: #fff;
+    background: var(--fond);
     border-radius: 999px;
     padding: 0.15rem 0.6rem;
   }
@@ -377,12 +339,12 @@
   }
 
   .donner-avis {
-    background: #540e28;
+    background: var(--accent);
     color: #fff;
   }
 
   .signaler {
-    background: #c55a7a;
+    background: var(--danger-texte);
     color: #fff;
   }
 </style>

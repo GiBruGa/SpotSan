@@ -52,13 +52,13 @@
   .changelog {
     text-align: left;
     font-size: 0.78rem;
-    color: #444;
+    color: var(--texte-attenue);
     line-height: 1.5;
   }
 
   .changelog .titre {
     font-weight: 700;
-    color: #c55a7a;
+    color: var(--danger-texte);
     margin-bottom: 0.2rem;
   }
 
@@ -69,7 +69,7 @@
 
   .legal {
     font-size: 0.72rem;
-    color: #666;
+    color: var(--texte-attenue);
     line-height: 1.4;
     margin: 0;
   }
@@ -77,16 +77,16 @@
   .signature {
     font-size: 0.75rem;
     font-style: italic;
-    color: #444;
+    color: var(--texte-attenue);
     margin: 0;
   }
 
   .fermer {
     min-height: 42px;
     border-radius: 999px;
-    border: 1px solid #ccc;
-    background: #fff;
-    color: #1a1414;
+    border: 1px solid var(--bordure);
+    background: var(--fond);
+    color: var(--texte);
     font-weight: 600;
     cursor: pointer;
   }

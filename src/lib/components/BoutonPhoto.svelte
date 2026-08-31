@@ -84,7 +84,7 @@
 
   .consigne {
     font-size: 0.82rem;
-    color: #666;
+    color: var(--texte-attenue, #666);
     text-align: center;
     margin: 0;
     max-width: 22rem;
@@ -92,7 +92,7 @@
 
   .traitement {
     font-size: 0.78rem;
-    color: #888;
+    color: var(--texte-attenue, #888);
     margin: 0;
   }
 
@@ -142,7 +142,7 @@
   }
 
   .erreur {
-    color: #c55a7a;
+    color: var(--danger-texte, #c55a7a);
     font-size: 0.8rem;
     margin: 0;
   }
