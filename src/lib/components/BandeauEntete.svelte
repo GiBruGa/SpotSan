@@ -71,8 +71,8 @@
     } catch (e) {
       statutLocalisation =
         e.message === 'geolocalisation_indisponible'
-          ? "Ton appareil ne propose pas de localisation."
-          : "Localisation refusée — active-la dans les réglages de ton navigateur si tu changes d'avis."
+          ? "Votre appareil ne propose pas de localisation."
+          : "Localisation refusée — activez-la dans les réglages de votre navigateur si vous changez d'avis."
     } finally {
       demandeLocalisationEnCours = false
     }
@@ -105,7 +105,7 @@
         {/if}
 
         <button type="button" class="menu-action" onclick={() => (vue = 'infos')}>Mes informations</button>
-        <button type="button" class="menu-action" onclick={() => (vue = 'installation')}>QR code — passe l'appli SpotSan à ton voisin</button>
+        <button type="button" class="menu-action" onclick={() => (vue = 'installation')}>QR code — passez l'appli SpotSan à votre voisin</button>
 
         <button type="button" class="menu-action" disabled={demandeLocalisationEnCours} onclick={demanderLocalisation}>
           {demandeLocalisationEnCours ? 'Demande en cours…' : 'Autoriser la localisation'}
@@ -140,7 +140,7 @@
         <AProposPanel onFerme={() => (vue = 'accueil')} />
       {:else if vue === 'suppression'}
         <div class="confirmation">
-          <p>Supprimer définitivement ton compte et toutes tes données personnelles ?</p>
+          <p>Supprimer définitivement votre compte et toutes vos données personnelles ?</p>
           <div class="confirmation-boutons">
             <button type="button" onclick={() => (vue = 'accueil')}>Annuler</button>
             <button type="button" class="danger" disabled={suppressionEnCours} onclick={confirmerSuppression}>

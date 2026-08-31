@@ -22,7 +22,7 @@
   async function valider() {
     erreur = ''
     if (!numeroLocal.trim() || !motDePasse) {
-      erreur = 'Entre ton numéro de portable et ton mot de passe.'
+      erreur = 'Entrez votre numéro de portable et votre mot de passe.'
       return
     }
 
@@ -44,7 +44,7 @@
 
 <div class="connexion">
   <h1>Se connecter</h1>
-  <p class="aide">Retrouve ton compte avec ton numéro de portable et ton mot de passe.</p>
+  <p class="aide">Retrouvez votre compte avec votre numéro de portable et votre mot de passe.</p>
 
   <label class="champ">
     <span>Numéro de portable</span>

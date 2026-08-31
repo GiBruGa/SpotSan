@@ -38,7 +38,7 @@
     erreur = ''
     if (!telephoneConnu) {
       if (!numeroLocal.trim()) {
-        erreur = 'Entre ton numéro de portable.'
+        erreur = 'Entrez votre numéro de portable.'
         return
       }
       const chiffres = numeroLocal.replace(/\D/g, '')
@@ -50,7 +50,7 @@
       if (error) throw error
       etape = 'code'
     } catch (e) {
-      erreur = "Envoi du code impossible. Vérifie le numéro et réessaie."
+      erreur = "Envoi du code impossible. Vérifiez le numéro et réessayez."
       console.error(e)
     } finally {
       enCours = false
@@ -60,7 +60,7 @@
   async function verifierCode() {
     erreur = ''
     if (!code.trim()) {
-      erreur = 'Entre le code reçu par SMS.'
+      erreur = 'Entrez le code reçu par SMS.'
       return
     }
     enCours = true
@@ -93,7 +93,7 @@
       const profil = await retrouverCompteParTelephone(telephone)
       onTermine?.({ profil, telephone })
     } catch (e) {
-      erreur = "Impossible de finaliser pour l'instant. Réessaie."
+      erreur = "Impossible de finaliser pour l'instant. Réessayez."
       console.error(e)
     } finally {
       enCours = false
@@ -103,8 +103,8 @@
 
 <div class="securiser">
   {#if etape === 'telephone'}
-    <h1>Vérifie ton numéro</h1>
-    <p class="aide">On t'envoie un code par SMS pour confirmer que ce numéro est bien le tien.</p>
+    <h1>Vérifiez votre numéro</h1>
+    <p class="aide">Nous vous envoyons un code par SMS pour confirmer que ce numéro est bien le vôtre.</p>
 
     <label class="champ">
       <span>Numéro de portable</span>
@@ -121,10 +121,10 @@
     </button>
     {#if onRetour}<button type="button" class="retour" onclick={onRetour}>Retour</button>{/if}
   {:else if etape === 'code'}
-    <h1>Entre le code reçu</h1>
+    <h1>Entrez le code reçu</h1>
     <p class="aide">
       Un SMS vient d'être envoyé au {telephone}.
-      Ignore la mention sur l'expéditeur si elle apparaît ("ne peut pas recevoir de réponse") — c'est normal, ne réponds pas au SMS, utilise juste le code.
+      Ignorez la mention sur l'expéditeur si elle apparaît ("ne peut pas recevoir de réponse") — c'est normal, ne répondez pas au SMS, utilisez juste le code.
     </p>
 
     <label class="champ">
@@ -139,7 +139,7 @@
     </button>
     <button type="button" class="retour" onclick={envoyerCode} disabled={enCours}>Renvoyer un code</button>
   {:else}
-    <h1>Choisis un mot de passe</h1>
+    <h1>Choisissez un mot de passe</h1>
     <p class="aide">Au moins 6 caractères, avec 2 majuscules, 2 chiffres et 2 caractères spéciaux.</p>
 
     <label class="champ">
@@ -148,7 +148,7 @@
     </label>
 
     <label class="champ">
-      <span>Confirme le mot de passe</span>
+      <span>Confirmez le mot de passe</span>
       <input type={motDePasseVisible ? 'text' : 'password'} bind:value={motDePasseConfirme} autocomplete="new-password" />
     </label>
 

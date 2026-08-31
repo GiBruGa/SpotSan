@@ -61,7 +61,7 @@
       onEnregistre?.(nouveauProfil)
     } catch (e) {
       console.error(e)
-      erreur = "Erreur, réessaie."
+      erreur = "Erreur, réessayez."
     } finally {
       enCours = false
     }
@@ -93,7 +93,7 @@
 
   <label class="champ">
     <span>Email (facultatif)</span>
-    <input type="email" bind:value={email} maxlength="200" placeholder="toi@exemple.com" />
+    <input type="email" bind:value={email} maxlength="200" placeholder="vous@exemple.com" />
   </label>
 
   <div class="champ">

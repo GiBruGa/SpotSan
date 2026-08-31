@@ -24,7 +24,7 @@
   <canvas bind:this={canvas}></canvas>
   <p class="url">{url}</p>
   <p class="astuce">
-    Scanne ce code avec un autre téléphone, ou utilise le menu de ton navigateur ("Ajouter à
+    Scannez ce code avec un autre téléphone, ou utilisez le menu de votre navigateur ("Ajouter à
     l'écran d'accueil" / "Installer l'application").
   </p>
   <button type="button" class="fermer" onclick={() => onFerme?.()}>Fermer</button>

@@ -24,7 +24,7 @@
       taxonomie = await chargerTaxonomieIncivilites()
     } catch (e) {
       console.error(e)
-      erreur = 'Impossible de charger la liste des problèmes, réessaie.'
+      erreur = 'Impossible de charger la liste des problèmes, réessayez.'
     }
   })
 
@@ -39,7 +39,7 @@
       return
     }
     if (!tags.length) {
-      erreur = 'Choisis au moins un type de problème constaté.'
+      erreur = 'Choisissez au moins un type de problème constaté.'
       return
     }
     enCours = true
@@ -50,11 +50,11 @@
     } catch (e) {
       console.error(e)
       if (e.message === 'geolocalisation_indisponible' || e.message === 'geolocalisation_refusee') {
-        erreur = 'Active la localisation pour signaler — il faut être sur place, près du sanitaire.'
+        erreur = 'Activez la localisation pour signaler — il faut être sur place, près du sanitaire.'
       } else if (e.message?.includes('trop_loin')) {
-        erreur = 'Tu dois être à proximité du sanitaire pour signaler.'
+        erreur = 'Vous devez être à proximité du sanitaire pour signaler.'
       } else {
-        erreur = 'Envoi impossible, réessaie.'
+        erreur = 'Envoi impossible, réessayez.'
       }
     } finally {
       enCours = false
@@ -66,8 +66,8 @@
   <header>
     <h1>Signaler une Incivilité ou un Vandalisme</h1>
     <p class="but">
-      Tes photos servent à entraîner une intelligence artificielle à détecter automatiquement ces
-      problèmes — merci pour ta contribution.
+      Vos photos servent à entraîner une intelligence artificielle à détecter automatiquement ces
+      problèmes — merci pour votre contribution.
     </p>
   </header>
 

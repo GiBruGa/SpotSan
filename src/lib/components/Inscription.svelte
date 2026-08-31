@@ -37,7 +37,7 @@
       return
     }
     if (!pseudo.trim()) {
-      erreur = 'Choisis un pseudo.'
+      erreur = 'Choisissez un pseudo.'
       return
     }
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -64,7 +64,7 @@
         handicaps,
       })
     } catch (e) {
-      erreur = "Impossible de créer le compte pour l'instant. Réessaie dans un instant."
+      erreur = "Impossible de créer le compte pour l'instant. Réessayez dans un instant."
       console.error(e)
     } finally {
       enCours = false
@@ -74,7 +74,7 @@
 
 <div class="inscription">
   <h1>Créer mon compte SpotSan</h1>
-  <p class="aide">Numéro {telephone} vérifié. Complète maintenant ton profil.</p>
+  <p class="aide">Numéro {telephone} vérifié. Complétez maintenant votre profil.</p>
 
   <label class="champ">
     <span>Nom *</span>
@@ -93,14 +93,14 @@
 
   <label class="champ">
     <span>Email (facultatif)</span>
-    <input type="email" bind:value={email} maxlength="200" placeholder="toi@exemple.com" />
+    <input type="email" bind:value={email} maxlength="200" placeholder="vous@exemple.com" />
   </label>
 
   <div class="champ">
     <span>Avatar (facultatif)</span>
     <!-- anonymiser=false : montrer son visage est justement le but d'un avatar. -->
     <BoutonPhoto capture={null} anonymiser={false} bind:valeur={avatar} />
-    <small>Prends une photo ou choisis-en une dans tes photos.</small>
+    <small>Prenez une photo ou choisissez-en une dans vos photos.</small>
   </div>
 
   <div class="champ">
@@ -137,12 +137,12 @@
 
   <div class="legal">
     <p>
-      Les informations que tu fournis (numéro de portable, nom, prénom, pseudo, avatar, et les
-      champs facultatifs ci-dessus) sont utilisées uniquement pour te reconnaître d'un avis à
+      Les informations que vous fournissez (numéro de portable, nom, prénom, pseudo, avatar, et les
+      champs facultatifs ci-dessus) sont utilisées uniquement pour vous reconnaître d'un avis à
       l'autre et éviter les doublons. Elles ne sont ni vendues ni partagées avec un tiers.
     </p>
     <p>
-      <strong>Tu peux à tout moment demander la suppression de ton compte et de toutes tes
+      <strong>Vous pouvez à tout moment demander la suppression de votre compte et de toutes vos
       données personnelles</strong>, depuis le menu du bandeau une fois connecté.
     </p>
     <label class="case">

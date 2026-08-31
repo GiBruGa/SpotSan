@@ -29,23 +29,23 @@
     {/if}
   </div>
   <h1><span class="wm-strong">Spot</span><span class="wm-soft">San</span></h1>
-  <p class="intro">Installe l'application sur ton téléphone pour l'avoir comme une vraie appli, avec son icône.</p>
+  <p class="intro">Installez l'application sur votre téléphone pour l'avoir comme une vraie appli, avec son icône.</p>
 
   <section class="etapes">
     <h2>Sur Android (Chrome)</h2>
     <ol>
-      <li>Ouvre le menu ⋮ en haut à droite du navigateur.</li>
-      <li>Choisis « Installer l'application » (ou « Ajouter à l'écran d'accueil »).</li>
-      <li>Confirme — l'icône SpotSan apparaît sur ton écran d'accueil.</li>
+      <li>Ouvrez le menu ⋮ en haut à droite du navigateur.</li>
+      <li>Choisissez « Installer l'application » (ou « Ajouter à l'écran d'accueil »).</li>
+      <li>Confirmez — l'icône SpotSan apparaît sur votre écran d'accueil.</li>
     </ol>
   </section>
 
   <section class="etapes">
     <h2>Sur iPhone (Safari)</h2>
     <ol>
-      <li>Appuie sur le bouton Partager <span class="icone-partage">⬆</span> en bas de l'écran.</li>
-      <li>Choisis « Sur l'écran d'accueil ».</li>
-      <li>Confirme — l'icône SpotSan apparaît sur ton écran d'accueil.</li>
+      <li>Appuyez sur le bouton Partager <span class="icone-partage">⬆</span> en bas de l'écran.</li>
+      <li>Choisissez « Sur l'écran d'accueil ».</li>
+      <li>Confirmez — l'icône SpotSan apparaît sur votre écran d'accueil.</li>
     </ol>
   </section>
 

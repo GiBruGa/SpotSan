@@ -10,6 +10,6 @@ export const CHANGELOG = [
   { version: 'v9.0', date: '29/08/2026', items: [
     "Nom, prénom et adresse ajoutés au profil Usager",
     "Connexion par téléphone + mot de passe, avec vérification par code SMS (remplace l'ancienne connexion déclarative)",
-    "Un avis ou un signalement d'incivilité ne peut plus être envoyé que si tu es physiquement près du sanitaire concerné",
+    "Un avis ou un signalement d'incivilité ne peut plus être envoyé que si vous êtes physiquement près du sanitaire concerné",
   ] },
 ]

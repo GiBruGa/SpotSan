@@ -80,7 +80,7 @@
         <IndicateurEtat label="Avis général" valeur={resume.dernier_avis.avis_general} />
         {#if resume.dernier_avis.commentaire}<p class="commentaire">« {resume.dernier_avis.commentaire} »</p>{/if}
       {:else}
-        <p class="note">Aucun avis pour l'instant — sois le premier à en laisser un.</p>
+        <p class="note">Aucun avis pour l'instant — soyez le premier à en laisser un.</p>
       {/if}
     </section>
 

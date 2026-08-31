@@ -32,7 +32,7 @@
       onTermine?.(url)
     } catch (err) {
       console.error(err)
-      erreur = 'Envoi impossible, réessaie.'
+      erreur = 'Envoi impossible, réessayez.'
     } finally {
       enCours = false
       e.target.value = ''

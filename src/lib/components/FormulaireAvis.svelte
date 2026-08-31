@@ -137,17 +137,17 @@
         },
       })
       messageStatut = horsLigne
-        ? 'Pas de réseau — ton avis est enregistré sur ton téléphone et sera envoyé dès que possible.'
+        ? 'Pas de réseau — votre avis est enregistré sur votre téléphone et sera envoyé dès que possible.'
         : 'Avis enregistré.'
       setTimeout(() => onFerme?.(), 900)
     } catch (e) {
       console.error(e)
       if (e.message === 'geolocalisation_indisponible' || e.message === 'geolocalisation_refusee') {
-        messageStatut = 'Active la localisation pour donner ton avis — il faut être sur place, près du sanitaire.'
+        messageStatut = 'Activez la localisation pour donner votre avis — il faut être sur place, près du sanitaire.'
       } else if (e.message?.includes('trop_loin')) {
-        messageStatut = 'Tu dois être à proximité du sanitaire pour donner ton avis.'
+        messageStatut = 'Vous devez être à proximité du sanitaire pour donner votre avis.'
       } else {
-        messageStatut = 'Erreur inattendue, réessaie.'
+        messageStatut = 'Erreur inattendue, réessayez.'
       }
     } finally {
       enregistrement = false
@@ -164,8 +164,8 @@
       <h1>Donner mon avis{nomLieu ? ` — ${nomLieu}` : ''}</h1>
       {#if dateDernierAvis}
         <p class="reprise">
-          Reprise de ton dernier avis du {new Date(dateDernierAvis).toLocaleDateString('fr-FR')} —
-          modifie ce qui a changé.
+          Reprise de votre dernier avis du {new Date(dateDernierAvis).toLocaleDateString('fr-FR')} —
+          modifiez ce qui a changé.
         </p>
       {/if}
       <div class="etapes-nav">
@@ -199,7 +199,7 @@
       {:else if etape === 2}
         <section class="grille-photos">
           <p class="consigne-camera">
-            Ajoute les photos qui te semblent compléter les informations déjà partagées.
+            Ajoutez les photos qui vous semblent compléter les informations déjà partagées.
           </p>
 
           <div class="groupe-photo">

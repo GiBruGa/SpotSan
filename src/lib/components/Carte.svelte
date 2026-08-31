@@ -55,7 +55,7 @@
       panneauOuvert = false
     } catch (e) {
       console.error(e)
-      rechercheErreur = 'Recherche impossible, réessaie.'
+      rechercheErreur = 'Recherche impossible, réessayez.'
     } finally {
       rechercheEnCours = false
     }
