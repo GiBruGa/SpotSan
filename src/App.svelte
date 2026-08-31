@@ -134,68 +134,58 @@
   }
 </script>
 
-
-<div class="app-shell">
-  {#if $needRefresh}
-    <div class="maj-disponible">
-      <span>Nouvelle version disponible.</span>
-      <button type="button" onclick={() => updateServiceWorker(true)}>Mettre à jour</button>
-    </div>
+{#if chargement}
+  <p class="etat">Chargement…</p>
+{:else if erreurInit}
+  <p class="etat erreur">{erreurInit}</p>
+{:else if !profil || vueAuth === 'securiser-existant'}
+  {#if vueAuth === 'connexion'}
+    <Connexion
+      onValide={surConnexionReussie}
+      onRetour={() => (vueAuth = 'accueil')}
+      onSansMotDePasse={() => (vueAuth = 'securiser')}
+    />
+  {:else if vueAuth === 'inscription'}
+    <SecuriserCompte onTermine={surSecuriseTermine} onRetour={() => (vueAuth = 'accueil')} />
+  {:else if vueAuth === 'inscription-details'}
+    <Inscription telephone={telephoneEnCoursInscription} onValide={surInscriptionDetailsValidee} />
+  {:else if vueAuth === 'securiser'}
+    <SecuriserCompte onTermine={surSecuriseTermine} onRetour={() => (vueAuth = 'connexion')} />
+  {:else if vueAuth === 'securiser-existant'}
+    <SecuriserCompte telephoneConnu={profil?.Phone} onTermine={surSecuriseTermine} />
+  {:else}
+    <Accueil onConnexion={() => (vueAuth = 'connexion')} onInscription={() => (vueAuth = 'inscription')} />
   {/if}
-
-  <div class="contenu">
-    {#if chargement}
-      <p class="etat">Chargement…</p>
-    {:else if erreurInit}
-      <p class="etat erreur">{erreurInit}</p>
-    {:else if !profil || vueAuth === 'securiser-existant'}
-      {#if vueAuth === 'connexion'}
-        <Connexion
-          onValide={surConnexionReussie}
-          onRetour={() => (vueAuth = 'accueil')}
-          onSansMotDePasse={() => (vueAuth = 'securiser')}
-        />
-      {:else if vueAuth === 'inscription'}
-        <SecuriserCompte onTermine={surSecuriseTermine} onRetour={() => (vueAuth = 'accueil')} />
-      {:else if vueAuth === 'inscription-details'}
-        <Inscription telephone={telephoneEnCoursInscription} onValide={surInscriptionDetailsValidee} />
-      {:else if vueAuth === 'securiser'}
-        <SecuriserCompte onTermine={surSecuriseTermine} onRetour={() => (vueAuth = 'connexion')} />
-      {:else if vueAuth === 'securiser-existant'}
-        <SecuriserCompte telephoneConnu={profil?.Phone} onTermine={surSecuriseTermine} />
-      {:else}
-        <Accueil onConnexion={() => (vueAuth = 'connexion')} onInscription={() => (vueAuth = 'inscription')} />
-      {/if}
-    {:else if ubIdFormulaire}
-      <FormulaireAvis {userId} ubId={ubIdFormulaire} onFerme={surFermetureFormulaire} />
-    {:else if ubIdSignalement}
-      <SignalerIncivilite ubId={ubIdSignalement} onFerme={surFermetureSignalement} />
-    {:else if ubIdFiche}
-      {#key versionFiche}
-        <FicheSanitaire
-          ubId={ubIdFiche}
-          onDonnerAvis={(id) => (ubIdFormulaire = id)}
-          onSignaler={(id) => (ubIdSignalement = id)}
-          onRetour={() => (ubIdFiche = null)}
-        />
-      {/key}
-    {:else}
-      <div class="ecran-carte">
-        <BandeauEntete
-          {userId}
-          {profil}
-          onProfilMisAJour={(p) => (profil = p)}
-          onSupprimer={surSuppression}
-          onDeconnexion={surDeconnexion}
-        />
-        {#if enAttente > 0}
-          <p class="badge-attente">{enAttente} avis en attente d'envoi (pas de réseau au moment de la sauvegarde).</p>
-        {/if}
-        <Carte onChoixSanitaire={(id) => (ubIdFiche = id)} />
-      </div>
+{:else if ubIdFormulaire}
+  <FormulaireAvis {userId} ubId={ubIdFormulaire} onFerme={surFermetureFormulaire} />
+{:else if ubIdSignalement}
+  <SignalerIncivilite ubId={ubIdSignalement} onFerme={surFermetureSignalement} />
+{:else if ubIdFiche}
+  {#key versionFiche}
+    <FicheSanitaire
+      ubId={ubIdFiche}
+      onDonnerAvis={(id) => (ubIdFormulaire = id)}
+      onSignaler={(id) => (ubIdSignalement = id)}
+      onRetour={() => (ubIdFiche = null)}
+    />
+  {/key}
+{:else}
+  <div class="ecran-carte">
+    <BandeauEntete
+      {userId}
+      {profil}
+      needRefresh={$needRefresh}
+      onMettreAJour={() => updateServiceWorker(true)}
+      onProfilMisAJour={(p) => (profil = p)}
+      onSupprimer={surSuppression}
+      onDeconnexion={surDeconnexion}
+    />
+    {#if enAttente > 0}
+      <p class="badge-attente">{enAttente} avis en attente d'envoi (pas de réseau au moment de la sauvegarde).</p>
     {/if}
+    <Carte onChoixSanitaire={(id) => (ubIdFiche = id)} />
   </div>
-</div>
+{/if}
 
 <style>
   .etat {
@@ -208,24 +198,9 @@
     color: #c55a7a;
   }
 
-  .app-shell {
+  .ecran-carte {
     position: fixed;
     inset: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .contenu {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-  }
-
-  .ecran-carte {
-    flex: 1;
-    min-height: 0;
     display: flex;
     flex-direction: column;
   }
@@ -233,31 +208,6 @@
   .ecran-carte :global(.carte) {
     position: relative;
     flex: 1;
-  }
-
-  /* Flux normal (plus fixed) : ne doit jamais pouvoir recouvrir le bandeau
-     et son bouton avatar -- cf. bug du 2026-08-31 (menu invisible/inatteignable). */
-  .maj-disponible {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.6rem;
-    padding: 0.5rem;
-    background: #540e28;
-    color: #fff;
-    font-size: 0.82rem;
-  }
-
-  .maj-disponible button {
-    border: 1px solid #fff;
-    background: transparent;
-    color: #fff;
-    border-radius: 999px;
-    padding: 0.2rem 0.7rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
   }
 
   .badge-attente {

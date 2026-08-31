@@ -11,7 +11,7 @@
   import InstallationQR from './InstallationQR.svelte'
   import AProposPanel from './AProposPanel.svelte'
 
-  let { userId, profil, onProfilMisAJour, onSupprimer, onDeconnexion } = $props()
+  let { userId, profil, needRefresh = false, onMettreAJour, onProfilMisAJour, onSupprimer, onDeconnexion } = $props()
 
   let menuOuvert = $state(false)
   // 'accueil' | 'infos' | 'installation' | 'apropos' | 'suppression'
@@ -65,6 +65,7 @@
       <span class="avatar-defaut"><img src={avatarParDefaut} alt="" /></span>
     {/if}
     <span class="pseudo">{profil.pseudo}</span>
+    {#if needRefresh}<span class="pastille-maj" title="Mise à jour disponible"></span>{/if}
   </button>
 
   {#if menuOuvert}
@@ -74,6 +75,10 @@
           <p><strong>Pseudo</strong> {profil.pseudo}</p>
           <p><strong>Téléphone</strong> {profil.Phone}</p>
         </div>
+
+        {#if needRefresh}
+          <button type="button" class="menu-action maj" onclick={onMettreAJour}>Nouvelle version disponible — Mettre à jour</button>
+        {/if}
 
         <button type="button" class="menu-action" onclick={() => (vue = 'infos')}>Mes informations</button>
         <button type="button" class="menu-action" onclick={() => (vue = 'installation')}>Installer l'application (QR code)</button>
@@ -156,6 +161,7 @@
   }
 
   .profil-bouton {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -166,6 +172,20 @@
     background: rgba(255, 255, 255, 0.08);
     color: #fff;
     cursor: pointer;
+  }
+
+  /* Signale une mise a jour disponible sans bandeau flottant (celui-ci
+     pouvait recouvrir ce bouton -- bug du 2026-08-31) : le detail est
+     dans le menu, ici juste un point d'appel. */
+  .pastille-maj {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ffc3d5;
+    border: 2px solid #540e28;
   }
 
   .avatar-photo {
@@ -238,10 +258,21 @@
     cursor: pointer;
   }
 
+  .menu-action.maj {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Bordure/texte rouges mais fond neutre comme les autres items -- un
+     fond plein donnait l'impression d'un item deja selectionne (meme
+     traitement visuel que .chips button.selected), trompeur pour une
+     simple entree de menu (retour Gilles du 2026-08-31). Le remplissage
+     plein reste reserve au vrai bouton de confirmation ci-dessous. */
   .menu-action.danger {
     border-color: #c55a7a;
-    background: #c55a7a;
-    color: #fff;
+    background: var(--fond);
+    color: #c55a7a;
     font-weight: 600;
     text-align: center;
   }
