@@ -19,7 +19,7 @@ export async function chargerTaxonomieIncivilites() {
 }
 
 /**
- * Signalement d'Incivilité/Vandalisme (Lot 6, §5.6.3) : photo + au moins un
+ * Signalement d'Incivilités/Vandalismes (Lot 6, §5.6.3) : photo + au moins un
  * tag obligatoires (le tag sert de label d'entrainement IA, pas juste de
  * confort de navigation), texte libre optionnel. Multi-tag depuis
  * 2026-08-30 (un signalement peut couvrir plusieurs problemes a la fois,

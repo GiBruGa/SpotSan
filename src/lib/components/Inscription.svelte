@@ -17,7 +17,6 @@
   let avatar = $state(null)
   let sexe = $state(null) // 'Homme' | 'Femme' | null (= non precise)
   let anneeNaissance = $state('')
-  let adresse = $state('')
   let handicaps = $state([])
   let accepteConditions = $state(false)
   let erreur = $state('')
@@ -59,7 +58,6 @@
         avatar,
         sexe,
         anneeNaissance: anneeNaissance ? Number(anneeNaissance) : null,
-        adresse: adresse.trim() || null,
         email: email.trim() || null,
         handicaps,
       })
@@ -115,11 +113,6 @@
   <label class="champ">
     <span>Année de naissance (facultatif)</span>
     <input type="number" bind:value={anneeNaissance} min="1900" max="2026" placeholder="1990" />
-  </label>
-
-  <label class="champ">
-    <span>Adresse (facultatif)</span>
-    <input type="text" bind:value={adresse} maxlength="200" />
   </label>
 
   <div class="champ">

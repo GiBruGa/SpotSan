@@ -1,5 +1,5 @@
 <script>
-  // Signaler une Incivilite ou un Vandalisme (Lot 6, §5.6.3) --
+  // Signaler des Incivilites et Vandalismes (Lot 6, §5.6.3) --
   // l'OBJET PRINCIPAL DE L'OUTIL pour UrBizia (voir bandeau en tete du
   // plan) : ces photos alimentent une base d'entrainement pour une IA de
   // detection. Photo et tag obligatoires -- le tag est un label
@@ -35,7 +35,7 @@
   async function envoyer() {
     erreur = ''
     if (!photoUrl) {
-      erreur = 'Une photo est obligatoire pour signaler une Incivilité ou un Vandalisme.'
+      erreur = 'Une photo est obligatoire pour signaler des Incivilités et Vandalismes.'
       return
     }
     if (!tags.length) {
@@ -64,7 +64,7 @@
 
 <div class="signaler">
   <header>
-    <h1>Signaler une Incivilité ou un Vandalisme</h1>
+    <h1>Signaler des Incivilités et Vandalismes</h1>
     <p class="but">
       Vos photos servent à entraîner une intelligence artificielle à détecter automatiquement ces
       problèmes — merci pour votre contribution.

@@ -29,7 +29,9 @@
 
 <div class="echelle-etat" role="group" aria-label={label || 'Échelle d’état'}>
   {#if label}<span class="echelle-etat__label">{label}</span>{/if}
-  <div class="echelle-etat__niveaux">
+  <!-- Niveaux + extensions sur une seule ligne commune (retour Gilles du
+       2026-08-31 : HS/Abs doivent tenir sur la meme ligne que les smileys). -->
+  <div class="echelle-etat__ligne">
     {#each NIVEAUX as n (n.v)}
       <button
         type="button"
@@ -40,20 +42,16 @@
         onclick={() => (value = n.v)}
       >{n.emoji}</button>
     {/each}
+    {#each extensions as ext (ext)}
+      <button
+        type="button"
+        class="echelle-etat__chip {polariteExtension(ext)}"
+        class:selected={value === ext}
+        aria-pressed={value === ext}
+        onclick={() => (value = ext)}
+      >{ext}</button>
+    {/each}
   </div>
-  {#if extensions.length}
-    <div class="echelle-etat__extensions">
-      {#each extensions as ext (ext)}
-        <button
-          type="button"
-          class="echelle-etat__chip {polariteExtension(ext)}"
-          class:selected={value === ext}
-          aria-pressed={value === ext}
-          onclick={() => (value = ext)}
-        >{ext}</button>
-      {/each}
-    </div>
-  {/if}
 </div>
 
 <style>
@@ -76,8 +74,7 @@
   /* Une seule ligne, jamais de retour (demande Gilles du 2026-08-31, plus
      compact) -- overflow-x en filet de securite sur les tres petits ecrans
      ou avec une taille de police systeme agrandie. */
-  .echelle-etat__niveaux,
-  .echelle-etat__extensions {
+  .echelle-etat__ligne {
     display: flex;
     flex-wrap: nowrap;
     gap: 0.35rem;

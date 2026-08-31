@@ -4,16 +4,13 @@
   // en lecture + la suppression, pas de modification possible).
 
   import BoutonPhoto from './BoutonPhoto.svelte'
+  import { supabase } from '../supabaseClient.js'
   import { mettreAJourProfil } from '../profil.js'
 
   let { userId, profil, onEnregistre, onFerme } = $props()
 
   const HANDICAPS_POSSIBLES = ['Visuel', 'Moteur']
 
-  // Le telephone n'est plus modifiable ici depuis le 2026-08-29 : c'est
-  // desormais l'identifiant Auth verifie (telephone+mot de passe), le
-  // changer necessite une nouvelle verification par SMS -- hors perimetre
-  // de cet ecran, pas de UI de changement de numero pour l'instant.
   let nom = $state(profil.Nom ?? '')
   let prenom = $state(profil.Prenom ?? '')
   let pseudo = $state(profil.pseudo ?? '')
@@ -21,13 +18,26 @@
   let avatar = $state(profil.avatar_url ?? null)
   let sexe = $state(profil.Sexe_Declare ?? null)
   let anneeNaissance = $state(profil.Birthdate ? Number(profil.Birthdate.slice(0, 4)) : '')
-  let adresse = $state(profil.Adresse ?? '')
   let handicaps = $state(profil.handicaps ?? [])
   let enCours = $state(false)
   let erreur = $state('')
 
   function toggleHandicap(h) {
     handicaps = handicaps.includes(h) ? handicaps.filter((x) => x !== h) : [...handicaps, h]
+  }
+
+  async function enregistrerChamps(telephone) {
+    return mettreAJourProfil(userId, {
+      telephone,
+      nom: nom.trim(),
+      prenom: prenom.trim(),
+      pseudo: pseudo.trim(),
+      avatar,
+      sexe,
+      anneeNaissance: anneeNaissance ? Number(anneeNaissance) : null,
+      email: email.trim() || null,
+      handicaps,
+    })
   }
 
   async function enregistrer() {
@@ -46,24 +56,80 @@
     }
     enCours = true
     try {
-      const nouveauProfil = await mettreAJourProfil(userId, {
-        telephone: profil.Phone,
-        nom: nom.trim(),
-        prenom: prenom.trim(),
-        pseudo: pseudo.trim(),
-        avatar,
-        sexe,
-        anneeNaissance: anneeNaissance ? Number(anneeNaissance) : null,
-        adresse: adresse.trim() || null,
-        email: email.trim() || null,
-        handicaps,
-      })
+      const nouveauProfil = await enregistrerChamps(profil.Phone)
       onEnregistre?.(nouveauProfil)
     } catch (e) {
       console.error(e)
       erreur = "Erreur, réessayez."
     } finally {
       enCours = false
+    }
+  }
+
+  // Changement de numero de portable (demande de Gilles du 2026-08-31,
+  // "au cas ou" -- il n'y avait aucun moyen de corriger un numero apres
+  // coup). Reutilise le flux de changement de telephone natif de Supabase
+  // Auth (verification SMS obligatoire, type 'phone_change') plutot que de
+  // toucher directement SitInZen_Users.Phone : c'est l'identifiant Auth
+  // reel utilise pour se connecter (signInWithPassword({phone,...})), pas
+  // seulement une donnee de profil -- le desynchroniser casserait la
+  // connexion avec l'ancien mot de passe.
+  let modeChangementTel = $state(false)
+  let etapeTel = $state('numero') // 'numero' | 'code'
+  let indicatifTel = $state('+33')
+  let numeroTel = $state('')
+  let telephoneEnAttente = $state('')
+  let codeTel = $state('')
+  let enCoursTel = $state(false)
+  let erreurTel = $state('')
+
+  function ouvrirChangementTel() {
+    modeChangementTel = true
+    etapeTel = 'numero'
+    numeroTel = ''
+    codeTel = ''
+    erreurTel = ''
+  }
+
+  async function envoyerCodeTel() {
+    erreurTel = ''
+    if (!numeroTel.trim()) {
+      erreurTel = 'Entrez le nouveau numéro de portable.'
+      return
+    }
+    enCoursTel = true
+    try {
+      const chiffres = numeroTel.replace(/\D/g, '')
+      telephoneEnAttente = `${indicatifTel} ${chiffres.slice(0, 3)} ${chiffres.slice(3, 6)} ${chiffres.slice(6, 9)}`.trim()
+      const { error } = await supabase.auth.updateUser({ phone: telephoneEnAttente })
+      if (error) throw error
+      etapeTel = 'code'
+    } catch (e) {
+      erreurTel = "Envoi du code impossible. Vérifiez le numéro et réessayez."
+      console.error(e)
+    } finally {
+      enCoursTel = false
+    }
+  }
+
+  async function validerCodeTel() {
+    erreurTel = ''
+    if (!codeTel.trim()) {
+      erreurTel = 'Entrez le code reçu par SMS.'
+      return
+    }
+    enCoursTel = true
+    try {
+      const { error } = await supabase.auth.verifyOtp({ phone: telephoneEnAttente, token: codeTel.trim(), type: 'phone_change' })
+      if (error) throw error
+      const nouveauProfil = await enregistrerChamps(telephoneEnAttente)
+      onEnregistre?.(nouveauProfil)
+      modeChangementTel = false
+    } catch (e) {
+      erreurTel = 'Code incorrect ou expiré.'
+      console.error(e)
+    } finally {
+      enCoursTel = false
     }
   }
 </script>
@@ -73,7 +139,34 @@
 
   <div class="champ">
     <span>Numéro de portable</span>
-    <p class="valeur-figee">{profil.Phone}</p>
+    {#if !modeChangementTel}
+      <div class="ligne-tel">
+        <p class="valeur-figee">{profil.Phone}</p>
+        <button type="button" class="lien-tel" onclick={ouvrirChangementTel}>Changer de numéro</button>
+      </div>
+    {:else if etapeTel === 'numero'}
+      <div class="tel">
+        <input type="text" bind:value={indicatifTel} class="indicatif" aria-label="Indicatif pays" />
+        <input type="tel" bind:value={numeroTel} placeholder="6 12 34 56 78" aria-label="Nouveau numéro de portable" />
+      </div>
+      {#if erreurTel}<p class="erreur">{erreurTel}</p>{/if}
+      <div class="boutons-tel">
+        <button type="button" class="annuler" onclick={() => (modeChangementTel = false)}>Annuler</button>
+        <button type="button" class="enregistrer" disabled={enCoursTel} onclick={envoyerCodeTel}>
+          {enCoursTel ? 'Envoi…' : 'Recevoir le code'}
+        </button>
+      </div>
+    {:else}
+      <p class="note-tel">Un SMS vient d'être envoyé au {telephoneEnAttente}.</p>
+      <input type="text" inputmode="numeric" bind:value={codeTel} maxlength="10" placeholder="Code reçu par SMS" />
+      {#if erreurTel}<p class="erreur">{erreurTel}</p>{/if}
+      <div class="boutons-tel">
+        <button type="button" class="annuler" onclick={() => (modeChangementTel = false)}>Annuler</button>
+        <button type="button" class="enregistrer" disabled={enCoursTel} onclick={validerCodeTel}>
+          {enCoursTel ? 'Vérification…' : 'Valider le code'}
+        </button>
+      </div>
+    {/if}
   </div>
 
   <label class="champ">
@@ -112,11 +205,6 @@
   <label class="champ">
     <span>Année de naissance (facultatif)</span>
     <input type="number" bind:value={anneeNaissance} min="1900" max="2026" />
-  </label>
-
-  <label class="champ">
-    <span>Adresse (facultatif)</span>
-    <input type="text" bind:value={adresse} maxlength="200" />
   </label>
 
   <div class="champ">
@@ -184,6 +272,53 @@
     font-size: 0.9rem;
     background: var(--fond-carte);
     border-radius: 8px;
+    flex: 1;
+  }
+
+  .ligne-tel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .lien-tel {
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    color: var(--accent-texte);
+    font-size: 0.78rem;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .tel {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .indicatif {
+    width: 3.5rem;
+    text-align: center;
+  }
+
+  .note-tel {
+    font-size: 0.8rem;
+    color: var(--texte-attenue);
+    margin: 0;
+  }
+
+  .boutons-tel {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .boutons-tel button {
+    flex: 1;
+    min-height: 40px;
+    border-radius: 999px;
+    font-weight: 600;
+    cursor: pointer;
   }
 
   .chips {

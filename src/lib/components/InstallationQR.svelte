@@ -22,11 +22,10 @@
 <div class="installation">
   <h2>Installer SpotSan</h2>
   <canvas bind:this={canvas}></canvas>
+  <p class="astuce">Scannez ce code avec un autre téléphone et laissez-vous guider</p>
+  <p class="ou">ou</p>
+  <p class="astuce">Copiez l'adresse suivante et transmettez-la.</p>
   <p class="url">{url}</p>
-  <p class="astuce">
-    Scannez ce code avec un autre téléphone, ou utilisez le menu de votre navigateur ("Ajouter à
-    l'écran d'accueil" / "Installer l'application").
-  </p>
   <button type="button" class="fermer" onclick={() => onFerme?.()}>Fermer</button>
 </div>
 
@@ -58,6 +57,12 @@
   .astuce {
     font-size: 0.8rem;
     color: var(--texte);
+    margin: 0;
+  }
+
+  .ou {
+    font-size: 0.75rem;
+    color: var(--texte-attenue);
     margin: 0;
   }
 

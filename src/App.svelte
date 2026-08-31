@@ -5,6 +5,7 @@
   import { chargerProfil, creerProfil, supprimerCompte } from './lib/profil.js'
   import { viderQueue, nombreEnAttente } from './lib/queueAvis.js'
   import Accueil from './lib/components/Accueil.svelte'
+  import EcranBienvenue from './lib/components/EcranBienvenue.svelte'
   import AideInstallation from './lib/components/AideInstallation.svelte'
   import Connexion from './lib/components/Connexion.svelte'
   import Inscription from './lib/components/Inscription.svelte'
@@ -44,6 +45,16 @@
   let ubIdSignalement = $state(null)
   let versionFiche = $state(0)
 
+  // Ecran "Bienvenu·e !" affiche une seule fois, quand l'app se (re)lance
+  // avec une session deja authentifiee -- avant, l'app allait direct sur
+  // la carte sans jamais presenter l'outil dans ce cas (retour Gilles du
+  // 2026-08-31). Volontairement PAS active apres une connexion/inscription
+  // interactive dans la meme session (surConnexionReussie/surSecuriseTermine/
+  // surInscriptionDetailsValidee ne le touchent pas) : la personne vient
+  // deja de voir Connexion/Inscription, un second ecran de bienvenue serait
+  // redondant.
+  let vueBienvenue = $state(false)
+
   // Mise a jour de l'app : pas de rechargement automatique en silence --
   // ca pourrait effacer une saisie en cours (formulaire, photo). On
   // affiche juste un bandeau, l'utilisateur choisit le moment.
@@ -64,6 +75,8 @@
       // prochaine connexion").
       if (profil && session.user.is_anonymous) {
         vueAuth = 'securiser-existant'
+      } else if (profil) {
+        vueBienvenue = true
       }
     } catch (e) {
       console.error(e)
@@ -186,6 +199,8 @@
       onRetour={() => (ubIdFiche = null)}
     />
   {/key}
+{:else if vueBienvenue}
+  <EcranBienvenue onContinuer={() => (vueBienvenue = false)} />
 {:else}
   <div class="ecran-carte">
     <BandeauEntete

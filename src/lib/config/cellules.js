@@ -14,12 +14,14 @@ export const CELLULES = [
 export const ACCESSIBILITE_OPTIONS = ['Séparé Dames/Messieurs', 'Mixte']
 export const TYPE_OPTIONS = ['Classique', 'Automatique', 'Chimique', 'Sèche']
 
+// Ordre HS avant Abs (coherence avec l'echelle de comptage de l'etape
+// "Configuration" -- 1/2/3/4/>4/HS/Abs -- retour Gilles du 2026-08-31).
 export const EQUIPEMENTS = [
-  { cle: 'siege_toilette', label: 'Siège de toilette', extensions: ['Abs', 'HS'], sousChoix: ['Adulte', 'Enfant'] },
-  { cle: 'papier_toilette', label: 'Distributeur papier toilette', extensions: ['Abs', 'HS', 'Vide'] },
-  { cle: 'lave_main', label: 'Lave-main', extensions: ['Abs', 'HS'], sousChoix: ['Par cellule', 'Commun'] },
-  { cle: 'savon', label: 'Distributeur de savon', extensions: ['Abs', 'HS', 'Vide'] },
-  { cle: 'seche_main', label: 'Sèche-main', extensions: ['Abs', 'HS'] },
-  { cle: 'essuie_tout', label: "Distributeur d'essuie-tout", extensions: ['Abs', 'HS', 'Vide'] },
-  { cle: 'poubelle', label: 'Poubelle', extensions: ['Abs', 'Débordante'] },
+  { cle: 'siege_toilette', label: 'Siège de toilette', extensions: ['HS', 'Abs'], sousChoix: ['Adulte', 'Enfant'] },
+  { cle: 'papier_toilette', label: 'Distributeur papier toilette', extensions: ['HS', 'Vide', 'Abs'] },
+  { cle: 'lave_main', label: 'Lave-main', extensions: ['HS', 'Abs'], sousChoix: ['Par cellule', 'Commun'] },
+  { cle: 'savon', label: 'Distributeur de savon', extensions: ['HS', 'Vide', 'Abs'] },
+  { cle: 'seche_main', label: 'Sèche-main', extensions: ['HS', 'Abs'] },
+  { cle: 'essuie_tout', label: "Distributeur d'essuie-tout", extensions: ['HS', 'Vide', 'Abs'] },
+  { cle: 'poubelle', label: 'Poubelle', extensions: ['Débordante', 'Abs'] },
 ]

@@ -6,9 +6,10 @@
   // "predecesseurs" > photos > stats avis+etat > configuration > equipements
   // > bouton "Donnez votre avis".
 
-  import { onMount } from 'svelte'
+  import { onMount, onDestroy } from 'svelte'
   import { chargerSanitaire, chargerResumeAvis } from '../sanitaires.js'
   import { CELLULES, EQUIPEMENTS } from '../config/cellules.js'
+  import { ouvrirAvecRetour } from '../retourFerme.js'
   import IndicateurEtat from './IndicateurEtat.svelte'
 
   let { ubId, onDonnerAvis, onSignaler, onRetour } = $props()
@@ -17,8 +18,24 @@
   let sanitaire = $state(null)
   let resume = $state(null)
   // Photo agrandie (retour Gilles du 2026-08-31 : le zoom sur une photo du
-  // bandeau avait disparu -- lightbox plein ecran, ferme au clic n'importe ou.
+  // bandeau avait disparu -- lightbox plein ecran, ferme au clic n'importe ou,
+  // ou au retour materiel/geste telephone (voir retourFerme.js).
   let photoAgrandie = $state(null)
+  let fermerLightboxViaRetour = null
+
+  function ouvrirPhoto(url) {
+    photoAgrandie = url
+    fermerLightboxViaRetour = ouvrirAvecRetour(() => {
+      photoAgrandie = null
+      fermerLightboxViaRetour = null
+    })
+  }
+
+  function fermerPhoto() {
+    fermerLightboxViaRetour?.()
+    fermerLightboxViaRetour = null
+    photoAgrandie = null
+  }
 
   onMount(async () => {
     try {
@@ -29,6 +46,8 @@
       chargement = false
     }
   })
+
+  onDestroy(() => fermerLightboxViaRetour?.())
 
   function libelle(cle, liste) {
     return liste.find((x) => x.cle === cle)?.label ?? cle
@@ -59,6 +78,21 @@
   {:else if !sanitaire}
     <p class="etat erreur">Sanitaire introuvable.</p>
   {:else}
+    {#if sanitaire.Latitude != null && sanitaire.Longitude != null}
+      <div class="liens-carte">
+        <a
+          href={`https://www.google.com/maps/search/?api=1&query=${sanitaire.Latitude},${sanitaire.Longitude}`}
+          target="_blank"
+          rel="noopener"
+        >📍 Google Maps</a>
+        <a
+          href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${sanitaire.Latitude},${sanitaire.Longitude}`}
+          target="_blank"
+          rel="noopener"
+        >👁 Street View</a>
+      </div>
+    {/if}
+
     <p class="mention-predecesseurs">Informations données par vos prédécesseurs</p>
 
     <section class="bloc">
@@ -89,7 +123,7 @@
       {#if resume?.photos?.length}
         <div class="galerie-photos">
           {#each resume.photos as url (url)}
-            <button type="button" class="photo-vignette" onclick={() => (photoAgrandie = url)}>
+            <button type="button" class="photo-vignette" onclick={() => ouvrirPhoto(url)}>
               <img src={url} alt="" loading="lazy" />
             </button>
           {/each}
@@ -146,14 +180,14 @@
         Donnez votre avis
       </button>
       <button type="button" class="signaler" onclick={() => onSignaler?.(ubId)}>
-        Signaler une Incivilité ou un Vandalisme
+        Signaler des Incivilités et Vandalismes
       </button>
     </div>
   {/if}
 </div>
 
 {#if photoAgrandie}
-  <button type="button" class="photo-lightbox" onclick={() => (photoAgrandie = null)} aria-label="Fermer">
+  <button type="button" class="photo-lightbox" onclick={fermerPhoto} aria-label="Fermer">
     <img src={photoAgrandie} alt="" />
   </button>
 {/if}
@@ -204,6 +238,17 @@
     font-weight: 600;
     color: var(--accent-texte);
     margin: 0;
+  }
+
+  .liens-carte {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .liens-carte a {
+    font-size: 0.85rem;
+    color: var(--accent-texte);
+    text-decoration: none;
   }
 
   /* Bloc de lecture : aucun element cliquable a l'interieur (hors la
@@ -319,7 +364,7 @@
   }
 
   /* Les deux actions sont volontairement aussi visibles l'une que
-     l'autre (§5.6.3) -- signaler une Incivilite/Vandalisme n'est pas une
+     l'autre (§5.6.3) -- signaler des Incivilites/Vandalismes n'est pas une
      fonction secondaire, c'est l'objet principal de l'outil. */
   .actions {
     display: flex;
@@ -328,23 +373,29 @@
     pointer-events: auto;
   }
 
+  /* Fond neutre + bordure/texte colores (meme traitement que "Supprimer
+     mon compte", cf. BandeauEntete) plutot qu'un remplissage plein : deux
+     remplissages de couleurs differentes donnaient l'impression que l'un
+     des deux etait deja selectionne, sans qu'on sache lequel -- retour
+     Gilles du 2026-08-31. Les deux boutons restent volontairement aussi
+     visibles l'un que l'autre (§5.6.3, voir commentaire .actions). */
   .donner-avis,
   .signaler {
     min-height: 48px;
     border-radius: 999px;
-    border: none;
+    background: var(--fond);
     font-weight: 600;
     cursor: pointer;
     pointer-events: auto;
   }
 
   .donner-avis {
-    background: var(--accent);
-    color: #fff;
+    border: 1px solid var(--accent);
+    color: var(--accent-texte);
   }
 
   .signaler {
-    background: var(--danger-texte);
-    color: #fff;
+    border: 1px solid var(--danger-texte);
+    color: var(--danger-texte);
   }
 </style>

@@ -20,7 +20,6 @@ export async function chargerProfil(userId) {
  *   avatar: string,
  *   sexe: 'Homme' | 'Femme' | null,
  *   anneeNaissance: number | null,
- *   adresse: string | null,
  *   email: string | null,
  *   handicaps: string[],
  * }} profil
@@ -64,7 +63,7 @@ export async function supprimerCompte() {
 
 /**
  * Met a jour les informations personnelles (pseudo/avatar/telephone/nom/
- * prenom/sexe/annee/adresse/email/handicaps). Ne touche jamais
+ * prenom/sexe/annee/email/handicaps). Ne touche jamais
  * phone_verified/consent_at.
  */
 export async function mettreAJourProfil(userId, profil) {

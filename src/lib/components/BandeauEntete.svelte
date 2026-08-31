@@ -3,11 +3,13 @@
   // au retour utilisateur : menu trop pauvre -- ajoute edition des infos,
   // deconnexion, QR code d'installation, bascule clair/sombre, a propos).
 
+  import { onDestroy } from 'svelte'
   import { APP_VERSION } from '../version.js'
   import { themeActuel, definirTheme } from '../theme.js'
   import { seDeconnecter } from '../profil.js'
   import { chargerAvatarParDefaut } from '../identiteVisuelle.js'
   import { obtenirPosition } from '../geolocalisation.js'
+  import { ouvrirAvecRetour } from '../retourFerme.js'
   import MesInformations from './MesInformations.svelte'
   import InstallationQR from './InstallationQR.svelte'
   import AProposPanel from './AProposPanel.svelte'
@@ -20,6 +22,27 @@
   let suppressionEnCours = $state(false)
   let theme = $state(themeActuel())
 
+  // Retour materiel/geste telephone ferme le menu au lieu de quitter
+  // l'appli (retour Gilles du 2026-08-31) -- voir retourFerme.js.
+  let fermerMenuViaRetour = null
+
+  function toggleMenu() {
+    if (menuOuvert) {
+      fermerMenuViaRetour?.()
+      fermerMenuViaRetour = null
+      menuOuvert = false
+    } else {
+      menuOuvert = true
+      vue = 'accueil'
+      fermerMenuViaRetour = ouvrirAvecRetour(() => {
+        menuOuvert = false
+        fermerMenuViaRetour = null
+      })
+    }
+  }
+
+  onDestroy(() => fermerMenuViaRetour?.())
+
   // Avatar par defaut (aucune photo choisie) : icone dynamique depuis
   // acronymes, conditionnee par le sexe declare (demande du 2026-08-22)
   // puis par le statut PMR, prioritaire (demande du 2026-08-24) -- remplace
@@ -30,11 +53,6 @@
     const estPMR = profil.Is_PMR || profil.handicaps?.includes('Moteur')
     chargerAvatarParDefaut(profil.Sexe_Declare, estPMR).then((url) => (avatarParDefaut = url))
   })
-
-  function toggleMenu() {
-    menuOuvert = !menuOuvert
-    vue = 'accueil'
-  }
 
   function choisirTheme(t) {
     theme = t
@@ -105,7 +123,7 @@
         {/if}
 
         <button type="button" class="menu-action" onclick={() => (vue = 'infos')}>Mes informations</button>
-        <button type="button" class="menu-action" onclick={() => (vue = 'installation')}>QR code — passez l'appli SpotSan à votre voisin</button>
+        <button type="button" class="menu-action" onclick={() => (vue = 'installation')}>QR code SpotSan</button>
 
         <button type="button" class="menu-action" disabled={demandeLocalisationEnCours} onclick={demanderLocalisation}>
           {demandeLocalisationEnCours ? 'Demande en cours…' : 'Autoriser la localisation'}
@@ -306,9 +324,9 @@
      simple entree de menu (retour Gilles du 2026-08-31). Le remplissage
      plein reste reserve au vrai bouton de confirmation ci-dessous. */
   .menu-action.danger {
-    border-color: #c55a7a;
+    border-color: var(--danger-texte);
     background: var(--fond);
-    color: #c55a7a;
+    color: var(--danger-texte);
     font-weight: 600;
     text-align: center;
   }
