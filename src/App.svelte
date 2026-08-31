@@ -5,6 +5,7 @@
   import { chargerProfil, creerProfil, supprimerCompte } from './lib/profil.js'
   import { viderQueue, nombreEnAttente } from './lib/queueAvis.js'
   import Accueil from './lib/components/Accueil.svelte'
+  import AideInstallation from './lib/components/AideInstallation.svelte'
   import Connexion from './lib/components/Connexion.svelte'
   import Inscription from './lib/components/Inscription.svelte'
   import SecuriserCompte from './lib/components/SecuriserCompte.svelte'
@@ -13,6 +14,15 @@
   import FicheSanitaire from './lib/components/FicheSanitaire.svelte'
   import FormulaireAvis from './lib/components/FormulaireAvis.svelte'
   import SignalerIncivilite from './lib/components/SignalerIncivilite.svelte'
+
+  // Destination du QR code (InstallationQR.svelte) : aide a l'installation
+  // publique, sans compte requis -- avant, le QR menait direct a l'ecran de
+  // connexion, forcant un premier SMS juste pour voir comment installer,
+  // puis un second pour se connecter une fois l'app installee (retour de
+  // Gilles le 2026-08-31, cf. V2-PLAN.md §8). Verifie une seule fois au
+  // chargement, avant tout le reste -- l'ecran d'aide ne doit jamais
+  // attendre la session/le profil.
+  let modeInstallation = $state(new URLSearchParams(window.location.search).has('installer'))
 
   let chargement = $state(true)
   let erreurInit = $state('')
@@ -134,7 +144,14 @@
   }
 </script>
 
-{#if chargement}
+{#if modeInstallation}
+  <AideInstallation
+    onContinuer={() => {
+      modeInstallation = false
+      history.replaceState(null, '', window.location.pathname)
+    }}
+  />
+{:else if chargement}
   <p class="etat">Chargement…</p>
 {:else if erreurInit}
   <p class="etat erreur">{erreurInit}</p>

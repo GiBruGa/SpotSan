@@ -7,8 +7,11 @@
 
   let { onFerme } = $props()
 
+  // ?installer : ouvre AideInstallation.svelte (public, sans compte) plutot
+  // que l'ecran de connexion -- evite qu'un nouvel arrivant doive generer un
+  // SMS juste pour voir comment installer (retour Gilles du 2026-08-31).
   let canvas
-  const url = window.location.origin + import.meta.env.BASE_URL
+  const url = window.location.origin + import.meta.env.BASE_URL + '?installer'
 
   onMount(async () => {
     const QRCode = await import('qrcode')
