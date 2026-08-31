@@ -196,6 +196,11 @@
   .carte {
     position: absolute;
     inset: 0;
+    /* isolation : sans ca, les z-index internes de Leaflet (jusqu'a 1000
+       pour ses controles) remontent hors de .carte et passent devant le
+       menu du bandeau (z-index 20) -- le menu reste bien ouvert dans le
+       DOM mais invisible, cache sous la carte (bug du 2026-08-31). */
+    isolation: isolate;
   }
 
   .filtres {
