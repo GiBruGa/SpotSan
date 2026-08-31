@@ -33,14 +33,17 @@ export function classifier(t) {
 }
 
 /**
- * Categorie effective d'affichage : supprime (Exists=false, systeme de vote
- * "Inexistant") et hors_service (Statut_Operationnel, vote "Hors Service")
- * prevalent sur la classification par source -- cf. sanitaires.js
- * signalerStatutSanitaire (2026-08-31).
+ * Categorie effective d'affichage : supprime (Exists=false) et hors_service
+ * (Statut_Operationnel non nul -- "Hors_Service" via le vote Usager
+ * consensus, ou "Condamne" via le module Acces sanitaire EkoMa cote
+ * Exploitant, 2026-08-31) prevalent sur la classification par source.
+ * "Condamne" partage pour l'instant la meme couleur/filtre que
+ * "Hors_Service" (les deux disent "actuellement pas utilisable"), pas de
+ * distinction visuelle supplementaire demandee cote carte publique.
  */
 export function categorieAffichage(t) {
   if (t.Exists === false) return 'supprimees'
-  if (t.Statut_Operationnel === 'Hors_Service') return 'hors_service'
+  if (t.Statut_Operationnel) return 'hors_service'
   return classifier(t)
 }
 
