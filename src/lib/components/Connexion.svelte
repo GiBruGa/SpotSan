@@ -15,6 +15,7 @@
   let indicatif = $state('+33')
   let numeroLocal = $state('')
   let motDePasse = $state('')
+  let motDePasseVisible = $state(false)
   let erreur = $state('')
   let enCours = $state(false)
 
@@ -60,7 +61,12 @@
 
   <label class="champ">
     <span>Mot de passe</span>
-    <input type="password" bind:value={motDePasse} />
+    <input type={motDePasseVisible ? 'text' : 'password'} bind:value={motDePasse} autocomplete="current-password" />
+  </label>
+
+  <label class="case-visible">
+    <input type="checkbox" bind:checked={motDePasseVisible} />
+    <span>Afficher le mot de passe</span>
   </label>
 
   {#if erreur}<p class="erreur">{erreur}</p>{/if}
@@ -125,6 +131,14 @@
   .indicatif {
     width: 4rem;
     text-align: center;
+  }
+
+  .case-visible {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #555;
   }
 
   .erreur {
