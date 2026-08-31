@@ -21,6 +21,7 @@ export async function chargerProfil(userId) {
  *   sexe: 'Homme' | 'Femme' | null,
  *   anneeNaissance: number | null,
  *   adresse: string | null,
+ *   email: string | null,
  *   handicaps: string[],
  * }} profil
  */
@@ -37,6 +38,7 @@ export async function creerProfil(userId, profil) {
       Sexe_Declare: profil.sexe,
       Birthdate: profil.anneeNaissance ? `${profil.anneeNaissance}-01-01` : null,
       Adresse: profil.adresse || null,
+      Email: profil.email || null,
       handicaps: profil.handicaps.length ? profil.handicaps : null,
       consent_at: new Date().toISOString(),
       phone_verified: false,
@@ -62,7 +64,8 @@ export async function supprimerCompte() {
 
 /**
  * Met a jour les informations personnelles (pseudo/avatar/telephone/nom/
- * prenom/sexe/annee/adresse/handicaps). Ne touche jamais phone_verified/consent_at.
+ * prenom/sexe/annee/adresse/email/handicaps). Ne touche jamais
+ * phone_verified/consent_at.
  */
 export async function mettreAJourProfil(userId, profil) {
   const { data, error } = await supabase
@@ -76,6 +79,7 @@ export async function mettreAJourProfil(userId, profil) {
       Sexe_Declare: profil.sexe,
       Birthdate: profil.anneeNaissance ? `${profil.anneeNaissance}-01-01` : null,
       Adresse: profil.adresse || null,
+      Email: profil.email || null,
       handicaps: profil.handicaps.length ? profil.handicaps : null,
     })
     .eq('user_id', userId)

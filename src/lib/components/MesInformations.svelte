@@ -17,6 +17,7 @@
   let nom = $state(profil.Nom ?? '')
   let prenom = $state(profil.Prenom ?? '')
   let pseudo = $state(profil.pseudo ?? '')
+  let email = $state(profil.Email ?? '')
   let avatar = $state(profil.avatar_url ?? null)
   let sexe = $state(profil.Sexe_Declare ?? null)
   let anneeNaissance = $state(profil.Birthdate ? Number(profil.Birthdate.slice(0, 4)) : '')
@@ -39,6 +40,10 @@
       erreur = 'Le nom et le prénom sont obligatoires.'
       return
     }
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      erreur = 'Adresse email invalide.'
+      return
+    }
     enCours = true
     try {
       const nouveauProfil = await mettreAJourProfil(userId, {
@@ -50,6 +55,7 @@
         sexe,
         anneeNaissance: anneeNaissance ? Number(anneeNaissance) : null,
         adresse: adresse.trim() || null,
+        email: email.trim() || null,
         handicaps,
       })
       onEnregistre?.(nouveauProfil)
@@ -83,6 +89,11 @@
   <label class="champ">
     <span>Pseudo *</span>
     <input type="text" bind:value={pseudo} maxlength="30" />
+  </label>
+
+  <label class="champ">
+    <span>Email (facultatif)</span>
+    <input type="email" bind:value={email} maxlength="200" placeholder="toi@exemple.com" />
   </label>
 
   <div class="champ">
@@ -152,6 +163,7 @@
 
   input[type='text'],
   input[type='tel'],
+  input[type='email'],
   input[type='number'] {
     min-height: 40px;
     padding: 0 0.6rem;

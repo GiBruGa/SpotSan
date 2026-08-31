@@ -13,6 +13,7 @@
   let nom = $state('')
   let prenom = $state('')
   let pseudo = $state('')
+  let email = $state('')
   let avatar = $state(null)
   let sexe = $state(null) // 'Homme' | 'Femme' | null (= non precise)
   let anneeNaissance = $state('')
@@ -39,6 +40,10 @@
       erreur = 'Choisis un pseudo.'
       return
     }
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      erreur = 'Adresse email invalide.'
+      return
+    }
     if (!accepteConditions) {
       erreur = 'Il faut accepter les conditions de collecte de données pour continuer.'
       return
@@ -55,6 +60,7 @@
         sexe,
         anneeNaissance: anneeNaissance ? Number(anneeNaissance) : null,
         adresse: adresse.trim() || null,
+        email: email.trim() || null,
         handicaps,
       })
     } catch (e) {
@@ -83,6 +89,11 @@
   <label class="champ">
     <span>Pseudo *</span>
     <input type="text" bind:value={pseudo} maxlength="30" />
+  </label>
+
+  <label class="champ">
+    <span>Email (facultatif)</span>
+    <input type="email" bind:value={email} maxlength="200" placeholder="toi@exemple.com" />
   </label>
 
   <div class="champ">
@@ -176,6 +187,7 @@
 
   input[type='text'],
   input[type='tel'],
+  input[type='email'],
   input[type='number'] {
     min-height: 44px;
     padding: 0 0.7rem;
