@@ -15,6 +15,15 @@ export const COULEURS = {
   hors_service: '#c55a7a',
 }
 
+// Contour de marqueur distinct de la couleur de remplissage -- seulement
+// pour "certified" (contribution UrBizia) : le rose plein etait peu
+// visible sur la carte, cercle en rouge UrBizia (#81093C, cf. Charte
+// Graphique) pour le distinguer sans perdre le rose qui identifie la
+// categorie (retour Gilles du 2026-08-31).
+export const BORDURES = {
+  certified: '#81093C',
+}
+
 export const LIBELLES = {
   gouv: '.gouv',
   osm: 'Données Internet',

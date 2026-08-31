@@ -16,7 +16,7 @@
   import 'leaflet.markercluster/dist/MarkerCluster.css'
   import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
   import { chargerSanitairesDansZone } from '../sanitaires.js'
-  import { FAMILLES, COULEURS, LIBELLES, categorieAffichage, passeAffinages, chipsParDefaut, affinagesParDefaut } from '../classification.js'
+  import { FAMILLES, COULEURS, BORDURES, LIBELLES, categorieAffichage, passeAffinages, chipsParDefaut, affinagesParDefaut } from '../classification.js'
 
   let { onChoixSanitaire } = $props()
 
@@ -80,7 +80,7 @@
     const marqueur = L.circleMarker([t.Latitude, t.Longitude], {
       radius: 8,
       weight: 2,
-      color: couleur,
+      color: BORDURES[categorie] ?? couleur,
       fillColor: couleur,
       fillOpacity: supprime ? 0.35 : 0.85,
       opacity: supprime ? 0.55 : 1,
@@ -222,7 +222,7 @@
           {#each [...FAMILLES, 'hors_service', 'supprimees'] as k (k)}
             <label class="case-filtre">
               <input type="checkbox" checked={chips[k]} onchange={() => toggleChip(k)} />
-              <span class="pastille" style="background:{COULEURS[k]}"></span>
+              <span class="pastille" style="background:{COULEURS[k]}; {BORDURES[k] ? `border:1.5px solid ${BORDURES[k]}` : ''}"></span>
               <span class="case-libelle">{LIBELLES[k]}</span>
               {#if comptes[k]}<span class="chip-n">{comptes[k]}</span>{/if}
             </label>

@@ -163,7 +163,7 @@
     <section class="bloc">
       <h2>Équipements</h2>
       {#if resume?.etats_frequents?.length}
-        <div class="puces">
+        <div class="liste-equipements">
           {#each EQUIPEMENTS as e (e.cle)}
             {#if resume.etats_frequents[0]?.etats[e.cle] && resume.etats_frequents[0].etats[e.cle] !== 'Abs'}
               <IndicateurEtat label={e.label} valeur={resume.etats_frequents[0].etats[e.cle]} />
@@ -348,6 +348,16 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+
+  /* Liste a une seule colonne pour les equipements deja declares
+     (retour Gilles du 2026-08-31) -- plus lisible qu'une ligne qui
+     s'enchaine que la carte precedente (.puces). */
+  .liste-equipements {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: flex-start;
   }
 
   .config-item {
