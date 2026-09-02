@@ -48,8 +48,15 @@
   let commentaire = $state('')
   let configuration = $state({})
   let etats = $state(etatsParDefaut())
-  let eclairageNaturel = $state(null)
+  // Ordre impose par Gilles le 2026-09-01, a la suite des equipements
+  // "confort" existants : verrou mecanique anti intrusion, decompte du
+  // temps d'utilisation, eclairage naturel (oui/non), puis luminosite et
+  // ambiance (echelle de smileys, meme domaine que l'avis general).
   let verrouMecanique = $state(null)
+  let decompteTemps = $state(null)
+  let eclairageNaturel = $state(null)
+  let luminosite = $state(null)
+  let ambiance = $state(null)
 
   // Etape 4 -- photos (Lot 6, §5.6). Niveau 1 : champs structures avec
   // finalite propre a chacun (§5.6.1). Niveau 2 : photos taguees
@@ -101,6 +108,9 @@
         etats = { ...etatsParDefaut(), ...(dernier.etats ?? {}) }
         eclairageNaturel = dernier.eclairage_naturel
         verrouMecanique = dernier.verrou_mecanique
+        decompteTemps = dernier.decompte_temps
+        luminosite = dernier.luminosite
+        ambiance = dernier.ambiance
         photoVueLoin = dernier.photo_vue_loin
         photoSignaletique = dernier.photo_signaletique
         photoAcces = dernier.photo_acces
@@ -130,6 +140,9 @@
           etats,
           eclairage_naturel: eclairageNaturel,
           verrou_mecanique: verrouMecanique,
+          decompte_temps: decompteTemps,
+          luminosite,
+          ambiance,
           photo_vue_loin: photoVueLoin,
           photo_signaletique: photoSignaletique,
           photo_acces: photoAcces,
@@ -294,6 +307,20 @@
           {/each}
 
           <div class="ligne-equipement">
+            <span class="nom-cellule">Verrou mécanique anti intrusion</span>
+            <div class="chips">
+              <button type="button" class:selected={verrouMecanique === true} onclick={() => (verrouMecanique = verrouMecanique === true ? null : true)}>Oui</button>
+              <button type="button" class:selected={verrouMecanique === false} onclick={() => (verrouMecanique = verrouMecanique === false ? null : false)}>Non</button>
+            </div>
+          </div>
+          <div class="ligne-equipement">
+            <span class="nom-cellule">Décompte du temps d'utilisation</span>
+            <div class="chips">
+              <button type="button" class:selected={decompteTemps === true} onclick={() => (decompteTemps = decompteTemps === true ? null : true)}>Oui</button>
+              <button type="button" class:selected={decompteTemps === false} onclick={() => (decompteTemps = decompteTemps === false ? null : false)}>Non</button>
+            </div>
+          </div>
+          <div class="ligne-equipement">
             <span class="nom-cellule">Éclairage naturel</span>
             <div class="chips">
               <button type="button" class:selected={eclairageNaturel === true} onclick={() => (eclairageNaturel = eclairageNaturel === true ? null : true)}>Oui</button>
@@ -301,11 +328,10 @@
             </div>
           </div>
           <div class="ligne-equipement">
-            <span class="nom-cellule">Verrou mécanique de sûreté</span>
-            <div class="chips">
-              <button type="button" class:selected={verrouMecanique === true} onclick={() => (verrouMecanique = verrouMecanique === true ? null : true)}>Oui</button>
-              <button type="button" class:selected={verrouMecanique === false} onclick={() => (verrouMecanique = verrouMecanique === false ? null : false)}>Non</button>
-            </div>
+            <EchelleEtat label="Luminosité" bind:value={luminosite} />
+          </div>
+          <div class="ligne-equipement">
+            <EchelleEtat label="Ambiance" bind:value={ambiance} />
           </div>
         </section>
       {/if}
