@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient.js'
 
 /**
- * Taxonomie des I&V : vit desormais dans la table partagee
+ * Taxonomie des IVER : vit desormais dans la table partagee
  * Incivilites_Taxonomie (source commune avec l'admin EkoMa, cf. Regles
  * Generales de Conception des Modules UrBizia -- meme principe que la
  * table acronymes pour l'identite visuelle). Lue a chaque ouverture du
