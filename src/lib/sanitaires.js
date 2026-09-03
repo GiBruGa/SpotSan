@@ -25,6 +25,11 @@ export async function chargerSanitairesDansZone(bounds, limite = 40000) {
     .lte('Latitude', bounds.getNorth())
     .gte('Longitude', bounds.getWest())
     .lte('Longitude', bounds.getEast())
+    // Le sanitaire fictif du module "S'entrainer" (UB-ENTRAINEMENT) a de
+    // vraies coordonnees (Latitude/Longitude sont NOT NULL) pour que les
+    // liens Google Maps/Street View fonctionnent en pratique -- exclu ici
+    // explicitement pour ne jamais apparaitre sur la vraie carte.
+    .eq('Entrainement', false)
     .order('UB_id')
     .limit(limite)
   if (error) throw error

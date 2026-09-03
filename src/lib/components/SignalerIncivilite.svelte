@@ -10,7 +10,10 @@
   import { obtenirPosition } from '../geolocalisation.js'
   import { onMount } from 'svelte'
 
-  let { ubId, onFerme } = $props()
+  // entrainement=true (module "S'entrainer", 2026-09-02) : le vrai
+  // formulaire, mais rien n'est envoye -- ni geolocalisation, ni ecriture
+  // en base, ni photo televersee (voir BoutonPhoto).
+  let { ubId, entrainement = false, onFerme } = $props()
 
   let photoUrl = $state(null)
   let tags = $state([])
@@ -18,6 +21,7 @@
   let description = $state('')
   let enCours = $state(false)
   let erreur = $state('')
+  let messageEntrainement = $state('')
 
   onMount(async () => {
     try {
@@ -43,6 +47,14 @@
       return
     }
     enCours = true
+    if (entrainement) {
+      await new Promise((r) => setTimeout(r, 500))
+      erreur = ''
+      messageEntrainement = 'Entraînement terminé — rien n\'a été enregistré. Merci pour votre vigilance, ça compte pour de vrai !'
+      enCours = false
+      setTimeout(() => onFerme?.(), 1400)
+      return
+    }
     try {
       const { lat, lon } = await obtenirPosition()
       await signalerIncivilite({ ubId, photoUrl, tags, description, lat, lon })
@@ -63,6 +75,7 @@
 </script>
 
 <div class="signaler">
+  {#if entrainement}<p class="banniere-entrainement">Mode entraînement — rien ne sera enregistré</p>{/if}
   <header>
     <h1>Signaler des Incivilités et Vandalismes</h1>
     <p class="but">
@@ -73,7 +86,7 @@
 
   <section class="champ">
     <span>Photo *</span>
-    <BoutonPhoto bucket="PointSan-Incidents" dossier={ubId} bind:valeur={photoUrl} />
+    <BoutonPhoto bucket="PointSan-Incidents" dossier={ubId} {entrainement} bind:valeur={photoUrl} />
   </section>
 
   <section class="champ">
@@ -91,6 +104,7 @@
   </label>
 
   {#if erreur}<p class="erreur">{erreur}</p>{/if}
+  {#if messageEntrainement}<p class="message-entrainement">{messageEntrainement}</p>{/if}
 
   <div class="boutons-flottants">
     <button type="button" class="annuler" onclick={() => onFerme?.()}>Annuler</button>
@@ -178,6 +192,24 @@
     color: var(--danger-texte);
     font-weight: 600;
     font-size: 0.85rem;
+  }
+
+  .banniere-entrainement {
+    margin: 0 0 0.2rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    background: var(--accent-fond);
+    color: var(--accent-texte);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .message-entrainement {
+    color: var(--accent-texte);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-align: center;
   }
 
   .boutons-flottants {

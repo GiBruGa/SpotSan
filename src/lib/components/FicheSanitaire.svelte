@@ -12,7 +12,10 @@
   import { ouvrirAvecRetour } from '../retourFerme.js'
   import IndicateurEtat from './IndicateurEtat.svelte'
 
-  let { ubId, onDonnerAvis, onSignaler, onRetour } = $props()
+  // entrainement=true (module "S'entrainer", 2026-09-02) : juste une
+  // banniere ici, la fiche reste en lecture pure comme d'habitude -- la
+  // simulation se joue dans FormulaireAvis/SignalerIncivilite en aval.
+  let { ubId, entrainement = false, onDonnerAvis, onSignaler, onRetour } = $props()
 
   let chargement = $state(true)
   let sanitaire = $state(null)
@@ -68,6 +71,7 @@
 </script>
 
 <div class="fiche">
+  {#if entrainement}<p class="banniere-entrainement">Mode entraînement — sanitaire fictif, rien ne sera enregistré</p>{/if}
   <header>
     <button type="button" class="retour" onclick={() => onRetour?.()}>← Carte</button>
     {#if sanitaire}<h1>{sanitaire.Name || ubId}</h1>{/if}
@@ -237,6 +241,17 @@
   .mention-predecesseurs {
     font-weight: 600;
     color: var(--accent-texte);
+    margin: 0;
+  }
+
+  .banniere-entrainement {
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    background: var(--accent-fond);
+    color: var(--accent-texte);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: center;
     margin: 0;
   }
 

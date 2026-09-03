@@ -27,7 +27,10 @@
     { valeur: 'Inexistante', label: 'Inexistante' },
   ]
 
-  let { userId, ubId, nomLieu = '', onFerme } = $props()
+  // entrainement=true (module "S'entrainer", 2026-09-02) : le formulaire
+  // reel, mais rien n'est envoye -- ni geolocalisation, ni ecriture en
+  // base. Voir aussi BoutonPhoto (photos jamais televersees).
+  let { userId, ubId, nomLieu = '', entrainement = false, onFerme } = $props()
 
   let chargement = $state(true)
   let dateDernierAvis = $state(null)
@@ -66,8 +69,12 @@
   let photoAcces = $state(null)
   let photosConfort = $state([])
 
+  // 1 photo par equipement (remplace une eventuelle photo deja prise pour
+  // ce meme tag, plutot que d'empiler des doublons) -- pour laisser de la
+  // place aux contributions des autres, explique dans les instructions du
+  // module "S'entrainer".
   function ajouterPhotoConfort(tag, url) {
-    photosConfort = [...photosConfort, { tag, url }]
+    photosConfort = [...photosConfort.filter((p) => p.tag !== tag), { tag, url }]
   }
   function retirerPhotoConfort(index) {
     photosConfort = photosConfort.filter((_, i) => i !== index)
@@ -126,6 +133,15 @@
   async function sauvegarder() {
     enregistrement = true
     messageStatut = ''
+    if (entrainement) {
+      // Rien a envoyer -- juste simuler l'attente pour que le geste soit
+      // credible, puis confirmer sans rien avoir ecrit nulle part.
+      await new Promise((r) => setTimeout(r, 500))
+      messageStatut = 'Entraînement terminé — rien n\'a été enregistré. Vous êtes prêt·e pour un vrai avis !'
+      enregistrement = false
+      setTimeout(() => onFerme?.(), 1400)
+      return
+    }
     try {
       const { lat, lon } = await obtenirPosition()
       const { horsLigne } = await sauvegarderAvis({
@@ -170,6 +186,7 @@
 </script>
 
 <div class="formulaire-avis">
+  {#if entrainement}<p class="banniere-entrainement">Mode entraînement — rien ne sera enregistré</p>{/if}
   {#if chargement}
     <p class="etat-chargement">Chargement…</p>
   {:else}
@@ -219,6 +236,7 @@
             <h3>Vue de loin</h3>
             <BoutonPhoto
               consigne="Repérer le sanitaire dans son environnement : cadre depuis l'endroit où on arrive (rue, parking, allée), pas un gros plan."
+              {entrainement}
               bind:valeur={photoVueLoin}
             />
           </div>
@@ -230,6 +248,7 @@
             </p>
             <BoutonPhoto
               consigne="Rendre l'état vérifiable : cadre le panneau ou l'indicateur lui-même (affiche de fermeture, voyant), pas une vue large."
+              {entrainement}
               bind:valeur={photoSignaletique}
             />
           </div>
@@ -238,6 +257,7 @@
             <h3>Accès</h3>
             <BoutonPhoto
               consigne="Juger l'accessibilité avant de se déplacer : cadre le cheminement (porte, marches, rampe) pour que largeur et pente soient visibles."
+              {entrainement}
               bind:valeur={photoAcces}
             />
           </div>
@@ -248,7 +268,7 @@
             <div class="tags-confort">
               {#each EQUIPEMENTS as e (e.cle)}
                 <div class="tag-confort">
-                  <BoutonPhoto onTermine={(url) => ajouterPhotoConfort(e.label, url)} />
+                  <BoutonPhoto {entrainement} onTermine={(url) => ajouterPhotoConfort(e.label, url)} />
                   <span class="tag-confort-label">{e.label}</span>
                 </div>
               {/each}
@@ -366,6 +386,17 @@
     padding: 2rem;
     text-align: center;
     color: var(--texte-attenue);
+  }
+
+  .banniere-entrainement {
+    margin: 0 0 0.8rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    background: var(--accent-fond);
+    color: var(--accent-texte);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: center;
   }
 
   header h1 {

@@ -15,6 +15,17 @@
   import FicheSanitaire from './lib/components/FicheSanitaire.svelte'
   import FormulaireAvis from './lib/components/FormulaireAvis.svelte'
   import SignalerIncivilite from './lib/components/SignalerIncivilite.svelte'
+  import InstructionsEntrainement from './lib/components/InstructionsEntrainement.svelte'
+
+  // Module "S'entrainer" (demande de Gilles le 2026-09-02, pour ses
+  // proches ages peu a l'aise avec les applis) : parcours reel (fiche +
+  // avis + signalement) mais sur un sanitaire fictif dedie, exclu de la
+  // vraie carte (UB-ENTRAINEMENT, voir sanitaires.js), et rien de ce qui
+  // y est fait n'est enregistre (prop entrainement, voir
+  // FormulaireAvis/SignalerIncivilite/BoutonPhoto).
+  const UB_ENTRAINEMENT = 'UB-ENTRAINEMENT'
+  // 'off' | 'instructions' | 'fiche' | 'avis' | 'signalement'
+  let etapeEntrainement = $state('off')
 
   // Destination du QR code (InstallationQR.svelte) : aide a l'installation
   // publique, sans compte requis -- avant, le QR menait direct a l'ecran de
@@ -186,6 +197,25 @@
   {:else}
     <Accueil onConnexion={() => (vueAuth = 'connexion')} onInscription={() => (vueAuth = 'inscription')} />
   {/if}
+{:else if etapeEntrainement !== 'off'}
+  {#if etapeEntrainement === 'instructions'}
+    <InstructionsEntrainement
+      onCommencer={() => (etapeEntrainement = 'fiche')}
+      onFermer={() => (etapeEntrainement = 'off')}
+    />
+  {:else if etapeEntrainement === 'fiche'}
+    <FicheSanitaire
+      ubId={UB_ENTRAINEMENT}
+      entrainement={true}
+      onDonnerAvis={() => (etapeEntrainement = 'avis')}
+      onSignaler={() => (etapeEntrainement = 'signalement')}
+      onRetour={() => (etapeEntrainement = 'off')}
+    />
+  {:else if etapeEntrainement === 'avis'}
+    <FormulaireAvis {userId} ubId={UB_ENTRAINEMENT} entrainement={true} onFerme={() => (etapeEntrainement = 'fiche')} />
+  {:else if etapeEntrainement === 'signalement'}
+    <SignalerIncivilite ubId={UB_ENTRAINEMENT} entrainement={true} onFerme={() => (etapeEntrainement = 'fiche')} />
+  {/if}
 {:else if ubIdFormulaire}
   <FormulaireAvis {userId} ubId={ubIdFormulaire} onFerme={surFermetureFormulaire} />
 {:else if ubIdSignalement}
@@ -211,6 +241,7 @@
       onProfilMisAJour={(p) => (profil = p)}
       onSupprimer={surSuppression}
       onDeconnexion={surDeconnexion}
+      onEntrainement={() => (etapeEntrainement = 'instructions')}
     />
     {#if enAttente > 0}
       <p class="badge-attente">{enAttente} avis en attente d'envoi (pas de réseau au moment de la sauvegarde).</p>

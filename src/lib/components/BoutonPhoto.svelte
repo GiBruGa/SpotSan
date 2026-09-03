@@ -15,7 +15,12 @@
   // les visages detectes avant l'envoi (voir anonymisation.js, chantier
   // lance le 2026-08-22). A desactiver explicitement seulement pour
   // l'avatar (Inscription.svelte) -- montrer son visage est le but.
-  let { consigne = '', bucket = 'PointSan-Photos', dossier = '', capture = 'environment', anonymiser = true, valeur = $bindable(null), onTermine } = $props()
+  //
+  // entrainement=true (module "S'entrainer", 2026-09-02) : la photo n'est
+  // JAMAIS envoyee a Supabase Storage -- juste un apercu local
+  // (URL.createObjectURL), pour que la promesse "rien n'est enregistre"
+  // reste vraie meme si la personne prend une vraie photo par reflexe.
+  let { consigne = '', bucket = 'PointSan-Photos', dossier = '', capture = 'environment', anonymiser = true, entrainement = false, valeur = $bindable(null), onTermine } = $props()
 
   let input
   let enCours = $state(false)
@@ -27,7 +32,7 @@
     erreur = ''
     enCours = true
     try {
-      const url = await televerserPhoto(fichier, { bucket, dossier, anonymiser })
+      const url = entrainement ? URL.createObjectURL(fichier) : await televerserPhoto(fichier, { bucket, dossier, anonymiser })
       valeur = url
       onTermine?.(url)
     } catch (err) {

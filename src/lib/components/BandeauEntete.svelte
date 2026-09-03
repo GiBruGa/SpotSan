@@ -14,7 +14,7 @@
   import InstallationQR from './InstallationQR.svelte'
   import AProposPanel from './AProposPanel.svelte'
 
-  let { userId, profil, needRefresh = false, onMettreAJour, onProfilMisAJour, onSupprimer, onDeconnexion } = $props()
+  let { userId, profil, needRefresh = false, onMettreAJour, onProfilMisAJour, onSupprimer, onDeconnexion, onEntrainement } = $props()
 
   let menuOuvert = $state(false)
   // 'accueil' | 'infos' | 'installation' | 'apropos' | 'suppression'
@@ -42,6 +42,14 @@
   }
 
   onDestroy(() => fermerMenuViaRetour?.())
+
+  // Module "S'entrainer" (demande de Gilles le 2026-09-02) : ferme le
+  // menu (comme un clic normal, consomme l'entree d'historique) puis
+  // delegue a App.svelte, qui possede le reste du routage entrainement.
+  function lancerEntrainement() {
+    toggleMenu()
+    onEntrainement?.()
+  }
 
   // Avatar par defaut (aucune photo choisie) : icone dynamique depuis
   // acronymes, conditionnee par le sexe declare (demande du 2026-08-22)
@@ -123,6 +131,7 @@
         {/if}
 
         <button type="button" class="menu-action" onclick={() => (vue = 'infos')}>Mes informations</button>
+        <button type="button" class="menu-action" onclick={lancerEntrainement}>S'entraîner sur un sanitaire test</button>
         <button type="button" class="menu-action" onclick={() => (vue = 'installation')}>QR code SpotSan</button>
 
         <button type="button" class="menu-action" disabled={demandeLocalisationEnCours} onclick={demanderLocalisation}>
