@@ -6,6 +6,7 @@
   import BoutonPhoto from './BoutonPhoto.svelte'
   import { supabase } from '../supabaseClient.js'
   import { mettreAJourProfil } from '../profil.js'
+  import { formaterTelephone } from '../auth.js'
 
   let { userId, profil, onEnregistre, onFerme } = $props()
 
@@ -99,8 +100,7 @@
     }
     enCoursTel = true
     try {
-      const chiffres = numeroTel.replace(/\D/g, '')
-      telephoneEnAttente = `${indicatifTel} ${chiffres.slice(0, 3)} ${chiffres.slice(3, 6)} ${chiffres.slice(6, 9)}`.trim()
+      telephoneEnAttente = formaterTelephone(indicatifTel, numeroTel)
       const { error } = await supabase.auth.updateUser({ phone: telephoneEnAttente })
       if (error) throw error
       etapeTel = 'code'

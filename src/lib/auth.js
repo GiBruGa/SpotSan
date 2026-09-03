@@ -1,6 +1,21 @@
 import { supabase } from './supabaseClient.js'
 
 /**
+ * Met en forme un numero de portable pour Supabase Auth (format attendu :
+ * "+33 761 761 559", sans le 0 initial francais). Diagnostique le
+ * 2026-09-03 : Connexion/SecuriserCompte/MesInformations dupliquaient toutes
+ * la meme decoupe en groupes de 3 sans jamais retirer un 0 initial -- si
+ * l'utilisateur tape son numero "a la francaise" (ex. 0761761559, reflexe
+ * naturel), la decoupe tronque silencieusement le dernier chiffre au lieu de
+ * retirer le 0, produisant un numero qui ne correspond a rien en base
+ * ("Numero ou mot de passe incorrect" alors que le mot de passe est bon).
+ */
+export function formaterTelephone(indicatif, numeroLocal) {
+  const chiffres = numeroLocal.replace(/\D/g, '').replace(/^0/, '')
+  return `${indicatif} ${chiffres.slice(0, 3)} ${chiffres.slice(3, 6)} ${chiffres.slice(6, 9)}`.trim()
+}
+
+/**
  * Regle de mot de passe Usager (demande de Gilles, 2026-08-29) : au moins
  * 6 caracteres, 2 majuscules, 2 chiffres, 2 caracteres speciaux. Les 2+2+2
  * couvrent deja la longueur minimale, le check explicite reste pour la clarte.

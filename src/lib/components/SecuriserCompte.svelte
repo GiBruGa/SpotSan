@@ -15,7 +15,7 @@
   // pas besoin d'un ecran separe pour ca.
 
   import { supabase } from '../supabaseClient.js'
-  import { motDePasseValide, retrouverCompteParTelephone } from '../auth.js'
+  import { motDePasseValide, retrouverCompteParTelephone, formaterTelephone } from '../auth.js'
 
   // telephoneConnu : deja au format stocke (ex. "+33 6 12 34 56 78"),
   // fourni quand on force la migration d'un compte deja identifie
@@ -41,8 +41,7 @@
         erreur = 'Entrez votre numéro de portable.'
         return
       }
-      const chiffres = numeroLocal.replace(/\D/g, '')
-      telephone = `${indicatif} ${chiffres.slice(0, 3)} ${chiffres.slice(3, 6)} ${chiffres.slice(6, 9)}`.trim()
+      telephone = formaterTelephone(indicatif, numeroLocal)
     }
     enCours = true
     try {

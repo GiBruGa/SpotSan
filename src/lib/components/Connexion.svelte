@@ -9,6 +9,7 @@
   // fiable possible ici.
 
   import { supabase } from '../supabaseClient.js'
+  import { formaterTelephone } from '../auth.js'
 
   let { onValide, onRetour, onSansMotDePasse } = $props()
 
@@ -28,8 +29,7 @@
 
     enCours = true
     try {
-      const chiffres = numeroLocal.replace(/\D/g, '')
-      const telephone = `${indicatif} ${chiffres.slice(0, 3)} ${chiffres.slice(3, 6)} ${chiffres.slice(6, 9)}`.trim()
+      const telephone = formaterTelephone(indicatif, numeroLocal)
       const { error } = await supabase.auth.signInWithPassword({ phone: telephone, password: motDePasse })
       if (error) throw error
       await onValide?.()
