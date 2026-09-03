@@ -15,22 +15,19 @@
     <button type="button" class="retour" onclick={() => onFermer?.()}>← Menu</button>
   </header>
 
-  <h1>S'entraîner sur SpotSan</h1>
+  <h1>Votre avis peut compter !</h1>
+  <p class="sous-titre">Essayez d'abord ici, sur un sanitaire fictif : rien de ce que vous ferez ne sera enregistré.</p>
   <p class="intro">
-    Avant de donner un vrai avis, essayez tranquillement sur un sanitaire fictif —
-    rien de ce que vous ferez ici ne sera enregistré, vous pouvez tout essayer sans risque.
+    Remplissez ce formulaire en fonction de votre temps disponible et de votre envie de faire changer
+    les choses : plus vous en dites, plus l'impact est grand.
   </p>
 
   <ul class="points">
-    <li>Vous n'êtes pas obligé·e de tout remplir, mais plus vous en dites, plus vous aidez la communauté.</li>
+    <li><strong>Photos de la configuration et des équipements :</strong> limitées à 1 par catégorie pour que tout le monde puisse participer.</li>
     <li>
-      Il n'y a qu'une photo possible par situation, prestation ou équipement, pour laisser de la place
-      aux contributions des autres — mais tout ce que vous ajoutez sera visible par tout le monde.
-    </li>
-    <li>
-      Nous vous encourageons à signaler les incivilités et vandalismes : le but est de faire remonter
-      ces informations et vos avis aux services qui entretiennent les sanitaires, et de faire en sorte
-      que les choses changent !
+      <strong>Incivilités et vandalismes :</strong> arrêtez de faire avec, en vous bouchant le nez ! Le but de
+      notre application est de remonter vos signalements aux équipes d'entretien et aux exploitants pour
+      qu'ils agissent rapidement.
     </li>
   </ul>
 
@@ -66,6 +63,14 @@
     margin: 0;
     font-size: 1.4rem;
     color: var(--accent-texte);
+    text-align: center;
+  }
+
+  .sous-titre {
+    margin: 0;
+    color: var(--texte-attenue);
+    font-size: 0.82rem;
+    line-height: 1.5;
     text-align: center;
   }
 
