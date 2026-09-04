@@ -78,10 +78,15 @@
   {#if entrainement}<p class="banniere-entrainement">Mode entraînement — rien ne sera enregistré</p>{/if}
   <header>
     <h1>Signaler des Incivilités et Vandalismes</h1>
-    <p class="but">
-      Vos photos servent à entraîner une intelligence artificielle à détecter automatiquement ces
-      problèmes — merci pour votre contribution.
-    </p>
+    <div class="but-groupe">
+      <p class="but">
+        Nous mettons au point un système de remontée de vos informations vers les services de
+        nettoyage et les exploitants de ces sanitaires.
+      </p>
+      <p class="but">Il reste du travail pour les identifier et les convaincre.</p>
+      <p class="but">Mais plus vous contribuez, plus nous sommes écoutés !</p>
+      <p class="but">Merci d'avance.</p>
+    </div>
   </header>
 
   <section class="champ">
@@ -129,6 +134,12 @@
     font-size: 1.15rem;
     margin: 0 0 0.4rem;
     color: var(--danger-texte);
+  }
+
+  .but-groupe {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
   }
 
   .but {
