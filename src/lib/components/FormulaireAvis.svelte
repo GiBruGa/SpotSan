@@ -207,8 +207,8 @@
         <section>
           <EchelleEtat label="Avis général" bind:value={avisGeneral} />
           <div class="champ">
-            <span>Statut du sanitaire</span>
-            <div class="statut-liste" role="radiogroup" aria-label="Statut du sanitaire">
+            <span>État de fonctionnement</span>
+            <div class="statut-liste" role="radiogroup" aria-label="État de fonctionnement">
               {#each STATUT_OPTIONS as opt (opt.valeur)}
                 <label class="statut-option">
                   <input type="radio" name="statut-declare" value={opt.valeur} checked={statutDeclare === opt.valeur} onchange={() => (statutDeclare = opt.valeur)} />

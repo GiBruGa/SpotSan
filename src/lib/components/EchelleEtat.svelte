@@ -112,35 +112,35 @@
     background: var(--fond, #fff);
     color: var(--texte, #1a1414);
     cursor: pointer;
+    /* Centrage explicite de l'emoji dans le rond (indispensable en mode
+       lecture, ou c'est un <span> et non un <button> -- un span n'a pas de
+       centrage par defaut du navigateur, contrairement a un bouton, ce qui
+       rendait l'icone mal calee des que le rond changeait de taille). */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
   }
 
-  /* pleine-largeur (retour Gilles du 2026-09-04 : la 1ere version, en
-     boutons etires plein flex, faisait des pastilles ovales "moches") --
-     les ronds gardent une taille FIXE (donc restent ronds) et se
-     repartissent sur toute la largeur via l'espacement, pas en s'etirant ;
-     seul celui qui est actif grossit (rond plus grand, pas ovale), pour
-     qu'on voie a la fois la note et sa place sur l'echelle des possibles. */
+  /* pleine-largeur (retour Gilles du 2026-09-04, revu le meme jour : la
+     version en boutons etires/espaces sur toute la largeur restait jugee
+     "tres moche") -- on revient a l'echelle compacte d'origine (meme
+     gap, meme taille de rond), simplement centree, et seul le rond actif
+     (la moyenne) grossit pour sauter aux yeux -- toujours parfaitement
+     rond grace au centrage flex ci-dessus. */
   .echelle-etat__ligne.pleine-largeur {
     overflow-x: visible;
-    justify-content: space-between;
+    justify-content: center;
   }
 
   .echelle-etat__ligne.pleine-largeur .echelle-etat__bouton {
-    flex: 0 0 auto;
-    width: 40px;
-    min-width: 40px;
-    height: 40px;
-    min-height: 40px;
-    font-size: 1.2rem;
     cursor: default;
   }
 
   .echelle-etat__ligne.pleine-largeur .echelle-etat__bouton.selected {
-    width: 62px;
-    min-width: 62px;
-    height: 62px;
-    min-height: 62px;
-    font-size: 2rem;
+    min-width: 58px;
+    min-height: 58px;
+    font-size: 1.9rem;
   }
 
   /* Selection : fond colore selon la polarite du niveau (demande 2026-08-21). */

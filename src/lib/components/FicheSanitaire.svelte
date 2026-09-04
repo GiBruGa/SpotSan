@@ -126,12 +126,10 @@
         <EchelleEtat value={resume.moyenne_avis_general} lecture pleineLargeur />
         {#if resume.statuts_recents?.length}
           <!-- Decompte des 10 dernieres declarations de statut, triees par
-               frequence decroissante (retour Gilles du 2026-09-04). -->
-          <div class="statuts-recents">
-            {#each resume.statuts_recents as s (s.statut)}
-              <span class="statut-item">{s.n}× {libelleStatut(s.statut)}</span>
-            {/each}
-          </div>
+               frequence decroissante -- reformule en phrase le 2026-09-04
+               ("4x Disponible" tout seul n'etait pas comprehensible). -->
+          {@const liste = resume.statuts_recents.map((s) => `${s.n} x ${libelleStatut(s.statut)}`).join(', ')}
+          <p class="statut-recents">État de fonctionnement sur les dernières déclarations : {liste}</p>
         {/if}
       {:else}
         <p class="note">Aucun avis pour l'instant — soyez le premier à en laisser un.</p>
@@ -432,14 +430,13 @@
     align-items: flex-start;
   }
 
-  .statuts-recents {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-  }
-
-  .statut-item {
-    font-size: 0.82rem;
+  /* Taille intermediaire (retour Gilles du 2026-09-04) : plus visible que
+     .note (0.82rem, attenue) mais coherente avec les tailles deja en usage
+     ailleurs dans la fiche (.nom-groupe, .config-item : 0.85rem). */
+  .statut-recents {
+    font-size: 0.95rem;
+    color: var(--texte);
+    margin: 0;
   }
 
   .config-item {
