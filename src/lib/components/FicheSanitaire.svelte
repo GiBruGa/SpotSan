@@ -137,6 +137,22 @@
     </section>
 
     <section class="bloc">
+      <h2>Commentaires</h2>
+      {#if resume?.commentaires_recents?.length}
+        <!-- Ascenseur (retour Gilles du 2026-09-04 : "pourquoi mettre des
+             remarques si on ne les voit pas") -- ~6 lignes visibles, on
+             fait defiler pour le reste plutot que de tout etaler. -->
+        <div class="liste-commentaires">
+          {#each resume.commentaires_recents as c, i (i)}
+            <p class="commentaire-item">« {c.commentaire} »</p>
+          {/each}
+        </div>
+      {:else}
+        <p class="note">Pas encore de commentaire.</p>
+      {/if}
+    </section>
+
+    <section class="bloc">
       <h2>Photos</h2>
       {#if resume?.galerie_photos}
         {@const parCategorie = CATEGORIES_PHOTOS.map((cle) => resume.galerie_photos[cle] ?? [])}
@@ -351,6 +367,25 @@
     gap: 0.5rem;
     overflow-x: auto;
     padding-bottom: 0.2rem;
+  }
+
+  /* Ascenseur vertical, ~6 lignes visibles avant de devoir defiler
+     (retour Gilles du 2026-09-04) -- pointer-events reactive comme les
+     autres exceptions du bloc en lecture (.photo-vignette, .actions),
+     necessaire pour que le scroll tactile/souris fonctionne. */
+  .liste-commentaires {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 8rem;
+    overflow-y: auto;
+    pointer-events: auto;
+  }
+
+  .commentaire-item {
+    font-size: 0.85rem;
+    font-style: italic;
+    margin: 0;
   }
 
   .photo-vignette {
