@@ -7,12 +7,20 @@ import { supabase } from './supabaseClient.js'
  * table acronymes pour l'identite visuelle). Lue a chaque ouverture du
  * formulaire plutot que mise en cache : un ajout/retrait fait depuis
  * EkoMa doit se repercuter sans redeploiement de l'app.
+ *
+ * propose_utilisateur (2026-09-04, decide avec Gilles) : filtre en plus
+ * d'actif -- ne pas montrer tout le catalogue (des centaines de tags
+ * proposes par l'IA, non tries) sinon les usagers n'utilisent plus l'outil.
+ * Curation explicite depuis le Catalogue IRUM (fiche d'un tag), pas un
+ * simple alias d'actif -- voir Regles Generales, "Curation des tags
+ * proposes aux usagers".
  */
 export async function chargerTaxonomieIncivilites() {
   const { data, error } = await supabase
     .from('Incivilites_Taxonomie')
     .select('tag')
     .eq('actif', true)
+    .eq('propose_utilisateur', true)
     .order('ordre')
   if (error) throw error
   return (data || []).map((r) => r.tag)
