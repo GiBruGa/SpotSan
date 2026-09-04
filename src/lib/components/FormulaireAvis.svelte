@@ -206,6 +206,7 @@
       {#if etape === 1}
         <section>
           <EchelleEtat label="Avis général" bind:value={avisGeneral} />
+          <hr class="separateur-champ" />
           <div class="champ">
             <span>État de fonctionnement</span>
             <div class="statut-liste" role="radiogroup" aria-label="État de fonctionnement">
@@ -217,6 +218,7 @@
               {/each}
             </div>
           </div>
+          <hr class="separateur-champ" />
           <label class="champ">
             <span>Commentaire (facultatif)</span>
             <textarea bind:value={commentaire} rows="3" maxlength="500" placeholder="Ex. nettoyage par arrosage au sol, attention aux robes/pantalons longs…"></textarea>
@@ -457,6 +459,17 @@
   .champ span {
     font-weight: 600;
     font-size: 0.9rem;
+  }
+
+  /* Separe visuellement chaque bloc "label + champ a remplir" de l'etape
+     Avis -- retour Gilles du 2026-09-04, pour ne pas laisser croire que
+     l'echelle de smileys/le statut/le commentaire ne forment qu'un seul
+     champ. */
+  .separateur-champ {
+    width: 100%;
+    border: none;
+    border-top: 1px solid var(--bordure);
+    margin: 0.4rem 0;
   }
 
   .statut-liste {
