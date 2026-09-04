@@ -114,22 +114,33 @@
     cursor: pointer;
   }
 
-  /* pleine-largeur : chaque niveau se partage la largeur disponible a
-     parts egales, celui qui est actif grossit pour sauter aux yeux. */
+  /* pleine-largeur (retour Gilles du 2026-09-04 : la 1ere version, en
+     boutons etires plein flex, faisait des pastilles ovales "moches") --
+     les ronds gardent une taille FIXE (donc restent ronds) et se
+     repartissent sur toute la largeur via l'espacement, pas en s'etirant ;
+     seul celui qui est actif grossit (rond plus grand, pas ovale), pour
+     qu'on voie a la fois la note et sa place sur l'echelle des possibles. */
   .echelle-etat__ligne.pleine-largeur {
     overflow-x: visible;
+    justify-content: space-between;
   }
 
   .echelle-etat__ligne.pleine-largeur .echelle-etat__bouton {
-    flex: 1;
-    min-height: 52px;
-    font-size: 1.4rem;
+    flex: 0 0 auto;
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    font-size: 1.2rem;
     cursor: default;
   }
 
   .echelle-etat__ligne.pleine-largeur .echelle-etat__bouton.selected {
+    width: 62px;
+    min-width: 62px;
+    height: 62px;
+    min-height: 62px;
     font-size: 2rem;
-    min-height: 60px;
   }
 
   /* Selection : fond colore selon la polarite du niveau (demande 2026-08-21). */

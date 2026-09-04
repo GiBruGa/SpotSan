@@ -8,6 +8,7 @@
   import EchelleCompte from './EchelleCompte.svelte'
   import BoutonPhoto from './BoutonPhoto.svelte'
   import { GROUPES_CELLULES, GENRES, TYPE_OPTIONS, CHANGE_BEBE_OPTIONS, EQUIPEMENTS } from '../config/cellules.js'
+  import { STATUT_OPTIONS } from '../config/statut.js'
   import { chargerDernierAvis } from '../avis.js'
   import { sauvegarderAvis } from '../queueAvis.js'
   import { chargerSanitaire } from '../sanitaires.js'
@@ -19,13 +20,7 @@
   // separes essayes plus tot le meme jour -- desormais un simple champ de
   // l'avis normal, cote base voir soumettre_avis (3 avis concordants
   // basculent la categorie sur la carte, meme principe Waze qu'avant).
-  const STATUT_OPTIONS = [
-    { valeur: 'Disponible', label: 'Disponible' },
-    { valeur: 'Impraticable', label: 'Impraticable' },
-    { valeur: 'Hors_Service', label: 'HS' },
-    { valeur: 'Condamne', label: 'Condamné' },
-    { valeur: 'Inexistante', label: 'Inexistante' },
-  ]
+  // Liste partagee avec FicheSanitaire.svelte, voir config/statut.js.
 
   // entrainement=true (module "S'entrainer", 2026-09-02) : le formulaire
   // reel, mais rien n'est envoye -- ni geolocalisation, ni ecriture en
@@ -253,7 +248,7 @@
 
           <div class="groupe-photo">
             <h3>Signalétique</h3>
-            <p class="note-photos">
+            <p class="note-photos texte-centre">
               Voyez-vous comment savoir si le sanitaire est disponible, momentanément indisponible ou Hors Service / Condamné ?
             </p>
             <BoutonPhoto
@@ -622,6 +617,10 @@
     font-size: 0.8rem;
     color: var(--texte-attenue);
     margin: 0 0 0.6rem;
+  }
+
+  .texte-centre {
+    text-align: center;
   }
 
   .consigne-camera {

@@ -9,6 +9,7 @@
   import { onMount, onDestroy } from 'svelte'
   import { chargerSanitaire, chargerResumeAvis } from '../sanitaires.js'
   import { GROUPES_CELLULES, GENRES, EQUIPEMENTS } from '../config/cellules.js'
+  import { STATUT_OPTIONS } from '../config/statut.js'
   import { ouvrirAvecRetour } from '../retourFerme.js'
   import IndicateurEtat from './IndicateurEtat.svelte'
   import EchelleEtat from './EchelleEtat.svelte'
@@ -67,6 +68,10 @@
 
   onDestroy(() => fermerLightboxViaRetour?.())
 
+  function libelleStatut(valeur) {
+    return STATUT_OPTIONS.find((o) => o.valeur === valeur)?.label ?? valeur
+  }
+
   // Fallback vers les comptages v1 (deja fiables, source StatSan) quand
   // il n'y a pas encore assez d'avis V2 pour une configuration plausible.
   function configurationHeritee(s) {
@@ -119,6 +124,15 @@
           <p class="note note-compacte">À confirmer, avis unique du {new Date(resume.dernier_avis.updated_at).toLocaleDateString('fr-FR')}</p>
         {/if}
         <EchelleEtat value={resume.moyenne_avis_general} lecture pleineLargeur />
+        {#if resume.statuts_recents?.length}
+          <!-- Decompte des 10 dernieres declarations de statut, triees par
+               frequence decroissante (retour Gilles du 2026-09-04). -->
+          <div class="statuts-recents">
+            {#each resume.statuts_recents as s (s.statut)}
+              <span class="statut-item">{s.n}× {libelleStatut(s.statut)}</span>
+            {/each}
+          </div>
+        {/if}
       {:else}
         <p class="note">Aucun avis pour l'instant — soyez le premier à en laisser un.</p>
       {/if}
@@ -416,6 +430,16 @@
     flex-direction: column;
     gap: 0.4rem;
     align-items: flex-start;
+  }
+
+  .statuts-recents {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .statut-item {
+    font-size: 0.82rem;
   }
 
   .config-item {
