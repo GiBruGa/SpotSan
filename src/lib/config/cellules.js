@@ -1,18 +1,37 @@
 // Constantes partagees pour le formulaire "Donner son avis" (plan V2-PLAN.md §5.5).
 
-export const CELLULES = [
-  { cle: 'toilettes_pmr', label: 'Toilettes PMR', avecType: true },
-  { cle: 'toilettes_standard', label: 'Toilettes Standard', avecType: true },
-  { cle: 'urinoir_hommes', label: 'Urinoir Hommes', avecType: false },
-  { cle: 'urinoir_femmes', label: 'Urinoir Femmes', avecType: false },
-  { cle: 'douches_pmr', label: 'Douches PMR', avecType: false },
-  { cle: 'douches_standard', label: 'Douches Standard', avecType: false },
-  { cle: 'vestiaires_pmr', label: 'Vestiaires PMR', avecType: false },
-  { cle: 'vestiaires_standard', label: 'Vestiaires Standards', avecType: false },
+// Refonte de l'etape "Configuration" (retour Gilles du 2026-09-03, apres
+// rediscussion avec ses parents/oncles/tantes qui testent l'appli) : au lieu
+// d'un compte unique + une accessibilite "Separe/Mixte" par cellule, chaque
+// groupe expose desormais un compte INDEPENDANT par genre (Mixte/Femmes/
+// Hommes) -- un lieu peut avoir a la fois des toilettes Femmes ET Hommes
+// separement, ce que l'ancien modele ne permettait pas. "Toilettes compactes"
+// (pas "Standard", pour ne pas se confondre avec l'option de type
+// Standards/Automatiques ci-dessous) remplace "Toilettes Standard".
+// Vestiaires retire du perimetre de cette etape (absent de la maquette).
+export const GENRES = [
+  { cle: 'mixte', label: 'Mixtes', couleur: 'mixte' },
+  { cle: 'femmes', label: 'Femmes', couleur: 'femmes' },
+  { cle: 'hommes', label: 'Hommes', couleur: 'hommes' },
 ]
 
-export const ACCESSIBILITE_OPTIONS = ['Séparé Dames/Messieurs', 'Mixte']
-export const TYPE_OPTIONS = ['Classique', 'Automatique', 'Chimique', 'Sèche']
+export const GROUPES_CELLULES = [
+  { cle: 'toilettes_pmr', label: 'Toilettes PMR', avecType: true, genres: ['mixte', 'femmes', 'hommes'] },
+  { cle: 'toilettes_compactes', label: 'Toilettes compactes', avecType: true, genres: ['mixte', 'femmes', 'hommes'] },
+  { cle: 'toilettes_enfant', label: 'Toilettes Enfant', avecType: true, note: 'avec siège surbaissé', genres: ['mixte'] },
+  { cle: 'urinoirs', label: 'Urinoirs', avecType: false, genres: ['hommes', 'femmes'] },
+  { cle: 'douches', label: 'Douches', avecType: true, genres: ['mixte', 'femmes', 'hommes'] },
+]
+
+// Ordre impose par Gilles le 2026-09-03 : Standards avant Automatiques.
+export const TYPE_OPTIONS = ['Standards', 'Automatiques']
+
+export const CHANGE_BEBE_OPTIONS = [
+  'Indépendant sans lave-main',
+  'Indépendant avec lave-main',
+  'Dans une cellule Toilette Mixte',
+  'Dans une cellule Toilette Femme',
+]
 
 // Ordre HS avant Abs (coherence avec l'echelle de comptage de l'etape
 // "Configuration" -- 1/2/3/4/>4/HS/Abs -- retour Gilles du 2026-08-31).

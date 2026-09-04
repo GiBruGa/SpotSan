@@ -5,10 +5,19 @@
   // hors echelle (ex: ['Abs', 'HS'] ou ['Abs', 'Debordante'] pour la poubelle) --
   // "Abs" (absent) est la valeur par defaut attendue partout sauf l'avis general.
 
+  // lecture (2026-09-03) : variante non cliquable, en spans plutot que
+  // boutons -- pour afficher un etat deja connu (ex. moyenne des avis)
+  // sans laisser croire qu'on peut cliquer dessus (meme principe que
+  // IndicateurEtat, mais avec la ligne complete de smileys visible).
+  // pleineLargeur etire les smileys sur toute la largeur disponible et
+  // grossit celui qui est actif -- demande Gilles du 2026-09-03, pour que
+  // l'avis general moyen soit "en evidence sur la largeur de l'ecran".
   let {
     value = $bindable(null),
     extensions = [],
     label = '',
+    lecture = false,
+    pleineLargeur = false,
   } = $props()
 
   const NIVEAUX = [
@@ -31,25 +40,37 @@
   {#if label}<span class="echelle-etat__label">{label}</span>{/if}
   <!-- Niveaux + extensions sur une seule ligne commune (retour Gilles du
        2026-08-31 : HS/Abs doivent tenir sur la meme ligne que les smileys). -->
-  <div class="echelle-etat__ligne">
+  <div class="echelle-etat__ligne" class:pleine-largeur={pleineLargeur}>
     {#each NIVEAUX as n (n.v)}
-      <button
-        type="button"
-        class="echelle-etat__bouton {n.polarite}"
-        class:selected={value === n.v}
-        aria-pressed={value === n.v}
-        aria-label={n.libelle}
-        onclick={() => (value = n.v)}
-      >{n.emoji}</button>
+      {#if lecture}
+        <span
+          class="echelle-etat__bouton {n.polarite}"
+          class:selected={value === n.v}
+          aria-label={n.libelle}
+        >{n.emoji}</span>
+      {:else}
+        <button
+          type="button"
+          class="echelle-etat__bouton {n.polarite}"
+          class:selected={value === n.v}
+          aria-pressed={value === n.v}
+          aria-label={n.libelle}
+          onclick={() => (value = n.v)}
+        >{n.emoji}</button>
+      {/if}
     {/each}
     {#each extensions as ext (ext)}
-      <button
-        type="button"
-        class="echelle-etat__chip {polariteExtension(ext)}"
-        class:selected={value === ext}
-        aria-pressed={value === ext}
-        onclick={() => (value = ext)}
-      >{ext}</button>
+      {#if lecture}
+        <span class="echelle-etat__chip {polariteExtension(ext)}" class:selected={value === ext}>{ext}</span>
+      {:else}
+        <button
+          type="button"
+          class="echelle-etat__chip {polariteExtension(ext)}"
+          class:selected={value === ext}
+          aria-pressed={value === ext}
+          onclick={() => (value = ext)}
+        >{ext}</button>
+      {/if}
     {/each}
   </div>
 </div>
@@ -91,6 +112,24 @@
     background: var(--fond, #fff);
     color: var(--texte, #1a1414);
     cursor: pointer;
+  }
+
+  /* pleine-largeur : chaque niveau se partage la largeur disponible a
+     parts egales, celui qui est actif grossit pour sauter aux yeux. */
+  .echelle-etat__ligne.pleine-largeur {
+    overflow-x: visible;
+  }
+
+  .echelle-etat__ligne.pleine-largeur .echelle-etat__bouton {
+    flex: 1;
+    min-height: 52px;
+    font-size: 1.4rem;
+    cursor: default;
+  }
+
+  .echelle-etat__ligne.pleine-largeur .echelle-etat__bouton.selected {
+    font-size: 2rem;
+    min-height: 60px;
   }
 
   /* Selection : fond colore selon la polarite du niveau (demande 2026-08-21). */

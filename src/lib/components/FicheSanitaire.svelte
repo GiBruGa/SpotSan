@@ -8,14 +8,29 @@
 
   import { onMount, onDestroy } from 'svelte'
   import { chargerSanitaire, chargerResumeAvis } from '../sanitaires.js'
-  import { CELLULES, EQUIPEMENTS } from '../config/cellules.js'
+  import { GROUPES_CELLULES, GENRES, EQUIPEMENTS } from '../config/cellules.js'
   import { ouvrirAvecRetour } from '../retourFerme.js'
   import IndicateurEtat from './IndicateurEtat.svelte'
+  import EchelleEtat from './EchelleEtat.svelte'
+
+  // Ordre des categories de photos impose par Gilles le 2026-09-03 (retour
+  // de ses parents/oncles/tantes testeurs) : Environnement, Acces,
+  // Signaletique, puis Confort/equipement (ordre deja bon, inchange) --
+  // aligne sur l'etape "Photos" du formulaire (FormulaireAvis.svelte).
+  const CATEGORIES_PHOTOS = ['environnement', 'acces', 'signaletique', 'confort']
 
   // entrainement=true (module "S'entrainer", 2026-09-02) : juste une
   // banniere ici, la fiche reste en lecture pure comme d'habitude -- la
   // simulation se joue dans FormulaireAvis/SignalerIncivilite en aval.
   let { ubId, entrainement = false, onDonnerAvis, onSignaler, onRetour } = $props()
+
+  // En entrainement, Maps et Street View pointent volontairement vers 2 lieux
+  // differents et sans rapport (chateau du Haut-Koenigsbourg / corniche de
+  // Biarritz) plutot que vers les coordonnees du sanitaire fictif -- pour ne
+  // pas laisser croire a une coherence photo/lieu qui n'existe pas (retour
+  // Gilles, 2026-09-03).
+  const COORDS_MAPS_ENTRAINEMENT = { lat: 48.2496, lon: 7.3444 }
+  const COORDS_STREETVIEW_ENTRAINEMENT = { lat: 43.4834, lon: -1.5605 }
 
   let chargement = $state(true)
   let sanitaire = $state(null)
@@ -52,10 +67,6 @@
 
   onDestroy(() => fermerLightboxViaRetour?.())
 
-  function libelle(cle, liste) {
-    return liste.find((x) => x.cle === cle)?.label ?? cle
-  }
-
   // Fallback vers les comptages v1 (deja fiables, source StatSan) quand
   // il n'y a pas encore assez d'avis V2 pour une configuration plausible.
   function configurationHeritee(s) {
@@ -85,12 +96,12 @@
     {#if sanitaire.Latitude != null && sanitaire.Longitude != null}
       <div class="liens-carte">
         <a
-          href={`https://www.google.com/maps/search/?api=1&query=${sanitaire.Latitude},${sanitaire.Longitude}`}
+          href={`https://www.google.com/maps/search/?api=1&query=${entrainement ? COORDS_MAPS_ENTRAINEMENT.lat : sanitaire.Latitude},${entrainement ? COORDS_MAPS_ENTRAINEMENT.lon : sanitaire.Longitude}`}
           target="_blank"
           rel="noopener"
         >📍 Google Maps</a>
         <a
-          href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${sanitaire.Latitude},${sanitaire.Longitude}`}
+          href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${entrainement ? COORDS_STREETVIEW_ENTRAINEMENT.lat : sanitaire.Latitude},${entrainement ? COORDS_STREETVIEW_ENTRAINEMENT.lon : sanitaire.Longitude}`}
           target="_blank"
           rel="noopener"
         >👁 Street View</a>
@@ -100,23 +111,14 @@
     <p class="mention-predecesseurs">Informations données par vos prédécesseurs</p>
 
     <section class="bloc">
-      <h2>Avis général et état</h2>
-      {#if resume?.suffisant}
-        <p class="note">D'après {resume.total_avis} avis.</p>
-        {#each resume.etats_frequents as ef, i (i)}
-          <div class="ligne-resume">
-            <span class="frequence">{ef.frequence}×</span>
-            <div class="puces">
-              {#each Object.entries(ef.etats).filter(([, v]) => v !== 'Abs') as [cle, val] (cle)}
-                <IndicateurEtat label={libelle(cle, [...CELLULES, ...EQUIPEMENTS])} valeur={val} />
-              {/each}
-            </div>
-          </div>
-        {/each}
-      {:else if resume?.dernier_avis}
-        <p class="note note-compacte">À confirmer, avis unique du {new Date(resume.dernier_avis.updated_at).toLocaleDateString('fr-FR')}</p>
-        <IndicateurEtat label="Avis général" valeur={resume.dernier_avis.avis_general} />
-        {#if resume.dernier_avis.commentaire}<p class="commentaire">« {resume.dernier_avis.commentaire} »</p>{/if}
+      <h2>Avis général</h2>
+      {#if resume?.moyenne_avis_general != null}
+        {#if resume.suffisant}
+          <p class="note">D'après {resume.total_avis} avis.</p>
+        {:else}
+          <p class="note note-compacte">À confirmer, avis unique du {new Date(resume.dernier_avis.updated_at).toLocaleDateString('fr-FR')}</p>
+        {/if}
+        <EchelleEtat value={resume.moyenne_avis_general} lecture pleineLargeur />
       {:else}
         <p class="note">Aucun avis pour l'instant — soyez le premier à en laisser un.</p>
       {/if}
@@ -124,14 +126,27 @@
 
     <section class="bloc">
       <h2>Photos</h2>
-      {#if resume?.photos?.length}
-        <div class="galerie-photos">
-          {#each resume.photos as url (url)}
-            <button type="button" class="photo-vignette" onclick={() => ouvrirPhoto(url)}>
-              <img src={url} alt="" loading="lazy" />
-            </button>
-          {/each}
-        </div>
+      {#if resume?.galerie_photos}
+        {@const parCategorie = CATEGORIES_PHOTOS.map((cle) => resume.galerie_photos[cle] ?? [])}
+        {@const apercu = parCategorie.flatMap((urls) => urls.slice(0, 3))}
+        {@const reste = parCategorie.flatMap((urls) => urls.slice(3))}
+        {@const toutesLesPhotos = [...apercu, ...reste]}
+        {#if toutesLesPhotos.length}
+          <!-- Les 3 photos les plus recentes de chaque categorie d'abord
+               (dans l'ordre Environnement/Acces/Signaletique/Confort), puis
+               le reste -- pour ne pas avoir a faire defiler beaucoup de
+               photos d'une categorie avant d'atteindre celle qui interesse
+               (retour Gilles du 2026-09-03). -->
+          <div class="galerie-photos">
+            {#each toutesLesPhotos as url (url)}
+              <button type="button" class="photo-vignette" onclick={() => ouvrirPhoto(url)}>
+                <img src={url} alt="" loading="lazy" />
+              </button>
+            {/each}
+          </div>
+        {:else}
+          <p class="note">Pas encore de photo.</p>
+        {/if}
       {:else}
         <p class="note">Pas encore de photo.</p>
       {/if}
@@ -140,17 +155,39 @@
 
     <section class="bloc">
       <h2>Configuration</h2>
-      {#if resume?.configurations_plausibles?.length}
-        {#each resume.configurations_plausibles as cp, i (i)}
-          <div class="ligne-resume">
-            <span class="frequence">{cp.frequence}×</span>
-            <div class="puces">
-              {#each Object.entries(cp.configuration) as [cle, val] (cle)}
-                <span class="config-item">{libelle(cle, CELLULES)}{val?.accessibilite ? ` (${val.accessibilite})` : ''}{val?.type ? ` — ${val.type}` : ''}</span>
-              {/each}
-            </div>
+      {#if resume?.etats_frequents?.length}
+        {@const etatsTop = resume.etats_frequents[0].etats}
+        {@const configTop = resume.configurations_plausibles?.[0]?.configuration ?? {}}
+        {@const groupes = GROUPES_CELLULES.map((g) => ({
+          groupe: g,
+          lignes: g.genres.filter((genre) => etatsTop[`${g.cle}_${genre}`] && etatsTop[`${g.cle}_${genre}`] !== 'Abs'),
+        })).filter((x) => x.lignes.length)}
+        {@const changeBebe = configTop.change_bebe?.choix}
+        {#if groupes.length || changeBebe}
+          <p class="note">Les chiffres indiquent le nombre de cellules.</p>
+          <div class="groupes-configuration">
+            {#each groupes as { groupe: g, lignes } (g.cle)}
+              <div class="carte-groupe-lecture">
+                <span class="nom-groupe">{g.label}{configTop[g.cle]?.type ? ` — ${configTop[g.cle].type}` : ''}</span>
+                <div class="puces">
+                  {#each lignes as genreCle (genreCle)}
+                    <span class="config-item"
+                      >{g.genres.length > 1 ? `${GENRES.find((x) => x.cle === genreCle).label} : ` : ''}{etatsTop[`${g.cle}_${genreCle}`]}</span
+                    >
+                  {/each}
+                </div>
+              </div>
+            {/each}
+            {#if changeBebe}
+              <div class="carte-groupe-lecture">
+                <span class="nom-groupe">Change Bébé</span>
+                <span class="config-item">{changeBebe}</span>
+              </div>
+            {/if}
           </div>
-        {/each}
+        {:else}
+          <p class="note">Pas encore d'information.</p>
+        {/if}
       {:else}
         {@const items = configurationHeritee(sanitaire)}
         {#if items.length}
@@ -166,11 +203,12 @@
 
     <section class="bloc">
       <h2>Équipements</h2>
-      {#if resume?.etats_frequents?.length}
+      {#if resume?.equipements_moyens && Object.keys(resume.equipements_moyens).length}
+        <p class="note">Moyenne des 10 derniers avis.</p>
         <div class="liste-equipements">
           {#each EQUIPEMENTS as e (e.cle)}
-            {#if resume.etats_frequents[0]?.etats[e.cle] && resume.etats_frequents[0].etats[e.cle] !== 'Abs'}
-              <IndicateurEtat label={e.label} valeur={resume.etats_frequents[0].etats[e.cle]} />
+            {#if resume.equipements_moyens[e.cle] != null}
+              <IndicateurEtat label={e.label} valeur={resume.equipements_moyens[e.cle]} />
             {/if}
           {/each}
         </div>
@@ -341,28 +379,33 @@
     object-fit: contain;
   }
 
-  .commentaire {
-    font-size: 0.85rem;
-    font-style: italic;
-    margin: 0;
-  }
-
-  .ligne-resume {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .frequence {
-    font-size: 0.78rem;
-    color: var(--texte-attenue);
-    min-width: 1.6rem;
-  }
-
   .puces {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+
+  /* Un cadre par groupe (Toilettes PMR, Urinoirs...), meme logique que
+     .carte-groupe du formulaire -- pour reperer d'un coup d'oeil ou
+     commence et ou finit chaque rubrique (retour Gilles du 2026-09-03). */
+  .groupes-configuration {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .carte-groupe-lecture {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--bordure);
+    border-radius: 10px;
+  }
+
+  .nom-groupe {
+    font-weight: 600;
+    font-size: 0.85rem;
   }
 
   /* Liste a une seule colonne pour les equipements deja declares

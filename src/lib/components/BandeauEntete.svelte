@@ -6,6 +6,7 @@
   import { onDestroy } from 'svelte'
   import { APP_VERSION } from '../version.js'
   import { themeActuel, definirTheme } from '../theme.js'
+  import { reinitialiserApplication } from '../miseAJour.js'
   import { seDeconnecter } from '../profil.js'
   import { chargerAvatarParDefaut } from '../identiteVisuelle.js'
   import { obtenirPosition } from '../geolocalisation.js'
@@ -17,9 +18,24 @@
   let { userId, profil, needRefresh = false, onMettreAJour, onProfilMisAJour, onSupprimer, onDeconnexion, onEntrainement } = $props()
 
   let menuOuvert = $state(false)
-  // 'accueil' | 'infos' | 'installation' | 'apropos' | 'suppression'
+  // 'accueil' | 'infos' | 'installation' | 'apropos' | 'suppression' | 'reinitialisation'
   let vue = $state('accueil')
   let suppressionEnCours = $state(false)
+  let reinitialisationEnCours = $state(false)
+
+  // Bouton "Vider le cache et mettre à jour" (retour Gilles du 2026-09-04) :
+  // toujours visible, contrairement au bandeau needRefresh (qui suppose
+  // qu'un Service Worker deja installe detecte une nouvelle version) --
+  // filet de securite quand desinstaller/reinstaller la PWA ne suffit pas
+  // a repartir d'un etat vierge (cf. miseAJour.js).
+  async function confirmerReinitialisation() {
+    reinitialisationEnCours = true
+    try {
+      await reinitialiserApplication()
+    } finally {
+      reinitialisationEnCours = false
+    }
+  }
   let theme = $state(themeActuel())
 
   // Retour materiel/geste telephone ferme le menu au lieu de quitter
@@ -149,6 +165,7 @@
         </div>
 
         <button type="button" class="menu-action" onclick={() => (vue = 'apropos')}>À propos</button>
+        <button type="button" class="menu-action" onclick={() => (vue = 'reinitialisation')}>Vider le cache et mettre à jour</button>
         <button type="button" class="menu-action" onclick={deconnecter}>Se déconnecter</button>
         <button type="button" class="menu-action danger" onclick={() => (vue = 'suppression')}>Supprimer mon compte</button>
       {:else if vue === 'infos'}
@@ -172,6 +189,20 @@
             <button type="button" onclick={() => (vue = 'accueil')}>Annuler</button>
             <button type="button" class="danger" disabled={suppressionEnCours} onclick={confirmerSuppression}>
               {suppressionEnCours ? 'Suppression…' : 'Oui, supprimer'}
+            </button>
+          </div>
+        </div>
+      {:else if vue === 'reinitialisation'}
+        <div class="confirmation">
+          <p>
+            Repartir à zéro : l'application efface tout ce qu'elle a mis de côté sur cet appareil
+            (mise en cache, session) et recharge la toute dernière version. Vous devrez vous reconnecter
+            avec votre numéro et votre mot de passe.
+          </p>
+          <div class="confirmation-boutons">
+            <button type="button" onclick={() => (vue = 'accueil')}>Annuler</button>
+            <button type="button" class="danger" disabled={reinitialisationEnCours} onclick={confirmerReinitialisation}>
+              {reinitialisationEnCours ? 'Réinitialisation…' : 'Oui, tout vider et recharger'}
             </button>
           </div>
         </div>

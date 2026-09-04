@@ -7,7 +7,7 @@
   import EchelleEtat from './EchelleEtat.svelte'
   import EchelleCompte from './EchelleCompte.svelte'
   import BoutonPhoto from './BoutonPhoto.svelte'
-  import { CELLULES, ACCESSIBILITE_OPTIONS, TYPE_OPTIONS, EQUIPEMENTS } from '../config/cellules.js'
+  import { GROUPES_CELLULES, GENRES, TYPE_OPTIONS, CHANGE_BEBE_OPTIONS, EQUIPEMENTS } from '../config/cellules.js'
   import { chargerDernierAvis } from '../avis.js'
   import { sauvegarderAvis } from '../queueAvis.js'
   import { chargerSanitaire } from '../sanitaires.js'
@@ -42,8 +42,12 @@
   // -- necessaire aussi pour que bind:value={etats[cle]} ait toujours une
   // valeur existante des le premier rendu (sinon Svelte 5 refuse le bind
   // sur une cle absente de l'objet reactif).
+  function clesCellules() {
+    return GROUPES_CELLULES.flatMap((g) => g.genres.map((genre) => `${g.cle}_${genre}`))
+  }
+
   function etatsParDefaut() {
-    return Object.fromEntries([...CELLULES, ...EQUIPEMENTS].map((x) => [x.cle, 'Abs']))
+    return Object.fromEntries([...clesCellules(), ...EQUIPEMENTS.map((e) => e.cle)].map((cle) => [cle, 'Abs']))
   }
 
   let avisGeneral = $state(null)
@@ -60,6 +64,7 @@
   let eclairageNaturel = $state(null)
   let luminosite = $state(null)
   let ambiance = $state(null)
+  let changeBebe = $state(null)
 
   // Etape 4 -- photos (Lot 6, §5.6). Niveau 1 : champs structures avec
   // finalite propre a chacun (§5.6.1). Niveau 2 : photos taguees
@@ -80,12 +85,6 @@
     photosConfort = photosConfort.filter((_, i) => i !== index)
   }
 
-  function accessibilite(cle) {
-    return configuration[cle]?.accessibilite ?? null
-  }
-  function definirAccessibilite(cle, val) {
-    configuration[cle] = { ...configuration[cle], accessibilite: configuration[cle]?.accessibilite === val ? null : val }
-  }
   function type(cle) {
     return configuration[cle]?.type ?? null
   }
@@ -118,6 +117,7 @@
         decompteTemps = dernier.decompte_temps
         luminosite = dernier.luminosite
         ambiance = dernier.ambiance
+        changeBebe = (dernier.configuration ?? {}).change_bebe?.choix ?? null
         photoVueLoin = dernier.photo_vue_loin
         photoSignaletique = dernier.photo_signaletique
         photoAcces = dernier.photo_acces
@@ -144,6 +144,7 @@
     }
     try {
       const { lat, lon } = await obtenirPosition()
+      const configurationAEnvoyer = { ...configuration, change_bebe: changeBebe ? { choix: changeBebe } : null }
       const { horsLigne } = await sauvegarderAvis({
         ub_id: ubId,
         lat,
@@ -152,7 +153,7 @@
           avis_general: avisGeneral,
           statut_declare: statutDeclare,
           commentaire: commentaire.trim() || null,
-          configuration,
+          configuration: configurationAEnvoyer,
           etats,
           eclairage_naturel: eclairageNaturel,
           verrou_mecanique: verrouMecanique,
@@ -233,11 +234,20 @@
           </p>
 
           <div class="groupe-photo">
-            <h3>Vue de loin</h3>
+            <h3>Environnement</h3>
             <BoutonPhoto
               consigne="Repérer le sanitaire dans son environnement : cadre depuis l'endroit où on arrive (rue, parking, allée), pas un gros plan."
               {entrainement}
               bind:valeur={photoVueLoin}
+            />
+          </div>
+
+          <div class="groupe-photo">
+            <h3>Accès</h3>
+            <BoutonPhoto
+              consigne="Juger l'accessibilité avant de se déplacer : cadre le cheminement (porte, marches, rampe) pour que largeur et pente soient visibles."
+              {entrainement}
+              bind:valeur={photoAcces}
             />
           </div>
 
@@ -250,15 +260,6 @@
               consigne="Rendre l'état vérifiable : cadre le panneau ou l'indicateur lui-même (affiche de fermeture, voyant), pas une vue large."
               {entrainement}
               bind:valeur={photoSignaletique}
-            />
-          </div>
-
-          <div class="groupe-photo">
-            <h3>Accès</h3>
-            <BoutonPhoto
-              consigne="Juger l'accessibilité avant de se déplacer : cadre le cheminement (porte, marches, rampe) pour que largeur et pente soient visibles."
-              {entrainement}
-              bind:valeur={photoAcces}
             />
           </div>
 
@@ -288,28 +289,41 @@
         </section>
       {:else if etape === 3}
         <section class="grille-configuration">
-          {#each CELLULES as c (c.cle)}
-            <div class="ligne-cellule">
-              <span class="nom-cellule">{c.label}</span>
-              <EchelleCompte bind:value={etats[c.cle]} />
-              {#if etats[c.cle] && etats[c.cle] !== 'Abs'}
-                <div class="sous-options">
+          <p class="consigne-configuration">Les chiffres indiquent le nombre de cellules.</p>
+          {#each GROUPES_CELLULES as g (g.cle)}
+            <div class="carte-groupe">
+              <div class="entete-groupe">
+                <span class="nom-groupe">{g.label}</span>
+                {#if g.avecType}
                   <div class="chips">
-                    {#each ACCESSIBILITE_OPTIONS as a (a)}
-                      <button type="button" class:selected={accessibilite(c.cle) === a} onclick={() => definirAccessibilite(c.cle, a)}>{a}</button>
+                    {#each TYPE_OPTIONS as t (t)}
+                      <button type="button" class:selected={type(g.cle) === t} onclick={() => definirType(g.cle, t)}>{t}</button>
                     {/each}
                   </div>
-                  {#if c.avecType}
-                    <div class="chips">
-                      {#each TYPE_OPTIONS as t (t)}
-                        <button type="button" class:selected={type(c.cle) === t} onclick={() => definirType(c.cle, t)}>{t}</button>
-                      {/each}
-                    </div>
-                  {/if}
+                {/if}
+              </div>
+              {#if g.note}<p class="note-groupe">{g.note}</p>{/if}
+              {#each g.genres as genreCle (genreCle)}
+                {@const genre = GENRES.find((x) => x.cle === genreCle)}
+                <div class="ligne-genre">
+                  {#if g.genres.length > 1}<span class="label-genre">{genre.label}</span>{/if}
+                  <EchelleCompte couleur={genre.couleur} bind:value={etats[`${g.cle}_${genreCle}`]} />
                 </div>
-              {/if}
+              {/each}
             </div>
           {/each}
+
+          <div class="carte-groupe">
+            <span class="nom-groupe">Change Bébé</span>
+            <div class="options-change-bebe">
+              {#each CHANGE_BEBE_OPTIONS as opt (opt)}
+                <label class="option-radio">
+                  <input type="radio" name="change-bebe" value={opt} checked={changeBebe === opt} onchange={() => (changeBebe = opt)} />
+                  {opt}
+                </label>
+              {/each}
+            </div>
+          </div>
         </section>
       {:else if etape === 4}
         <section class="grille-equipements">
@@ -490,7 +504,6 @@
     gap: 1rem;
   }
 
-  .ligne-cellule,
   .ligne-equipement {
     display: flex;
     flex-direction: column;
@@ -504,11 +517,70 @@
     font-size: 0.9rem;
   }
 
-  .sous-options {
+  /* "Encadrement" (retour Gilles du 2026-09-03) : un cadre par groupe pour
+     que ses parents/oncles/tantes reperent d'un coup d'oeil ou commence et
+     ou finit chaque rubrique de l'etape "Configuration". */
+  .carte-groupe {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
-    padding-left: 0.2rem;
+    gap: 0.6rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid var(--bordure);
+    border-radius: 12px;
+  }
+
+  .entete-groupe {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .nom-groupe {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .note-groupe {
+    margin: -0.3rem 0 0;
+    font-size: 0.78rem;
+    font-style: italic;
+    color: var(--texte-attenue);
+  }
+
+  .ligne-genre {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .label-genre {
+    font-size: 0.82rem;
+    color: var(--texte-attenue);
+  }
+
+  .options-change-bebe {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .option-radio {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 38px;
+    font-size: 0.88rem;
+    cursor: pointer;
+  }
+
+  .option-radio input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+    cursor: pointer;
   }
 
   .chips {
@@ -555,6 +627,12 @@
   .consigne-camera {
     font-size: 0.85rem;
     color: var(--texte);
+    margin: 0;
+  }
+
+  .consigne-configuration {
+    font-size: 0.82rem;
+    color: var(--texte-attenue);
     margin: 0;
   }
 
