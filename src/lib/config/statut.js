@@ -6,6 +6,7 @@
 export const STATUT_OPTIONS = [
   { valeur: 'Disponible', label: 'Disponible' },
   { valeur: 'Impraticable', label: 'Impraticable' },
+  { valeur: 'Acces_Limite', label: 'Accès limité aux personnes ayant accès au bâtiment' },
   { valeur: 'Hors_Service', label: 'HS' },
   { valeur: 'Condamne', label: 'Condamné' },
   { valeur: 'Inexistante', label: 'Inexistante' },
