@@ -1,3 +1,21 @@
+<script module>
+  // Persiste au niveau du module (pas de l'instance) : Carte.svelte est
+  // demonte/remonte a chaque aller-retour vers une fiche (le {#if} d'App.svelte
+  // detruit le composant), donc un simple flag d'instance serait remis a
+  // zero a chaque retour sur la carte. Ce flag, lui, ne se reinitialise
+  // qu'au vrai rechargement de la page -- le centrage automatique sur la
+  // position ne doit avoir lieu qu'a l'ouverture de l'appli, pas a chaque
+  // fois qu'on revient sur la carte (retour Gilles du 2026-09-19).
+  let dejaCentreAuMontage = false
+
+  // Derniere vue (centre + zoom) avant un depart vers une fiche -- Carte.svelte
+  // etant demonte/remonte a chaque aller-retour, sans ca le retour a la
+  // carte repartait toujours de la vue par defaut (France entiere), meme
+  // apres une recherche/un defilement (retour Gilles du 2026-09-19, meme
+  // logique que dejaCentreAuMontage).
+  let derniereVue = null
+</script>
+
 <script>
   // Carte (Lot 2, plan V2-PLAN.md §5.2 + retour utilisateur du 2026-08-22
   // qui a redemande les filtres de v1, retires par erreur au Lot 2).
@@ -200,9 +218,10 @@
   }
 
   onMount(() => {
+    const vueDepart = derniereVue ?? VUE_PAR_DEFAUT
     map = L.map(conteneurCarte, {
-      center: [VUE_PAR_DEFAUT.lat, VUE_PAR_DEFAUT.lon],
-      zoom: VUE_PAR_DEFAUT.zoom,
+      center: [vueDepart.lat, vueDepart.lon],
+      zoom: vueDepart.zoom,
       zoomControl: false,
     })
     L.control.zoom({ position: 'bottomleft' }).addTo(map)
@@ -218,9 +237,16 @@
       groupes[k] = L.markerClusterGroup()
     }
 
-    map.on('moveend', rafraichirSanitaires)
+    map.on('moveend', () => {
+      const centre = map.getCenter()
+      derniereVue = { lat: centre.lat, lon: centre.lng, zoom: map.getZoom() }
+      rafraichirSanitaires()
+    })
     rafraichirSanitaires()
-    localiser()
+    if (!dejaCentreAuMontage) {
+      dejaCentreAuMontage = true
+      localiser()
+    }
   })
 
   onDestroy(() => {
@@ -229,6 +255,15 @@
 </script>
 
 <div class="carte" bind:this={conteneurCarte}>
+  <!-- Recentrage sur la position (retour Gilles du 2026-09-19) : le
+       centrage automatique ne se fait plus qu'a l'ouverture de l'appli
+       (voir dejaCentreAuMontage) -- ce bouton couvre le cas ou l'usager
+       s'est deplace sur la carte (recherche, defilement) et veut revenir
+       a sa position reelle. -->
+  <button type="button" class="bouton-recentrer" onclick={localiser} aria-label="Recentrer sur ma position">
+    📍
+  </button>
+
   <div class="filtres">
     <form class="recherche" onsubmit={(e) => (e.preventDefault(), rechercherLocalisation())}>
       <input
@@ -312,6 +347,24 @@
        menu du bandeau (z-index 20) -- le menu reste bien ouvert dans le
        DOM mais invisible, cache sous la carte (bug du 2026-08-31). */
     isolation: isolate;
+  }
+
+  .bouton-recentrer {
+    position: absolute;
+    bottom: 1.6rem;
+    right: 0.6rem;
+    z-index: 700;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid #ccc;
+    background: #fff;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
   }
 
   .filtres {

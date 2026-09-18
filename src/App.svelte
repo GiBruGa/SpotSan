@@ -4,6 +4,7 @@
   import { supabase, assurerSession } from './lib/supabaseClient.js'
   import { chargerProfil, creerProfil, supprimerCompte } from './lib/profil.js'
   import { viderQueue, nombreEnAttente } from './lib/queueAvis.js'
+  import { ouvrirAvecRetour } from './lib/retourFerme.js'
   import Accueil from './lib/components/Accueil.svelte'
   import EcranBienvenue from './lib/components/EcranBienvenue.svelte'
   import AideInstallation from './lib/components/AideInstallation.svelte'
@@ -26,6 +27,26 @@
   const UB_ENTRAINEMENT = 'UB-ENTRAINEMENT'
   // 'off' | 'instructions' | 'fiche' | 'avis' | 'signalement'
   let etapeEntrainement = $state('off')
+  // Toute l'excursion "S'entrainer" ne pousse qu'UNE seule entree
+  // d'historique (comme le menu/la lightbox, voir retourFerme.js) : le
+  // retour materiel/geste quitte l'entrainement d'un coup plutot que de
+  // remonter etape par etape -- les boutons "← Carte"/"← Menu" internes
+  // suffisent pour la navigation fine a l'interieur.
+  let fermerEntrainementViaRetour = null
+
+  function lancerEntrainement() {
+    etapeEntrainement = 'instructions'
+    fermerEntrainementViaRetour = ouvrirAvecRetour(() => {
+      etapeEntrainement = 'off'
+      fermerEntrainementViaRetour = null
+    })
+  }
+
+  function quitterEntrainement() {
+    fermerEntrainementViaRetour?.()
+    fermerEntrainementViaRetour = null
+    etapeEntrainement = 'off'
+  }
 
   // Destination du QR code (InstallationQR.svelte) : aide a l'installation
   // publique, sans compte requis -- avant, le QR menait direct a l'ecran de
@@ -51,20 +72,42 @@
   // en attente que Inscription.svelte collecte le reste (nom/pseudo/etc).
   let telephoneEnCoursInscription = $state('')
 
-  let ubIdFiche = $state(null)
-  let ubIdFormulaire = $state(null)
-  let ubIdSignalement = $state(null)
   let versionFiche = $state(0)
 
-  // Ecran "Bienvenu·e !" affiche une seule fois, quand l'app se (re)lance
-  // avec une session deja authentifiee -- avant, l'app allait direct sur
-  // la carte sans jamais presenter l'outil dans ce cas (retour Gilles du
-  // 2026-08-31). Volontairement PAS active apres une connexion/inscription
-  // interactive dans la meme session (surConnexionReussie/surSecuriseTermine/
-  // surInscriptionDetailsValidee ne le touchent pas) : la personne vient
-  // deja de voir Connexion/Inscription, un second ecran de bienvenue serait
-  // redondant.
-  let vueBienvenue = $state(false)
+  // Ecran post-connexion courant, pilote par l'historique du navigateur
+  // (retour Gilles du 2026-09-19 : le bouton/geste "retour" du telephone
+  // n'avait rien a depiler dans une SPA sans routeur -- soit il quittait
+  // l'appli, soit forcait un rechargement complet qui reinitialisait tout
+  // au montage : ecran de bienvenue qui revient, carte qui se recentre sur
+  // la position live en perdant l'endroit consulte). Chaque navigation
+  // "vers l'avant" (allerA) pousse une entree d'historique ; le retour
+  // materiel/geste ET les boutons "← Carte" (history.back()) depilent
+  // proprement un ecran a la fois, sans jamais recharger l'appli. Types
+  // possibles : {type:'bienvenue'} | {type:'carte'} | {type:'fiche', ubId}
+  // | {type:'formulaire', ubId} | {type:'signalement', ubId}.
+  let ecran = $state({ type: 'carte' })
+
+  function allerA(nouvelEcran) {
+    history.pushState(nouvelEcran, '')
+    ecran = nouvelEcran
+  }
+
+  // Remplace l'entree courante sans empiler -- pour les transitions qui ne
+  // sont pas une "vraie" navigation avant (ecran initial post-connexion,
+  // sortie de l'ecran de bienvenue) : un retour materiel depuis l'ecran
+  // qui suit doit quitter l'appli, pas revenir sur l'etape precedente.
+  function remplacerEcran(nouvelEcran) {
+    ecran = nouvelEcran
+    history.replaceState(nouvelEcran, '')
+  }
+
+  function surPopState(e) {
+    // Les entrees factices du menu/de la lightbox (retourFerme.js) portent
+    // toujours l'etat de l'ecran sous-jacent en plus de leur propre flag
+    // (panneauOuvert) -- les restaurer ici avec le meme type/ubId est donc
+    // sans effet (idempotent), les deux mecanismes cohabitent sans conflit.
+    ecran = e.state?.type ? e.state : { type: 'carte' }
+  }
 
   // Mise a jour de l'app : pas de rechargement automatique en silence --
   // ca pourrait effacer une saisie en cours (formulaire, photo). On
@@ -87,7 +130,7 @@
       if (profil && session.user.is_anonymous) {
         vueAuth = 'securiser-existant'
       } else if (profil) {
-        vueBienvenue = true
+        remplacerEcran({ type: 'bienvenue' })
       }
     } catch (e) {
       console.error(e)
@@ -95,6 +138,8 @@
     } finally {
       chargement = false
     }
+
+    window.addEventListener('popstate', surPopState)
 
     const rejouer = async () => {
       const { envoyes } = await viderQueue()
@@ -122,6 +167,7 @@
     if (profilTrouve) {
       profil = profilTrouve
       vueAuth = 'accueil'
+      remplacerEcran({ type: 'carte' })
     } else {
       telephoneEnCoursInscription = telephone
       vueAuth = 'inscription-details'
@@ -130,12 +176,14 @@
 
   async function surInscriptionDetailsValidee(donnees) {
     profil = await creerProfil(userId, { ...donnees, telephone: telephoneEnCoursInscription })
+    remplacerEcran({ type: 'carte' })
   }
 
   async function surConnexionReussie() {
     await rafraichirUserId()
     profil = await chargerProfil(userId)
     vueAuth = 'accueil'
+    remplacerEcran({ type: 'carte' })
   }
 
   async function surSuppression() {
@@ -143,6 +191,7 @@
     profil = null
     userId = null
     vueAuth = 'accueil'
+    ecran = { type: 'carte' }
     const session = await assurerSession()
     userId = session.user.id
   }
@@ -151,20 +200,25 @@
     profil = null
     userId = null
     vueAuth = 'accueil'
+    ecran = { type: 'carte' }
     const session = await assurerSession()
     userId = session.user.id
     profil = await chargerProfil(userId)
   }
 
+  // Rejoint la fiche (history.back()) qu'il s'agisse d'une sauvegarde
+  // reussie, mise en attente hors-ligne, ou d'un "Sortir sans sauvegarder"
+  // -- retour Gilles du 2026-09-19 : ne jamais laisser l'ecran de saisie
+  // affiche sans dire clairement si l'avis a ete pris en compte.
   function surFermetureFormulaire() {
-    ubIdFormulaire = null
     versionFiche++ // force le rechargement de la fiche (avis a jour)
     nombreEnAttente().then((n) => (enAttente = n))
+    history.back()
   }
 
   function surFermetureSignalement() {
-    ubIdSignalement = null
     versionFiche++
+    history.back()
   }
 </script>
 
@@ -201,7 +255,7 @@
   {#if etapeEntrainement === 'instructions'}
     <InstructionsEntrainement
       onCommencer={() => (etapeEntrainement = 'fiche')}
-      onFermer={() => (etapeEntrainement = 'off')}
+      onFermer={quitterEntrainement}
     />
   {:else if etapeEntrainement === 'fiche'}
     <FicheSanitaire
@@ -209,28 +263,28 @@
       entrainement={true}
       onDonnerAvis={() => (etapeEntrainement = 'avis')}
       onSignaler={() => (etapeEntrainement = 'signalement')}
-      onRetour={() => (etapeEntrainement = 'off')}
+      onRetour={quitterEntrainement}
     />
   {:else if etapeEntrainement === 'avis'}
     <FormulaireAvis {userId} ubId={UB_ENTRAINEMENT} entrainement={true} onFerme={() => (etapeEntrainement = 'fiche')} />
   {:else if etapeEntrainement === 'signalement'}
     <SignalerIncivilite ubId={UB_ENTRAINEMENT} entrainement={true} onFerme={() => (etapeEntrainement = 'fiche')} />
   {/if}
-{:else if ubIdFormulaire}
-  <FormulaireAvis {userId} ubId={ubIdFormulaire} onFerme={surFermetureFormulaire} />
-{:else if ubIdSignalement}
-  <SignalerIncivilite ubId={ubIdSignalement} onFerme={surFermetureSignalement} />
-{:else if ubIdFiche}
+{:else if ecran.type === 'formulaire'}
+  <FormulaireAvis {userId} ubId={ecran.ubId} onFerme={surFermetureFormulaire} />
+{:else if ecran.type === 'signalement'}
+  <SignalerIncivilite ubId={ecran.ubId} onFerme={surFermetureSignalement} />
+{:else if ecran.type === 'fiche'}
   {#key versionFiche}
     <FicheSanitaire
-      ubId={ubIdFiche}
-      onDonnerAvis={(id) => (ubIdFormulaire = id)}
-      onSignaler={(id) => (ubIdSignalement = id)}
-      onRetour={() => (ubIdFiche = null)}
+      ubId={ecran.ubId}
+      onDonnerAvis={(id) => allerA({ type: 'formulaire', ubId: id })}
+      onSignaler={(id) => allerA({ type: 'signalement', ubId: id })}
+      onRetour={() => history.back()}
     />
   {/key}
-{:else if vueBienvenue}
-  <EcranBienvenue onContinuer={() => (vueBienvenue = false)} />
+{:else if ecran.type === 'bienvenue'}
+  <EcranBienvenue onContinuer={() => remplacerEcran({ type: 'carte' })} />
 {:else}
   <div class="ecran-carte">
     <BandeauEntete
@@ -241,12 +295,12 @@
       onProfilMisAJour={(p) => (profil = p)}
       onSupprimer={surSuppression}
       onDeconnexion={surDeconnexion}
-      onEntrainement={() => (etapeEntrainement = 'instructions')}
+      onEntrainement={lancerEntrainement}
     />
     {#if enAttente > 0}
       <p class="badge-attente">{enAttente} avis en attente d'envoi (pas de réseau au moment de la sauvegarde).</p>
     {/if}
-    <Carte onChoixSanitaire={(id) => (ubIdFiche = id)} />
+    <Carte onChoixSanitaire={(id) => allerA({ type: 'fiche', ubId: id })} />
   </div>
 {/if}
 

@@ -62,9 +62,16 @@
   // Module "S'entrainer" (demande de Gilles le 2026-09-02) : ferme le
   // menu (comme un clic normal, consomme l'entree d'historique) puis
   // delegue a App.svelte, qui possede le reste du routage entrainement.
+  // Le delai est necessaire (bug constate le 2026-09-19, lors de la
+  // generalisation de la navigation par historique) : toggleMenu() declenche
+  // un history.back() asynchrone pour fermer le menu ; enchainer aussitot
+  // un history.pushState() (App.svelte, ouverture de l'entrainement) avant
+  // que ce retour n'ait ete traite par le navigateur produit un
+  // entrelacement d'historique incoherent -- l'entrainement s'ouvrait puis
+  // se refermait aussitot. Laisser le retour du menu se terminer d'abord.
   function lancerEntrainement() {
     toggleMenu()
-    onEntrainement?.()
+    setTimeout(() => onEntrainement?.(), 0)
   }
 
   // Avatar par defaut (aucune photo choisie) : icone dynamique depuis

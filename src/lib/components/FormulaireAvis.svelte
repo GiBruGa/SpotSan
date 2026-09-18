@@ -149,6 +149,20 @@
     }
   })
 
+  // Filet de securite (retour Gilles du 2026-09-19, apres des "blocages"
+  // constates sur le terrain) : si une des etapes async de la sauvegarde
+  // (IndexedDB en particulier, connu pour rester bloque dans certaines
+  // conditions sur Safari/iOS) ne repond jamais, le bouton "Sauvegarder"
+  // restait desactive indefiniment sans aucun message. Au-dela de 15s, on
+  // abandonne l'attente et on rend la main -- les reponses deja saisies
+  // restent affichees, rien n'est perdu, l'utilisateur peut reessayer.
+  function avecTimeout(promesse, ms) {
+    return Promise.race([
+      promesse,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout_sauvegarde')), ms)),
+    ])
+  }
+
   // Validation avant meme de tenter le reseau (retour Gilles du 2026-09-18 :
   // aucun message clair n'indiquait pourquoi la sauvegarde etait bloquee,
   // en particulier un avis general non rempli). Renvoie un message si
@@ -189,7 +203,7 @@
       const positionValide = positionCapturee && Date.now() - positionCapturee.quand <= DUREE_VALIDITE_POSITION_MS
       const { lat, lon } = positionValide ? positionCapturee : await obtenirPosition()
       const configurationAEnvoyer = { ...configuration, change_bebe: changeBebe ? { choix: changeBebe } : null }
-      const { horsLigne } = await sauvegarderAvis({
+      const { horsLigne } = await avecTimeout(sauvegarderAvis({
         ub_id: ubId,
         lat,
         lon,
@@ -210,7 +224,7 @@
           photo_acces: photoAcces,
           photos_confort: photosConfort,
         },
-      })
+      }), 15000)
       messageStatut = horsLigne
         ? 'Pas de réseau — votre avis est enregistré sur votre téléphone et sera envoyé dès que possible.'
         : 'Avis enregistré.'
@@ -221,6 +235,8 @@
         messageStatut = 'Activez la localisation pour donner votre avis — il faut être sur place, près du sanitaire.'
       } else if (e.message?.includes('trop_loin')) {
         messageStatut = 'Vous devez être à proximité du sanitaire pour donner votre avis.'
+      } else if (e.message === 'timeout_sauvegarde') {
+        messageStatut = "Ça prend trop de temps — vos réponses sont toujours là, réessayez (vérifiez votre réseau si ça persiste)."
       } else {
         messageStatut = "Impossible d'enregistrer pour l'instant (problème technique) — réessayez ; si ça persiste, vos réponses restent remplies, sortez et revenez sans les perdre."
       }
