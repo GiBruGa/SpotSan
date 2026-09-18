@@ -30,6 +30,11 @@ export async function chargerSanitairesDansZone(bounds, limite = 40000) {
     // liens Google Maps/Street View fonctionnent en pratique -- exclu ici
     // explicitement pour ne jamais apparaitre sur la vraie carte.
     .eq('Entrainement', false)
+    // Sanitaires confidentiels (retour Gilles du 2026-09-18) : UB-VERIA et
+    // UB-DETECIA servent aux essais internes de detection IA (IRUM) -- ne
+    // doivent jamais apparaitre sur la carte publique ni dans la liste de
+    // resultats de recherche (voir Carte.svelte).
+    .eq('Confidentiel', false)
     .order('UB_id')
     .limit(limite)
   if (error) throw error
