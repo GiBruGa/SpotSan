@@ -241,6 +241,14 @@
             <input type="checkbox" checked={affinages.bienNotees} onchange={() => toggleAffinage('bienNotees')} />
             <span class="case-libelle">4★ mini</span>
           </label>
+          <label class="case-filtre">
+            <input type="checkbox" checked={affinages.accesLimite} onchange={() => toggleAffinage('accesLimite')} />
+            <span class="case-libelle">Accès limité aux personnes ayant accès au bâtiment</span>
+          </label>
+          <label class="case-filtre">
+            <input type="checkbox" checked={affinages.accessibleNuit} onchange={() => toggleAffinage('accessibleNuit')} />
+            <span class="case-libelle">Exclusivement accessible de nuit</span>
+          </label>
         </div>
       </div>
     {/if}

@@ -3,7 +3,7 @@ import { supabase } from './supabaseClient.js'
 // Colonnes necessaires au rendu carte + a la classification par famille de
 // source et aux filtres d'affinage (repris fidelement de v1, cf. classify()
 // et passesRefinements() dans SpotSan/app.js).
-const COLONNES_CARTE = 'UB_id, Name, Latitude, Longitude, Sources, Verified, Certified, Exists, Automatic, PMR, Adapte_Enfant, Rating_Overall, Statut_Operationnel'
+const COLONNES_CARTE = 'UB_id, Name, Latitude, Longitude, Sources, Verified, Certified, Exists, Automatic, PMR, Adapte_Enfant, Rating_Overall, Statut_Operationnel, Accessible_Nuit'
 
 /**
  * Sanitaires dans une zone (bbox), pour l'affichage sur la carte -- inclut
