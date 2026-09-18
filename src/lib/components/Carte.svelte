@@ -38,6 +38,38 @@
   let rechercheEnCours = $state(false)
   let rechercheErreur = $state('')
 
+  // Liste des sanitaires connus les plus proches du lieu recherche (retour
+  // Gilles du 2026-09-19, avant un depart en tournee) -- classee du plus
+  // proche au plus loin, limitee a 15, recalculee a chaque rechargement de
+  // donneesBrutes (voir rafraichirSanitaires) tant qu'un point de recherche
+  // est actif. Clic sur un resultat : la carte se centre dessus au meme
+  // niveau de zoom que le recentrage sur la position utilisateur (16, ~1km).
+  const LIMITE_RESULTATS_RECHERCHE = 15
+  let pointRecherche = $state(null) // { lat, lon } ou null
+  let resultatsRecherche = $state([])
+
+  function mettreAJourResultatsRecherche() {
+    if (!pointRecherche) {
+      resultatsRecherche = []
+      return
+    }
+    const origine = L.latLng(pointRecherche.lat, pointRecherche.lon)
+    resultatsRecherche = donneesBrutes
+      .map((t) => ({ t, distance: origine.distanceTo(L.latLng(t.Latitude, t.Longitude)) }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, LIMITE_RESULTATS_RECHERCHE)
+  }
+
+  function formaterDistance(m) {
+    return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`
+  }
+
+  function allerVersResultat(t) {
+    map.setView([t.Latitude, t.Longitude], 16)
+    pointRecherche = null
+    resultatsRecherche = []
+  }
+
   async function rechercherLocalisation() {
     if (!rechercheTexte.trim()) return
     rechercheEnCours = true
@@ -51,7 +83,9 @@
         return
       }
       const { lat, lon } = resultats[0]
-      map.setView([Number(lat), Number(lon)], 14)
+      pointRecherche = { lat: Number(lat), lon: Number(lon) }
+      map.setView([pointRecherche.lat, pointRecherche.lon], 14)
+      await rafraichirSanitaires() // garantit la liste meme si la vue ne bouge pas assez pour un 'moveend'
       panneauOuvert = false
     } catch (e) {
       console.error(e)
@@ -116,6 +150,7 @@
     try {
       donneesBrutes = await chargerSanitairesDansZone(map.getBounds())
       redessiner()
+      mettreAJourResultatsRecherche()
     } catch (e) {
       console.error('Chargement des sanitaires impossible', e)
     }
@@ -207,6 +242,19 @@
       </button>
     </form>
     {#if rechercheErreur}<p class="recherche-erreur">{rechercheErreur}</p>{/if}
+
+    {#if resultatsRecherche.length}
+      <ul class="resultats-recherche">
+        {#each resultatsRecherche as { t, distance } (t.UB_id)}
+          <li>
+            <button type="button" onclick={() => allerVersResultat(t)}>
+              <span class="resultat-nom">{t.Name || t.UB_id}</span>
+              <span class="resultat-distance">{formaterDistance(distance)}</span>
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
 
     <button type="button" class="filtres-entete" onclick={() => (panneauOuvert = !panneauOuvert)}>
       <span>⚙ Filtres</span>
@@ -318,6 +366,57 @@
     font-size: 0.78rem;
     color: #c55a7a;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Liste des sanitaires connus les plus proches du lieu recherche
+     (retour Gilles du 2026-09-19) -- meme carte blanche que les autres
+     panneaux flottants de cette carte, hauteur plafonnee + defilement des
+     que la quinzaine de resultats deborde. */
+  .resultats-recherche {
+    list-style: none;
+    margin: 0.4rem 0 0;
+    padding: 0.3rem;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    max-height: 55vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .resultats-recherche button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    min-height: 42px;
+    padding: 0 0.6rem;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    color: #1a1414;
+    font-size: 0.85rem;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .resultats-recherche button:hover {
+    background: #f5f0eb;
+  }
+
+  .resultat-nom {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .resultat-distance {
+    flex-shrink: 0;
+    color: #666;
+    font-size: 0.78rem;
   }
 
   .filtres-entete {
