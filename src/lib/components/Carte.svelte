@@ -243,7 +243,7 @@
           </label>
           <label class="case-filtre">
             <input type="checkbox" checked={affinages.accesLimite} onchange={() => toggleAffinage('accesLimite')} />
-            <span class="case-libelle">Accès limité aux personnes ayant accès au bâtiment</span>
+            <span class="case-libelle">dont Accès limité aux personnes ayant accès au bâtiment</span>
           </label>
           <label class="case-filtre">
             <input type="checkbox" checked={affinages.accessibleNuit} onchange={() => toggleAffinage('accessibleNuit')} />
