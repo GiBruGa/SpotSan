@@ -74,10 +74,13 @@ export function passeAffinages(t, affinages) {
   if (affinages.pmr && !(t.PMR > 0)) return false
   if (affinages.enfant && t.Adapte_Enfant !== true) return false
   if (affinages.bienNotees && !(t.Rating_Overall >= 4)) return false
-  // 2026-09-18 : deux filtres supplementaires demandes par Gilles, meme
-  // logique "coche = restreint a ce sous-ensemble" que PMR/Enfant/4-etoiles.
-  if (affinages.accesLimite && t.Statut_Operationnel !== 'Acces_Limite') return false
+  // "Exclusivement accessible de nuit" (2026-09-18) : meme logique "coche =
+  // restreint a ce sous-ensemble" que PMR/Enfant/4-etoiles, decoche par
+  // defaut.
   if (affinages.accessibleNuit && t.Accessible_Nuit !== true) return false
+  // "Acces limite au batiment" (2026-09-18) : logique INVERSE -- coche par
+  // defaut (inclus), decocher les ELIMINE de la carte (retour Gilles).
+  if (!affinages.accesLimite && t.Statut_Operationnel === 'Acces_Limite') return false
   return true
 }
 
@@ -86,5 +89,5 @@ export function chipsParDefaut() {
 }
 
 export function affinagesParDefaut() {
-  return { pmr: false, enfant: false, bienNotees: false, accesLimite: false, accessibleNuit: false }
+  return { pmr: false, enfant: false, bienNotees: false, accesLimite: true, accessibleNuit: false }
 }
