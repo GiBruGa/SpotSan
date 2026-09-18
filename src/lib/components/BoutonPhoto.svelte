@@ -4,7 +4,8 @@
   // photo est une barre trop petite") -- gros bouton rond, style
   // obturateur d'appareil photo natif.
 
-  import { televerserPhoto } from '../photos.js'
+  import { compresserPhoto, televerserBlob } from '../photos.js'
+  import { stockerPhoto } from '../stockageHorsLigne.js'
 
   // capture='environment' (par defaut) : biaise vers l'appareil photo
   // arriere, adapte aux photos de terrain. capture=null : laisse le
@@ -20,24 +21,55 @@
   // JAMAIS envoyee a Supabase Storage -- juste un apercu local
   // (URL.createObjectURL), pour que la promesse "rien n'est enregistre"
   // reste vraie meme si la personne prend une vraie photo par reflexe.
-  let { consigne = '', bucket = 'PointSan-Photos', dossier = '', capture = 'environment', anonymiser = true, entrainement = false, valeur = $bindable(null), onTermine } = $props()
+  let { consigne = '', bucket = 'PointSan-Photos', dossier = '', capture = 'environment', anonymiser = true, entrainement = false, valeur = $bindable(null), onTermine, onApercu } = $props()
 
   let input
   let enCours = $state(false)
   let erreur = $state('')
+  let enAttenteReseau = $state(false)
+  // Apercu local (toujours une blob: URL valide), distinct de `valeur` qui
+  // peut contenir soit une vraie URL Supabase, soit un jeton
+  // "horsligne:<id>" en attendant de pouvoir televerser -- voir
+  // queueAvis.js. L'apercu, lui, reste affichable dans tous les cas.
+  let apercu = $state(null)
 
   async function surChangement(e) {
     const fichier = e.target.files?.[0]
     if (!fichier) return
     erreur = ''
+    enAttenteReseau = false
     enCours = true
     try {
-      const url = entrainement ? URL.createObjectURL(fichier) : await televerserPhoto(fichier, { bucket, dossier, anonymiser })
-      valeur = url
-      onTermine?.(url)
+      if (entrainement) {
+        const url = URL.createObjectURL(fichier)
+        apercu = url
+        valeur = url
+        onTermine?.(url)
+        return
+      }
+      const blob = await compresserPhoto(fichier, { anonymiser })
+      apercu = URL.createObjectURL(blob)
+      onApercu?.(apercu)
+      try {
+        const url = await televerserBlob(blob, { bucket, dossier })
+        valeur = url
+        onTermine?.(url)
+      } catch (err) {
+        // Reseau indisponible (retour Gilles du 2026-09-18, apres
+        // beaucoup de soucis reseau sur le terrain) : le blob deja
+        // compresse part en attente en IndexedDB -- l'apercu local reste
+        // affiche, et l'envoi sera retente automatiquement (par
+        // queueAvis.js) a la sauvegarde de l'avis ou a la reconnexion.
+        console.warn('Televersement impossible, mise en attente locale.', err)
+        const id = await stockerPhoto(blob)
+        const jeton = `horsligne:${id}`
+        valeur = jeton
+        onTermine?.(jeton)
+        enAttenteReseau = true
+      }
     } catch (err) {
       console.error(err)
-      erreur = 'Envoi impossible, réessayez.'
+      erreur = 'Photo illisible, réessayez.'
     } finally {
       enCours = false
       e.target.value = ''
@@ -58,14 +90,15 @@
   >
     {#if enCours}
       <span class="anneau chargement"></span>
-    {:else if valeur}
-      <img src={valeur} alt="" class="miniature" />
+    {:else if apercu}
+      <img src={apercu} alt="" class="miniature" />
     {:else}
       <span class="anneau"></span>
     {/if}
   </button>
 
   {#if enCours && anonymiser}<p class="traitement">Floutage des visages…</p>{/if}
+  {#if enAttenteReseau}<p class="attente">Pas de réseau — envoi dès que possible.</p>{/if}
 
   <input
     bind:this={input}
@@ -150,6 +183,13 @@
     color: var(--danger-texte, #c55a7a);
     font-size: 0.8rem;
     margin: 0;
+  }
+
+  .attente {
+    color: var(--texte-attenue, #888);
+    font-size: 0.78rem;
+    margin: 0;
+    text-align: center;
   }
 
   @keyframes pulse {

@@ -1,41 +1,60 @@
 // Queue locale pour la sauvegarde d'avis hors-ligne (V2-PLAN.md §4.7 --
-// portage du moteur offline/sync de v1, le risque principal identifie au
-// Lot 0bis). Volontairement simple, dans le meme esprit que le
-// `dirtyFeedback`/`pushDirty()` de v1 : on stocke en localStorage tant que
-// la sauvegarde reseau echoue, et on reessaie plus tard.
+// portage du moteur offline/sync de v1). Reecrit le 2026-09-18 pour
+// s'appuyer sur IndexedDB (stockageHorsLigne.js) au lieu de localStorage :
+// suite aux nombreux problemes reseau signales par Gilles sur le terrain,
+// les PHOTOS elles-memes doivent pouvoir attendre en cache, pas seulement
+// le texte de l'avis -- voir BoutonPhoto.svelte, qui stocke desormais un
+// jeton `horsligne:<id>` a la place de l'URL quand le televersement echoue.
 
 import { supabase } from './supabaseClient.js'
+import { televerserBlob } from './photos.js'
+import { lirePhoto, supprimerPhoto, stockerAvisEnAttente, listerAvisEnAttente, supprimerAvisEnAttente, compterAvisEnAttente } from './stockageHorsLigne.js'
 
-const CLE_STOCKAGE = 'spotsan_v2_avis_en_attente'
+const PREFIXE_HORS_LIGNE = 'horsligne:'
 
-function lireQueue() {
-  try {
-    return JSON.parse(localStorage.getItem(CLE_STOCKAGE) ?? '[]')
-  } catch {
-    return []
-  }
+function estJetonHorsLigne(valeur) {
+  return typeof valeur === 'string' && valeur.startsWith(PREFIXE_HORS_LIGNE)
 }
 
-function ecrireQueue(items) {
-  localStorage.setItem(CLE_STOCKAGE, JSON.stringify(items))
-}
-
-/** Ajoute/replace l'avis en attente pour ce ub_id -- un seul en attente a la fois, le plus recent gagne. */
-function mettreEnAttente(payload) {
-  const items = lireQueue().filter((i) => i.ub_id !== payload.ub_id)
-  items.push(payload)
-  ecrireQueue(items)
+function idPhoto(jeton) {
+  return Number(jeton.slice(PREFIXE_HORS_LIGNE.length))
 }
 
 /**
- * Passe par le RPC soumettre_avis (2026-08-29) plutot qu'un upsert direct :
- * verifie la contrainte de proximite cote serveur avant d'ecrire. lat/lon
- * sont captures au moment de la soumission (voir geolocalisation.js) et
- * voyagent avec le payload -- y compris dans la queue hors-ligne, pour que
- * la position enregistree reste celle du moment ou l'Usager etait
- * effectivement sur place, pas celle du moment ou la reconnexion survient.
+ * Remplace tout jeton `horsligne:<id>` dans les champs photo du payload par
+ * une vraie URL Supabase, en televersant le blob correspondant (lu en
+ * IndexedDB). Si un blob echoue encore a s'envoyer, le jeton reste tel
+ * quel et la fonction leve -- l'appelant sait alors que l'avis doit
+ * repartir en attente.
  */
+async function resoudrePhotosEnAttente(donnees) {
+  const idsUtilises = []
+  const champsSimples = ['photo_vue_loin', 'photo_signaletique', 'photo_acces']
+  for (const champ of champsSimples) {
+    if (estJetonHorsLigne(donnees[champ])) {
+      const id = idPhoto(donnees[champ])
+      const blob = await lirePhoto(id)
+      if (!blob) continue // deja resolu/supprime -- ignore
+      donnees[champ] = await televerserBlob(blob, { bucket: 'PointSan-Photos', dossier: 'avis' })
+      idsUtilises.push(id)
+    }
+  }
+  if (Array.isArray(donnees.photos_confort)) {
+    for (const p of donnees.photos_confort) {
+      if (estJetonHorsLigne(p.url)) {
+        const id = idPhoto(p.url)
+        const blob = await lirePhoto(id)
+        if (!blob) continue
+        p.url = await televerserBlob(blob, { bucket: 'PointSan-Photos', dossier: 'avis' })
+        idsUtilises.push(id)
+      }
+    }
+  }
+  return idsUtilises
+}
+
 async function envoyer(payload) {
+  const idsPhotos = await resoudrePhotosEnAttente(payload.donnees)
   const { error } = await supabase.rpc('soumettre_avis', {
     p_ub_id: payload.ub_id,
     p_lat: payload.lat,
@@ -43,16 +62,18 @@ async function envoyer(payload) {
     p_donnees: payload.donnees,
   })
   if (error) throw error
+  await Promise.all(idsPhotos.map((id) => supprimerPhoto(id)))
 }
 
 /**
- * Sauvegarde un avis. Si le reseau echoue, l'avis est mis en attente
- * localement et sera renvoye au prochain `viderQueue()` (appele au
- * demarrage de l'appli et sur l'evenement `online`) -- rien n'est perdu,
- * comme en v1. Une erreur de proximite ("trop_loin") n'est PAS un probleme
- * reseau -- la remettre en attente reessaierait indefiniment sans jamais
- * reussir tant que l'Usager n'est pas physiquement revenu sur place, donc
- * on la relance immediatement plutot que de la mettre en queue.
+ * Sauvegarde un avis. Si le reseau echoue (ou si des photos sont encore en
+ * attente de televersement), l'avis est mis en attente localement et sera
+ * renvoye au prochain `viderQueue()` (appele au demarrage de l'appli et sur
+ * l'evenement `online`) -- rien n'est perdu, comme en v1. Une erreur de
+ * proximite ("trop_loin") n'est PAS un probleme reseau -- la remettre en
+ * attente reessaierait indefiniment sans jamais reussir tant que l'Usager
+ * n'est pas physiquement revenu sur place, donc on la relance immediatement
+ * plutot que de la mettre en queue.
  */
 export async function sauvegarderAvis(payload) {
   try {
@@ -61,30 +82,30 @@ export async function sauvegarderAvis(payload) {
   } catch (e) {
     if (e.message?.includes('trop_loin')) throw e
     console.warn('Sauvegarde impossible en direct, mise en attente locale.', e)
-    mettreEnAttente(payload)
+    await stockerAvisEnAttente(payload)
     return { horsLigne: true }
   }
 }
 
-/** Rejoue les avis en attente. Appeler au demarrage et sur `window.online`. */
+/** Rejoue les avis en attente (texte + photos). Appeler au demarrage et sur `window.online`. */
 export async function viderQueue() {
-  const items = lireQueue()
+  const items = await listerAvisEnAttente()
   if (!items.length) return { restants: 0, envoyes: 0 }
 
-  const restants = []
   let envoyes = 0
   for (const item of items) {
     try {
       await envoyer(item)
+      await supprimerAvisEnAttente(item.ub_id)
       envoyes++
     } catch {
-      restants.push(item)
+      // reste en attente, reessaiera au prochain passage
     }
   }
-  ecrireQueue(restants)
-  return { restants: restants.length, envoyes }
+  const restants = await compterAvisEnAttente()
+  return { restants, envoyes }
 }
 
-export function nombreEnAttente() {
-  return lireQueue().length
+export async function nombreEnAttente() {
+  return compterAvisEnAttente()
 }

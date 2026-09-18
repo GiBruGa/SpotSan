@@ -60,6 +60,16 @@
   let luminosite = $state(null)
   let ambiance = $state(null)
   let changeBebe = $state(null)
+  let accessibleNuit = $state(null)
+
+  // Position saisie a l'ouverture du formulaire, valable 20 minutes
+  // (retour Gilles du 2026-09-18) : on prend souvent les photos pres du
+  // sanitaire puis on termine la saisie en s'eloignant -- verifier la
+  // proximite seulement a l'ouverture (et non plus a chaque sauvegarde)
+  // evite de se faire recaler par erreur en fin de parcours. Passe 20 min,
+  // on retombe sur une verification fraiche (comportement d'avant).
+  const DUREE_VALIDITE_POSITION_MS = 20 * 60 * 1000
+  let positionCapturee = $state(null) // { lat, lon, quand }
 
   // Etape 4 -- photos (Lot 6, §5.6). Niveau 1 : champs structures avec
   // finalite propre a chacun (§5.6.1). Niveau 2 : photos taguees
@@ -73,8 +83,13 @@
   // ce meme tag, plutot que d'empiler des doublons) -- pour laisser de la
   // place aux contributions des autres, explique dans les instructions du
   // module "S'entrainer".
-  function ajouterPhotoConfort(tag, url) {
-    photosConfort = [...photosConfort.filter((p) => p.tag !== tag), { tag, url }]
+  // Apercu local (blob: URL) tenu a part de l'URL/jeton final -- necessaire
+  // pour que la vignette de .liste-photos-confort reste affichable meme
+  // quand la photo est encore en attente d'envoi (jeton "horsligne:<id>",
+  // pas une URL image valide). Voir BoutonPhoto.svelte, prop onApercu.
+  let apercusConfort = $state({})
+  function ajouterPhotoConfort(tag, url, apercu) {
+    photosConfort = [...photosConfort.filter((p) => p.tag !== tag), { tag, url, apercu }]
   }
   function retirerPhotoConfort(index) {
     photosConfort = photosConfort.filter((_, i) => i !== index)
@@ -94,6 +109,14 @@
   }
 
   onMount(async () => {
+    // Capture la position des l'ouverture (non bloquant : un echec ici ne
+    // gene pas la saisie, on retombera sur une verification fraiche a la
+    // sauvegarde -- comportement d'avant, cf. DUREE_VALIDITE_POSITION_MS).
+    if (!entrainement) {
+      obtenirPosition()
+        .then(({ lat, lon }) => (positionCapturee = { lat, lon, quand: Date.now() }))
+        .catch(() => {})
+    }
     try {
       const [dernier, sanitaire] = await Promise.all([chargerDernierAvis(userId, ubId), chargerSanitaire(ubId)])
       // Pre-coche le statut EN COURS (celui valide, exploitant ou 3 avis
@@ -112,6 +135,7 @@
         decompteTemps = dernier.decompte_temps
         luminosite = dernier.luminosite
         ambiance = dernier.ambiance
+        accessibleNuit = dernier.accessible_nuit
         changeBebe = (dernier.configuration ?? {}).change_bebe?.choix ?? null
         photoVueLoin = dernier.photo_vue_loin
         photoSignaletique = dernier.photo_signaletique
@@ -125,10 +149,27 @@
     }
   })
 
+  // Validation avant meme de tenter le reseau (retour Gilles du 2026-09-18 :
+  // aucun message clair n'indiquait pourquoi la sauvegarde etait bloquee,
+  // en particulier un avis general non rempli). Renvoie un message si
+  // quelque chose de bloquant manque, null sinon.
+  function messageValidationBloquante() {
+    if (avisGeneral == null) return 'Donnez une note générale avant de sauvegarder (étape 1).'
+    return null
+  }
+
   async function sauvegarder() {
-    enregistrement = true
     messageStatut = ''
+    // Verifiee avant meme la branche entrainement, pour que la simulation
+    // reste fidele au vrai parcours (cf. bandeau "le formulaire reel, mais
+    // rien n'est envoye").
+    const messageBloquant = messageValidationBloquante()
+    if (messageBloquant) {
+      messageStatut = messageBloquant
+      return
+    }
     if (entrainement) {
+      enregistrement = true
       // Rien a envoyer -- juste simuler l'attente pour que le geste soit
       // credible, puis confirmer sans rien avoir ecrit nulle part.
       await new Promise((r) => setTimeout(r, 500))
@@ -137,8 +178,16 @@
       setTimeout(() => onFerme?.(), 1400)
       return
     }
+    enregistrement = true
     try {
-      const { lat, lon } = await obtenirPosition()
+      // Position capturee a l'ouverture du formulaire, reutilisee si elle a
+      // moins de 20 minutes (retour Gilles du 2026-09-18) -- evite de
+      // recaler quelqu'un qui a pris ses photos pres du sanitaire puis
+      // s'en est eloigne pour finir de remplir la fiche. Passe ce delai (ou
+      // si la capture d'ouverture a echoue), on revient a une verification
+      // fraiche, comme avant.
+      const positionValide = positionCapturee && Date.now() - positionCapturee.quand <= DUREE_VALIDITE_POSITION_MS
+      const { lat, lon } = positionValide ? positionCapturee : await obtenirPosition()
       const configurationAEnvoyer = { ...configuration, change_bebe: changeBebe ? { choix: changeBebe } : null }
       const { horsLigne } = await sauvegarderAvis({
         ub_id: ubId,
@@ -155,6 +204,7 @@
           decompte_temps: decompteTemps,
           luminosite,
           ambiance,
+          accessible_nuit: accessibleNuit,
           photo_vue_loin: photoVueLoin,
           photo_signaletique: photoSignaletique,
           photo_acces: photoAcces,
@@ -172,7 +222,7 @@
       } else if (e.message?.includes('trop_loin')) {
         messageStatut = 'Vous devez être à proximité du sanitaire pour donner votre avis.'
       } else {
-        messageStatut = 'Erreur inattendue, réessayez.'
+        messageStatut = "Impossible d'enregistrer pour l'instant (problème technique) — réessayez ; si ça persiste, vos réponses restent remplies, sortez et revenez sans les perdre."
       }
     } finally {
       enregistrement = false
@@ -206,6 +256,13 @@
       {#if etape === 1}
         <section>
           <EchelleEtat label="Avis général" bind:value={avisGeneral} />
+          <!-- Case "Accessible de nuit" (retour Gilles du 2026-09-18) :
+               moyen detourne de renseigner les horaires d'ouverture sans
+               demander un vrai champ horaires. -->
+          <label class="case-accessible-nuit">
+            <input type="checkbox" checked={accessibleNuit === true} onchange={(e) => (accessibleNuit = e.target.checked)} />
+            Accessible de nuit
+          </label>
           <hr class="separateur-champ" />
           <div class="champ">
             <span>État de fonctionnement</span>
@@ -266,7 +323,11 @@
             <div class="tags-confort">
               {#each EQUIPEMENTS as e (e.cle)}
                 <div class="tag-confort">
-                  <BoutonPhoto {entrainement} onTermine={(url) => ajouterPhotoConfort(e.label, url)} />
+                  <BoutonPhoto
+                    {entrainement}
+                    onApercu={(url) => (apercusConfort[e.cle] = url)}
+                    onTermine={(url) => ajouterPhotoConfort(e.label, url, apercusConfort[e.cle])}
+                  />
                   <span class="tag-confort-label">{e.label}</span>
                 </div>
               {/each}
@@ -275,7 +336,7 @@
               <ul class="liste-photos-confort">
                 {#each photosConfort as p, i (i)}
                   <li>
-                    <img src={p.url} alt={p.tag} />
+                    <img src={p.apercu ?? p.url} alt={p.tag} />
                     <span>{p.tag}</span>
                     <button type="button" onclick={() => retirerPhotoConfort(i)}>Retirer</button>
                   </li>
@@ -584,6 +645,24 @@
   }
 
   .option-radio input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .case-accessible-nuit {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 38px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .case-accessible-nuit input {
     width: 18px;
     height: 18px;
     accent-color: var(--accent);

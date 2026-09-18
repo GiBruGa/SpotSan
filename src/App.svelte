@@ -99,11 +99,11 @@
     const rejouer = async () => {
       const { envoyes } = await viderQueue()
       if (envoyes) console.info(`${envoyes} avis en attente envoyés.`)
-      enAttente = nombreEnAttente()
+      enAttente = await nombreEnAttente()
     }
     rejouer()
     window.addEventListener('online', rejouer)
-    enAttente = nombreEnAttente()
+    nombreEnAttente().then((n) => (enAttente = n))
   })
 
   /** Rafraichit userId depuis la session courante -- necessaire apres tout
@@ -159,7 +159,7 @@
   function surFermetureFormulaire() {
     ubIdFormulaire = null
     versionFiche++ // force le rechargement de la fiche (avis a jour)
-    enAttente = nombreEnAttente()
+    nombreEnAttente().then((n) => (enAttente = n))
   }
 
   function surFermetureSignalement() {

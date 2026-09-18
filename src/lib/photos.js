@@ -5,7 +5,7 @@ const LARGEUR_MAX = 1600
 const QUALITE_JPEG = 0.72
 
 /** Compresse une image (comme v1 : redimensionnement + JPEG) avant envoi, pour rester sous la limite de 5 Mo du bucket. Floute les visages si demande. */
-function compresserImage(fichier, { anonymiser = false } = {}) {
+export function compresserPhoto(fichier, { anonymiser = false } = {}) {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const url = URL.createObjectURL(fichier)
@@ -30,17 +30,16 @@ function compresserImage(fichier, { anonymiser = false } = {}) {
 }
 
 /**
- * Compresse et televerse une photo. Renvoie l'URL publique (bucket
- * `PointSan-Photos`, deja utilise par v1) ou le chemin de stockage
- * (bucket `PointSan-Incidents`, prive -- lecture reservee aux comptes
- * avec acces outil `pointsan_mobile`, cf. policies existantes).
- *
- * `anonymiser` : floute automatiquement les visages detectes avant
- * l'envoi (voir anonymisation.js). A laisser a `false` pour l'avatar
- * (montrer son visage est justement le but), `true` partout ailleurs.
+ * Televerse un blob deja compresse. Separe de `televerserPhoto` (2026-09-18)
+ * pour pouvoir reessayer l'envoi d'un blob deja compresse -- conserve en
+ * IndexedDB par BoutonPhoto/stockageHorsLigne.js quand le reseau manque au
+ * moment de la prise de vue -- sans jamais recompresser une 2e fois.
+ * Renvoie l'URL publique (bucket `PointSan-Photos`, deja utilise par v1)
+ * ou le chemin de stockage (bucket `PointSan-Incidents`, prive -- lecture
+ * reservee aux comptes avec acces outil `pointsan_mobile`, cf. policies
+ * existantes).
  */
-export async function televerserPhoto(fichier, { bucket = 'PointSan-Photos', dossier = '', anonymiser = false } = {}) {
-  const blob = await compresserImage(fichier, { anonymiser })
+export async function televerserBlob(blob, { bucket = 'PointSan-Photos', dossier = '' } = {}) {
   const chemin = `${dossier ? dossier + '/' : ''}${crypto.randomUUID()}.jpg`
 
   const { error } = await supabase.storage.from(bucket).upload(chemin, blob, {
@@ -54,4 +53,17 @@ export async function televerserPhoto(fichier, { bucket = 'PointSan-Photos', dos
     return data.publicUrl
   }
   return chemin
+}
+
+/**
+ * Compresse et televerse une photo en un seul appel -- pour les usages
+ * simples qui n'ont pas besoin de recuperer le blob intermediaire (avatar
+ * dans Inscription.svelte). `anonymiser` : floute automatiquement les
+ * visages detectes avant l'envoi (voir anonymisation.js). A laisser a
+ * `false` pour l'avatar (montrer son visage est justement le but), `true`
+ * partout ailleurs.
+ */
+export async function televerserPhoto(fichier, { bucket = 'PointSan-Photos', dossier = '', anonymiser = false } = {}) {
+  const blob = await compresserPhoto(fichier, { anonymiser })
+  return televerserBlob(blob, { bucket, dossier })
 }
