@@ -19,7 +19,8 @@ export function themeActuel() {
 // ne change rien").
 const DATA_THEME = { clair: 'light', sombre: 'dark' }
 
-export function appliquerTheme(theme) {
+/** Usage interne uniquement (via definirTheme/initTheme) -- pas d'appelant externe. */
+function appliquerTheme(theme) {
   const racine = document.documentElement
   if (theme === 'systeme') {
     racine.removeAttribute('data-theme')

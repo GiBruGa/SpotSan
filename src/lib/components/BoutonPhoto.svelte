@@ -4,6 +4,7 @@
   // photo est une barre trop petite") -- gros bouton rond, style
   // obturateur d'appareil photo natif.
 
+  import { onDestroy } from 'svelte'
   import { compresserPhoto, televerserBlob } from '../photos.js'
   import { stockerPhoto } from '../stockageHorsLigne.js'
 
@@ -33,6 +34,18 @@
   // queueAvis.js. L'apercu, lui, reste affichable dans tous les cas.
   let apercu = $state(null)
 
+  // Libere le blob: URL de l'apercu precedent avant d'en creer un nouveau
+  // (audit qualite du 2026-09-23) -- reprendre une photo plusieurs fois
+  // ne doit pas accumuler des blobs jamais liberes en memoire.
+  function remplacerApercu(nouveau) {
+    if (apercu?.startsWith?.('blob:')) URL.revokeObjectURL(apercu)
+    apercu = nouveau
+  }
+
+  onDestroy(() => {
+    if (apercu?.startsWith?.('blob:')) URL.revokeObjectURL(apercu)
+  })
+
   async function surChangement(e) {
     const fichier = e.target.files?.[0]
     if (!fichier) return
@@ -42,13 +55,13 @@
     try {
       if (entrainement) {
         const url = URL.createObjectURL(fichier)
-        apercu = url
+        remplacerApercu(url)
         valeur = url
         onTermine?.(url)
         return
       }
       const blob = await compresserPhoto(fichier, { anonymiser })
-      apercu = URL.createObjectURL(blob)
+      remplacerApercu(URL.createObjectURL(blob))
       onApercu?.(apercu)
       try {
         const url = await televerserBlob(blob, { bucket, dossier })

@@ -84,7 +84,9 @@
   // materiel/geste ET les boutons "← Carte" (history.back()) depilent
   // proprement un ecran a la fois, sans jamais recharger l'appli. Types
   // possibles : {type:'bienvenue'} | {type:'carte'} | {type:'fiche', ubId}
-  // | {type:'formulaire', ubId} | {type:'signalement', ubId}.
+  // | {type:'formulaire', ubId, nom?} | {type:'signalement', ubId}.
+  // `nom` (nom du sanitaire, facultatif) n'est renseigne que lorsqu'on
+  // arrive depuis la fiche -- sert de titre dans FormulaireAvis.
   let ecran = $state({ type: 'carte' })
 
   function allerA(nouvelEcran) {
@@ -271,14 +273,14 @@
     <SignalerIncivilite ubId={UB_ENTRAINEMENT} entrainement={true} onFerme={() => (etapeEntrainement = 'fiche')} />
   {/if}
 {:else if ecran.type === 'formulaire'}
-  <FormulaireAvis {userId} ubId={ecran.ubId} onFerme={surFermetureFormulaire} />
+  <FormulaireAvis {userId} ubId={ecran.ubId} nomLieu={ecran.nom} onFerme={surFermetureFormulaire} />
 {:else if ecran.type === 'signalement'}
   <SignalerIncivilite ubId={ecran.ubId} onFerme={surFermetureSignalement} />
 {:else if ecran.type === 'fiche'}
   {#key versionFiche}
     <FicheSanitaire
       ubId={ecran.ubId}
-      onDonnerAvis={(id) => allerA({ type: 'formulaire', ubId: id })}
+      onDonnerAvis={(id, nom) => allerA({ type: 'formulaire', ubId: id, nom })}
       onSignaler={(id) => allerA({ type: 'signalement', ubId: id })}
       onRetour={() => history.back()}
     />

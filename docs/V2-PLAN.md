@@ -53,7 +53,8 @@ Décidé le 2026-08-21, complété le 2026-08-21 — **un seul composant d'éche
 
 ### 4.1 Décisions actées (2026-08-21)
 
-- **Téléphone déclaratif, sans vérification SMS dans un premier temps** (confirmé — c'était déjà le principe retenu). Pas de coût, pas d'OTP à ce stade. Pour pouvoir ajouter une vérification plus tard sans réécrire le modèle : la table utilisateurs prévoit dès maintenant une colonne `phone_verified boolean default false` (jamais vraie tant qu'aucun module de vérification n'existe) et un identifiant interne stable (voir 4.1 ci-dessous) qui ne dépend pas du téléphone. Ajouter la vérification plus tard consistera à brancher un écran OTP qui passe ce booléen à `true` — aucune reprise du modèle de données.
+- ~~**Téléphone déclaratif, sans vérification SMS dans un premier temps**~~ — **obsolète depuis le 2026-08-29 (audit qualité du 2026-09-23) : une vraie vérification SMS est en place.** `SecuriserCompte.svelte` implémente un vrai flux OTP (`supabase.auth.signInWithOtp`/`verifyOtp`) et `Connexion.svelte` un vrai mot de passe (`signInWithPassword`) — voir mémoire "PointSan access tiers" pour le contexte. `phone_verified` (colonne prévue ci-dessous dès l'origine, exactement dans ce but) est désormais réellement mise à jour. Le texte original ci-dessous décrit le principe retenu **au lancement seulement** :
+  - *Pas de coût, pas d'OTP à ce stade.* Pour pouvoir ajouter une vérification plus tard sans réécrire le modèle : la table utilisateurs prévoit dès maintenant une colonne `phone_verified boolean default false` (jamais vraie tant qu'aucun module de vérification n'existe) et un identifiant interne stable (voir 4.1 ci-dessous) qui ne dépend pas du téléphone. Ajouter la vérification plus tard consistera à brancher un écran OTP qui passe ce booléen à `true` — aucune reprise du modèle de données.
   - *Pour mémoire, un OTP ("one-time password") est le code à usage unique envoyé par SMS pour prouver que l'utilisateur possède bien le numéro déclaré. C'est ce mécanisme qui a un coût (l'envoi du SMS passe par un opérateur tiers payant type Twilio) — pas la vérification en elle-même.*
 - **Identifiant utilisateur = UUID interne UrBizia, pas le numéro de téléphone directement.** Le numéro de portable reste le moyen de connexion (login) et un attribut modifiable de l'utilisateur, mais la clé technique qui relie un avis à son auteur (`user_id` dans `Sanitary_Reviews`, voir Lot 4) est cet identifiant interne. Raison : un numéro de téléphone peut changer (perte, changement d'opérateur, réattribution) — si on l'utilisait comme clé, changer de numéro romprait le lien avec tout l'historique d'avis de la personne.
 - **Échelle d'état standard** : voir §3.1.
@@ -125,6 +126,9 @@ SpotSan V2 passe à un vrai outillage de build, en rupture assumée avec le "tou
 ## 5. Parcours cible
 
 ### 5.1 Compte utilisateur
+
+> **Mise à jour 2026-09-23 (audit qualité)** : depuis le 2026-08-29, la connexion n'est plus purement déclarative — `Connexion.svelte` demande un vrai mot de passe (`signInWithPassword`) et `SecuriserCompte.svelte` un vrai code SMS (OTP) pour l'inscription, la migration d'un compte pré-mot de passe, et le mot de passe oublié. Le paragraphe ci-dessous ("Identifiant = n° de portable + préfixe pays") reste correct comme identifiant, mais sous-entend à tort une connexion sans preuve de possession du numéro.
+
 - Identifiant = n° de portable + préfixe pays.
 - Choix pseudo + avatar — **décidé 2026-08-21 : une vraie photo (prise ou choisie dans la galerie du téléphone)**, pas une liste fermée d'emoji comme prévu initialement. Réutilise `BoutonPhoto` (Lot 6) sans son biais "appareil photo arrière" (prop `capture={null}`, laisse le choix natif complet). Par défaut, sans photo choisie : **logo SpotSan** (`icon-192.png`), pas un emoji générique.
 - Champs optionnels : sexe (ou refus de préciser), année de naissance, handicaps (**Visuel / Moteur**, choix multiple — "Surdité" retiré de la liste le 2026-08-21 ; la contrainte `check` en base autorise toujours `Surdité` pour ne pas invalider les données déjà déclarées par ce biais, seule l'offre à l'inscription a changé).
@@ -156,7 +160,7 @@ Puis bouton **"Donnez votre avis"** → bascule vers le formulaire.
 - Avis général : échelle standard 5 niveaux (§3.1) — plus de composant étoiles séparé.
 - **Commentaire libre, optionnel** — décidé 2026-08-21, en réponse à un usage réel constaté en v1 (ex. "Nettoyage par arrosage au sol..."). Colonne `commentaire` sur `Sanitary_Reviews`, déjà ajoutée au Lot 4.
 
-**Étape 2 — Configuration (prestations)**, en grille compacte multi-colonnes :
+**Étape 2 — Configuration (prestations)** *(table du plan initial — voir mise à jour ci-dessous, refonte du 2026-09-03)* :
 
 | Cellule | Accessibilité | Type (si toilette) | État |
 |---|---|---|---|
@@ -171,6 +175,8 @@ Puis bouton **"Donnez votre avis"** → bascule vers le formulaire.
 
 Chaque ligne démarre à l'état "absent / sans objet" — l'utilisateur ne touche que ce qui existe réellement sur place (réduit la saisie perçue comme longue).
 
+> **Mise à jour 2026-09-23 (audit qualité) — modèle réellement en place depuis le 2026-09-03**, table ci-dessus obsolète : `src/lib/config/cellules.js` définit désormais des groupes `toilettes_pmr` / `toilettes_compactes` (remplace "Toilettes Standard") / **`toilettes_enfant` (nouveau, absent de la table ci-dessus)** / `urinoirs` / `douches`, chacun avec un **compte indépendant par genre** (Mixte/Femmes/Hommes) plutôt qu'une seule ligne + accessibilité. Un groupe **Change Bébé** (4 configurations) a été ajouté, absent lui aussi de la table. **Les vestiaires ont disparu entièrement du modèle** — plus aucune trace dans `cellules.js`, aucune décision explicite retrouvée expliquant leur retrait ; à confirmer avec Gilles si voulu.
+
 **Étape 3 — Équipements**, échelle standard §3.1 partout (photos : voir §5.6.2, système de tags plutôt qu'un bouton par équipement) :
 - Siège de toilette (Adulte / Enfant-surbaissé) + état — toilettes uniquement.
 - Distributeur papier toilette + état, avec "Vide" — si toilette.
@@ -181,6 +187,8 @@ Chaque ligne démarre à l'état "absent / sans objet" — l'utilisateur ne touc
 - Poubelle + état, avec "Débordante" (pas de "Vide", non constatable — §3.1).
 - Éclairage naturel : oui / non.
 - Verrou mécanique de sûreté : oui / non.
+
+> **Mise à jour 2026-09-23 (audit qualité)** — champs ajoutés depuis, absents de la liste ci-dessus : **décompte du temps d'utilisation**, **luminosité**, **ambiance** (2026-09-01, alors que §5.6.2 les avait explicitement classés "non retenus au lancement" — à noter, retournement de décision non documenté ici avant aujourd'hui), **"Accessible de nuit"** (étape 1, 2026-09-18, coche déclarative en l'absence d'horaires d'ouverture réels dans le modèle de données). Voir `FormulaireAvis.svelte` pour l'implémentation actuelle.
 
 ### 5.6 Photos, signalétique & Incivilités/Vandalismes (décidé, 2026-08-21)
 
@@ -273,10 +281,10 @@ Prochaine action concrète : créer le nouveau dépôt GitHub (Lot 0) — reste 
 - [x] **Scaffolding Vite + Svelte** — fait 2026-08-21 : Node.js LTS installé sur la machine, projet créé (Svelte 5, JS, pas TypeScript), arborescence `src/lib/components/`. Composant réutilisable `EchelleEtat.svelte` créé pour l'échelle standard §3.1 (5 niveaux + `extensions` en props pour Abs/HS/Débordante...) — vérifié fonctionnel en dev (binding réactif testé au clic dans le navigateur).
 - [x] **Workflow GitHub Actions** — fait 2026-08-21 : `.github/workflows/deploy.yml` (build + `actions/deploy-pages`), Pages configurée en source "GitHub Actions" côté GitHub. Se déclenche au prochain push sur `main`.
 - [x] **Portage soigné du moteur offline/sync** — fait au Lot 5 comme prévu (voir détail là-bas), une fois qu'il y a eu de vraies écritures à mettre en queue. Testé réseau coupé dans le navigateur, comportement conforme.
-- [x] **Service worker / PWA** — fait 2026-08-21, via `vite-plugin-pwa` (génère un service worker de précache app-shell + `runtimeCaching` réseau-d'abord pour les ressources externes, plutôt qu'un fichier écrit à la main — les noms de fichiers Vite changent à chaque build). `public/manifest.json` réutilise les icônes v1, nommé "SpotSan V2 (beta)" pour rester visuellement distinct de v1 si les deux PWA sont installées côte à côte pendant les tests.
+- [x] **Service worker / PWA** — fait 2026-08-21, via `vite-plugin-pwa` (génère un service worker de précache app-shell + `runtimeCaching` réseau-d'abord pour les ressources externes, plutôt qu'un fichier écrit à la main — les noms de fichiers Vite changent à chaque build). `public/manifest.json` réutilise les icônes v1, nommé "SpotSan V2 (beta)" pour rester visuellement distinct de v1 si les deux PWA sont installées côte à côte pendant les tests. **Obsolète depuis la bascule du Lot 9 (2026-08-29/30)** : le manifest s'appelle simplement `"SpotSan"` désormais (v1 archivée sous `SpotSan-v1-archive`, plus de coexistence à distinguer) — voir §7 Lot 9 et mémoire "SpotSan V2 refonte".
 
 ### Lot 1 — Comptes utilisateurs (fait et vérifié 2026-08-21)
-- [x] `ALTER TABLE SitInZen_Users` additif : `pseudo`, `avatar_url`, `handicaps text[]` (contrainte sous-ensemble Visuel/Surdité/Moteur), `consent_at timestamptz`, `phone_verified boolean default false`. Rien renommé/supprimé, policies existantes du module badge non touchées. Migration `sitinzen_users_add_spotsan_v2_fields`.
+- [x] `ALTER TABLE SitInZen_Users` additif : `pseudo`, `avatar_url`, `handicaps text[]` (contrainte sous-ensemble Visuel/Surdité/Moteur), `consent_at timestamptz`, `phone_verified boolean default false`. Rien renommé/supprimé, policies existantes du module badge non touchées. Migration `sitinzen_users_add_spotsan_v2_fields`. **Complété depuis (audit qualité du 2026-09-23)** : `Nom`, `Prenom`, `Email` ont aussi été ajoutés et sont lus/écrits par `profil.js` (changelog v9.0 : "Nom, prénom et adresse ajoutés au profil Usager") — jamais intégrés à cette liste normative avant aujourd'hui. Une colonne `Adresse` avait aussi été ajoutée et écrite par `profil.js`, mais **aucun écran ne l'a jamais collectée** (ni `Inscription.svelte` ni `MesInformations.svelte`) — elle était donc toujours `null` en pratique ; l'écriture de ce champ mort a été retirée de `profil.js` le 2026-09-23 plutôt que de construire un écran non demandé.
 - [x] **Connexion déclarative** : implémentée via **Supabase Auth anonyme** (`supabase.auth.signInAnonymously()`) plutôt qu'un système ad hoc — chaque appareil obtient une vraie session/`user_id` stable sans mot de passe ni SMS. Nécessite le provider "Anonymous Sign-Ins" activé côté tableau de bord Supabase (fait). Vérifier le téléphone plus tard = lier cette session anonyme à un vrai numéro (`auth.updateUser({phone})`), sans reprise de modèle.
 - [x] Utilisateur placeholder **"Paul Hixe"** créé (`+33 000 000 001`, `user_id = 28123f5d-8081-46d9-b4b2-b5b23a1c59cd`) — migration `create_paul_hixe_placeholder_user`. À référencer au Lot 4 pour la migration des données v1 héritées.
 - [x] Écran d'inscription (`src/lib/components/Inscription.svelte`) : téléphone (format standard §3.2), pseudo, avatar (liste fermée d'emoji pour l'instant — simplification à revoir si un vrai upload photo est souhaité), sexe/année de naissance/handicaps facultatifs, texte légal + case de consentement, rappel du droit à la suppression.
@@ -339,7 +347,7 @@ Prochaine action concrète : créer le nouveau dépôt GitHub (Lot 0) — reste 
 - **Simplification assumée** : le mécanisme de compression/upload n'a été vérifié qu'avec des images de test générées en mémoire (petites, ~2 Ko) — à revérifier avec de vraies photos de téléphone (taille/format réels, limite de 5 Mo du bucket) une fois testé sur un appareil physique.
 
 ### Lot 7 — Perception de la longueur du formulaire (revu 2026-08-21 — déjà satisfait par les Lots 5/6, sauf un point)
-- [x] Découpage en étapes visibles (indicateur de progression) — les 4 boutons d'étape de `FormulaireAvis.svelte` (1. Avis / 2. Configuration / 3. Équipements / 4. Photos), fait au Lot 5, complété au Lot 6.
+- [x] Découpage en étapes visibles (indicateur de progression) — les 4 boutons d'étape de `FormulaireAvis.svelte`, fait au Lot 5, complété au Lot 6. **Ordre mis à jour, 2026-09-23** : l'ordre livré ici (1. Avis / 2. Configuration / 3. Équipements / 4. Photos) a depuis changé — l'ordre actuel est **1. Avis / 2. Photos / 3. Configuration / 4. Équipements** (`FormulaireAvis.svelte`), sans qu'une raison ait été notée dans ce document au moment du changement.
 - [x] Valeurs par défaut "absent" pour ne toucher que l'existant — `etatsParDefaut()`, fait au Lot 5.
 - [ ] **Test utilisateur informel sur la perception "long" avant/après — ne peut pas être fait par moi seul.** Nécessite un vrai usage par Gilles ou un utilisateur de terrain une fois l'app essayée ; à revenir dessus après un premier retour d'usage réel, pas avant.
 
@@ -348,15 +356,19 @@ Prochaine action concrète : créer le nouveau dépôt GitHub (Lot 0) — reste 
 - [x] Affichage des 2 configurations + 2 états les plus fréquents sur la fiche lecture — fait au Lot 3 (`FicheSanitaire.svelte`).
 - **Point non vérifié visuellement, à garder à l'œil** : le chemin d'affichage "≥ 3 avis" (`suffisant: true`, vraies 2 configurations/2 états les plus fréquents avec fréquences) n'a été testé qu'en SQL direct (Lot 4), pas encore observé dans l'interface — chaque test de bout en bout jusqu'ici n'a produit qu'un seul avis par lieu de test (les comptes de test étaient supprimés après chaque vérification). Se vérifiera naturellement dès qu'un même lieu aura reçu 3 avis réels ; sinon, à tester en créant 3 comptes de test sur le même `UB_id` sans les supprimer entre-temps.
 
-### Lot 9 — Bascule de production v1 → v2 (à déclencher seulement quand v2 est testée de façon avancée, §4.4)
-- [ ] Renommer `GiBruGa/SpotSan` → `GiBruGa/SpotSan-V1` (v1 gelée, plus de trafic dessus à ce stade).
-- [ ] Décider et exécuter la modalité de reprise d'adresse pour v2 (renommage de `SpotSan-V2` → `SpotSan`, ou redirection) — à définir au moment venu.
-- [ ] Communiquer aux utilisateurs de terrain la bascule (réinstallation PWA si l'URL change).
-- [ ] Vérifier que le lien `homepage`/Pages de v1 (actuellement `https://gibruga.github.io/SpotSan/`) reste résolu quelque part (redirection ou message) plutôt que de finir en 404 sec.
+### Lot 9 — Bascule de production v1 → v2 (fait 2026-08-29/30, mis à jour 2026-09-23 — modalité différente de celle prévue ci-dessous)
+- [x] v1 renommée, mais sous `GiBruGa/SpotSan-v1-archive` (dépôt archivé/lecture seule sur GitHub) et non `SpotSan-V1` comme prévu ici.
+- [x] Reprise d'adresse pour v2 : `GiBruGa/SpotSan-V2` → `GiBruGa/SpotSan` (renommage, pas de redirection) — l'app v2 porte maintenant l'identité "SpotSan" pleine et entière, dossiers locaux swappés en miroir (`SpotSan-V2/`→`SpotSan/`, `SpotSan/`→`SpotSan-v1-archive/`).
+- [x] URL live `https://gibruga.github.io/SpotSan/` sert désormais v2 ; l'ancienne `.../SpotSan-V2/` répond 404 (confirmé) — pas de redirection mise en place, voir point suivant.
+- [ ] Communication de la bascule aux utilisateurs de terrain déjà installés en PWA — pas de trace d'une action explicite ici ; un ancien raccourci installé pointant vers `SpotSan-V2` ne migre pas automatiquement (404).
+
+Détail complet : mémoire "SpotSan V2 refonte" (update 2026-08-29/30).
 
 ## 8. Suivi
 
 _(À compléter au fil de l'eau : date, lot, décision ou avancement.)_
+
+- 2026-09-23 — **Démarche 5S : audit qualité complet du code (lecture intégrale de `src/`) + synthèse FBS.** Synthèse EF/CC de SpotSan écrite dans l'outil FBS (nouvel EF `SpotSan` sous `App Utilisateurs`, 53 nœuds), et nouvel outil `KeeSan` (identité/contrôle d'accès transverse UrBizia) créé sous EkoMa, spécifié mais pas construit. Audit qualité sur 4 axes (nommage/commentaires, code orphelin, optimisation, cohérence documentation) : globalement bon état, corrections appliquées le jour même — debounce + limite adaptée au zoom sur la carte (`Carte.svelte`/`sanitaires.js`), deux commentaires factuellement faux corrigés (`geolocalisation.js`, comportement `limite` réimplémenté), champ `Adresse` mort retiré (`profil.js`), `@tensorflow/tfjs-backend-webgl` déclaré en dépendance directe, blob URLs de photos révoquées (`BoutonPhoto.svelte`, `FormulaireAvis.svelte`), exports inutilisés retirés (`classifier`, `appliquerTheme`), CSS mort supprimé, prop `nomLieu` du formulaire d'avis enfin câblée (`App.svelte`/`FicheSanitaire.svelte`). Ce document mis à jour en conséquence : §4.1/§5.1 (connexion par mot de passe+OTP réelle depuis le 2026-08-29), §5.5 (modèle de cellules par genre du 2026-09-03, vestiaires disparus, champs équipements ajoutés), Lot 0bis (nom du manifest), Lot 1 (colonnes Nom/Prenom/Email/Adresse), Lot 7 (ordre des étapes du formulaire), Lot 9 (modalité réelle de la bascule).
 
 - 2026-08-31 — **Suite de l'entrée précédente : le système de vote séparé a été remplacé, et le module Exploitant construit.** Après test réel, Gilles a demandé que le statut (`Disponible`/`Impraticable`/`HS`/`Condamné`/`Inexistante`) soit une simple liste à choix unique dans l'onglet "1. Avis" du formulaire, pré-cochée sur le statut en cours — pas des boutons séparés ni une table de vote dédiée. `Sanitary_Status_Votes`/`signaler_statut_sanitaire` supprimés, remplacés par la colonne `Sanitary_Reviews.statut_declare` : `soumettre_avis` calcule le consensus (3 avis concordants) et bascule `SanitaryBlocks_Inventory` en conséquence — un avis "normal" reconfirme aussi implicitement "Disponible", ce qui répond de fait à l'angle mort décrit ci-dessous. Le **module Exploitant côté EkoMa a été construit** (voir dépôt EkoMa, onglet "Gestion Parc Sanitaire" → "Accès sanitaire") : 5 boutons déclaratifs par sanitaire d'un parc, réservés aux admins EkoMa pour l'instant (pas encore de compte "Exploitant" en libre-service).
 

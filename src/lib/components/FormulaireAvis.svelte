@@ -88,10 +88,19 @@
   // quand la photo est encore en attente d'envoi (jeton "horsligne:<id>",
   // pas une URL image valide). Voir BoutonPhoto.svelte, prop onApercu.
   let apercusConfort = $state({})
+  // Libere le blob: URL d'un apercu remplace/retire (audit qualite du
+  // 2026-09-23) -- sans ca, chaque photo prise sur une tournee restait en
+  // memoire jusqu'a la fermeture de l'onglet.
+  function revoquerApercu(p) {
+    if (p?.apercu?.startsWith?.('blob:')) URL.revokeObjectURL(p.apercu)
+  }
   function ajouterPhotoConfort(tag, url, apercu) {
+    const remplacee = photosConfort.find((p) => p.tag === tag)
+    if (remplacee) revoquerApercu(remplacee)
     photosConfort = [...photosConfort.filter((p) => p.tag !== tag), { tag, url, apercu }]
   }
   function retirerPhotoConfort(index) {
+    revoquerApercu(photosConfort[index])
     photosConfort = photosConfort.filter((_, i) => i !== index)
   }
 

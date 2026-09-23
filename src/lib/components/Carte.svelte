@@ -164,14 +164,38 @@
     })
   }
 
+  // Limite adaptee au zoom (audit qualite du 2026-09-23) : a l'echelle
+  // ville/quartier, quelques centaines de sanitaires suffisent largement --
+  // inutile de demander la limite haute a chaque deplacement. A l'echelle
+  // region/pays, on garde une limite haute pour ne pas revenir au
+  // sous-comptage signale par Gilles le 2026-08-31 ("400 sur la France mais
+  // 200 sur Bordeaux seul").
+  function limitePourZoom(zoom) {
+    if (zoom >= 14) return 500
+    if (zoom >= 11) return 3000
+    if (zoom >= 8) return 12000
+    return 40000
+  }
+
   async function rafraichirSanitaires() {
     try {
-      donneesBrutes = await chargerSanitairesDansZone(map.getBounds())
+      donneesBrutes = await chargerSanitairesDansZone(map.getBounds(), limitePourZoom(map.getZoom()))
       redessiner()
       mettreAJourResultatsRecherche()
     } catch (e) {
       console.error('Chargement des sanitaires impossible', e)
     }
+  }
+
+  // Debounce sur moveend (audit qualite du 2026-09-23) : sans lui, chaque
+  // micro-deplacement (drag en cours, molette repetee) relancait aussitot
+  // une requete Supabase complete, chacune remplacant le resultat de la
+  // precedente sans l'attendre -- gaspillage reseau important justement
+  // dans le contexte d'usage vise (terrain, reseau degrade).
+  let delaiRafraichissement
+  function planifierRafraichissement() {
+    clearTimeout(delaiRafraichissement)
+    delaiRafraichissement = setTimeout(rafraichirSanitaires, 400)
   }
 
   function toggleChip(k) {
@@ -240,7 +264,7 @@
     map.on('moveend', () => {
       const centre = map.getCenter()
       derniereVue = { lat: centre.lat, lon: centre.lng, zoom: map.getZoom() }
-      rafraichirSanitaires()
+      planifierRafraichissement()
     })
     rafraichirSanitaires()
     if (!dejaCentreAuMontage) {
@@ -250,6 +274,7 @@
   })
 
   onDestroy(() => {
+    clearTimeout(delaiRafraichissement)
     map?.remove()
   })
 </script>

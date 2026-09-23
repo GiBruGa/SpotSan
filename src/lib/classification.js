@@ -33,8 +33,9 @@ export const LIBELLES = {
   hors_service: 'Hors Service',
 }
 
-/** Meme ordre de priorite qu'en v1 : Certified avant Verified. */
-export function classifier(t) {
+/** Meme ordre de priorite qu'en v1 : Certified avant Verified. Usage interne
+ *  uniquement (via categorieAffichage) -- pas d'appelant externe. */
+function classifier(t) {
   if (t.Certified) return 'certified'
   if (t.Verified) return 'verified'
   if (t.Sources && t.Sources.includes('Gouv')) return 'gouv'

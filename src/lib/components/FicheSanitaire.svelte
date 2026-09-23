@@ -246,7 +246,7 @@
     </section>
 
     <div class="actions">
-      <button type="button" class="donner-avis" onclick={() => onDonnerAvis?.(ubId)}>
+      <button type="button" class="donner-avis" onclick={() => onDonnerAvis?.(ubId, sanitaire?.Name)}>
         Donnez votre avis
       </button>
       <button type="button" class="signaler" onclick={() => onSignaler?.(ubId)}>
@@ -351,7 +351,6 @@
     pointer-events: none;
   }
 
-  .a-venir,
   .note {
     font-size: 0.82rem;
     color: var(--texte-attenue);

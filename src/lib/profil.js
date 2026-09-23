@@ -36,7 +36,6 @@ export async function creerProfil(userId, profil) {
       avatar_url: profil.avatar,
       Sexe_Declare: profil.sexe,
       Birthdate: profil.anneeNaissance ? `${profil.anneeNaissance}-01-01` : null,
-      Adresse: profil.adresse || null,
       Email: profil.email || null,
       handicaps: profil.handicaps.length ? profil.handicaps : null,
       consent_at: new Date().toISOString(),
@@ -77,7 +76,6 @@ export async function mettreAJourProfil(userId, profil) {
       avatar_url: profil.avatar,
       Sexe_Declare: profil.sexe,
       Birthdate: profil.anneeNaissance ? `${profil.anneeNaissance}-01-01` : null,
-      Adresse: profil.adresse || null,
       Email: profil.email || null,
       handicaps: profil.handicaps.length ? profil.handicaps : null,
     })
